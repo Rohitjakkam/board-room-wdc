@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timezone
 
 from google.cloud.firestore_v1 import ArrayUnion, Increment
+from google.cloud import firestore
 
 from core.firebase_client import get_firestore_client
 
@@ -39,6 +40,21 @@ def start_session(
 ) -> str:
     """Create a new activity session. Returns session_id."""
     session_id = str(uuid.uuid4())[:12]
+
+    # Count prior attempts for this student + simulation
+    attempt_number = 1
+    try:
+        col = _get_collection()
+        if col:
+            prior = (
+                col.where("student_name", "==", student_name)
+                   .where("student_id", "==", student_id)
+                   .where("simulation_name", "==", simulation_name)
+            )
+            attempt_number = sum(1 for _ in prior.stream()) + 1
+    except Exception:
+        logger.warning("Failed to count prior attempts, defaulting to 1")
+
     record = {
         "session_id": session_id,
         "student_name": student_name,
@@ -50,6 +66,7 @@ def start_session(
         "status": "in_progress",
         "player_role": player_role,
         "total_rounds": total_rounds,
+        "attempt_number": attempt_number,
         "rounds_completed": 0,
         "rounds": [],
         "final_score": None,
@@ -183,6 +200,59 @@ def get_records_by_student(student_id: str) -> list[dict]:
     except Exception as e:
         logger.error(f"Failed to query by student: {e}")
         return []
+
+
+def save_progress(session_id: str, progress: dict) -> bool:
+    """Save simulation progress checkpoint to Firestore for crash recovery."""
+    try:
+        col = _get_collection()
+        if col is None:
+            return False
+        col.document(session_id).update({"progress": progress})
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save progress for {session_id}: {e}")
+        return False
+
+
+def find_resumable_session(student_name: str, student_id: str, simulation_name: str) -> dict | None:
+    """Find an in-progress session with saved progress for this student + simulation.
+
+    Returns the session dict (including 'session_id' and 'progress') or None.
+    """
+    try:
+        col = _get_collection()
+        if col is None:
+            return None
+        query = (
+            col.where("student_name", "==", student_name)
+               .where("student_id", "==", student_id)
+               .where("simulation_name", "==", simulation_name)
+               .where("status", "==", "in_progress")
+        )
+        best = None
+        for doc in query.stream():
+            data = doc.to_dict()
+            if data.get("progress"):
+                if best is None or data.get("started_at", "") > best.get("started_at", ""):
+                    best = data
+        return best
+    except Exception as e:
+        logger.error(f"Failed to find resumable session: {e}")
+        return None
+
+
+def clear_progress(session_id: str) -> bool:
+    """Clear saved progress from a session document."""
+    try:
+        col = _get_collection()
+        if col is None:
+            return False
+        col.document(session_id).update({"progress": firestore.DELETE_FIELD})
+        return True
+    except Exception as e:
+        logger.error(f"Failed to clear progress for {session_id}: {e}")
+        return False
 
 
 def delete_all_records():

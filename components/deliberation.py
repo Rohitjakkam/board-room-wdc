@@ -67,7 +67,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                 logger.debug(f"Generated {len(stances)} member stances")
             except Exception as e:
                 logger.error(f"Error generating stances: {e}")
-                st.error(f"Error generating board member stances: {e}")
+                st.error("Failed to generate board member stances. Please try again.")
                 st.session_state[delib_phase_key] = 'inactive'
                 return False
 
@@ -190,9 +190,11 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
 
                     col1, col2 = st.columns([1, 2])
                     with col1:
+                        _debate_processing = st.session_state.get(f"_processing_debate_{round_num}_{name}_{exchanges}", False)
                         if st.button(f"Submit Response", key=f"submit_debate_{round_num}_{name}_{exchanges}",
-                                    type="primary", disabled=not player_response):
+                                    type="primary", disabled=not player_response or _debate_processing):
                             if player_response:
+                                st.session_state[f"_processing_debate_{round_num}_{name}_{exchanges}"] = True
                                 with st.spinner(f"{name} is considering your response..."):
                                     member_data = next(m for m in company_data['board_members']
                                                      if m['name'] == name)
@@ -202,13 +204,18 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                                         if h.get('dissenter_name') == name
                                     ]
 
-                                    result = evaluate_debate_response(
-                                        llm, member_data, company_data,
-                                        stance['counter_opinion'],
-                                        player_response,
-                                        member_debate_history,
-                                        player_role
-                                    )
+                                    try:
+                                        result = evaluate_debate_response(
+                                            llm, member_data, company_data,
+                                            stance['counter_opinion'],
+                                            player_response,
+                                            member_debate_history,
+                                            player_role
+                                        )
+                                    except Exception as e:
+                                        logger.error(f"Debate evaluation failed for {name}: {e}")
+                                        st.error("Failed to evaluate your response. Please try submitting again.")
+                                        return True
 
                                     exchange_record = {
                                         'dissenter_name': name,
@@ -317,9 +324,11 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                 col_revise_alt = None
 
             with col_force:
+                _force_processing = st.session_state.get(f"_processing_force_{round_num}", False)
                 if st.button("⚡ Force Submit", key=f"force_submit_{round_num}",
                             help="Submit without full board approval (scoring penalty applies)",
-                            use_container_width=True):
+                            use_container_width=True, disabled=_force_processing):
+                    st.session_state[f"_processing_force_{round_num}"] = True
                     logger.debug("Force Submit clicked")
                     st.session_state[force_key] = True
                     st.session_state[delib_phase_key] = 'resolved'

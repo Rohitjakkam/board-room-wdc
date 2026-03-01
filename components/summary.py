@@ -278,8 +278,10 @@ def display_final_summary(data: Dict):
 
                     if initial_val != 0:
                         pct_change = ((final_val - initial_val) / abs(initial_val)) * 100
+                    elif final_val != 0:
+                        pct_change = 100.0  # Any change from zero = 100%
                     else:
-                        pct_change = 0
+                        pct_change = 0  # 0 → 0 = no change
 
                     is_inverse = key in inverse_metrics
                     is_improvement = (change < 0 if is_inverse else change > 0)

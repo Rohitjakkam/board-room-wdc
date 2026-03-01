@@ -2,17 +2,25 @@
 Create Simulation page — PDF upload, extraction, parsing, preview, and save.
 """
 
+import logging
 import streamlit as st
 
-from extractors.pdf_extractor import extract_pdf_with_gemini
+from extractors.pdf_extractor import extract_pdf_text
 from extractors.content_parser import parse_company_data, parse_module_content
 from core.data_manager import save_extracted_data
+
+logger = logging.getLogger(__name__)
 
 
 def create_simulation_page():
     """Page for uploading PDFs, extracting data, and saving new simulations."""
     if not st.session_state.get("admin_authenticated"):
         st.warning("Please log in as admin to access this page.")
+        return
+
+    # Issue #31: Validate API key before allowing extraction
+    if not st.secrets.get("GEMINI_API_KEY"):
+        st.error("Gemini API key not configured. Add GEMINI_API_KEY to .streamlit/secrets.toml.")
         return
 
     st.markdown('<h1 class="main-header">📤 Create Simulation</h1>', unsafe_allow_html=True)
@@ -45,14 +53,21 @@ def create_simulation_page():
             )
 
             if company_file:
-                st.success(f"Uploaded: {company_file.name}")
+                file_size_mb = len(company_file.getvalue()) / (1024 * 1024)
+                st.success(f"Uploaded: {company_file.name} ({file_size_mb:.1f} MB)")
 
-                if st.button("Extract Company Data", key="dc_extract_company"):
+                if file_size_mb > 20:
+                    st.error("File exceeds 20 MB limit. Please upload a smaller PDF.")
+                elif st.button("Extract Company Data", key="dc_extract_company"):
                     with st.spinner("Extracting company information..."):
-                        company_text = extract_pdf_with_gemini(company_file)
+                        company_text = extract_pdf_text(company_file)
                         if company_text:
                             st.session_state.dc_company_text = company_text
                             st.info(f"Extracted {len(company_text)} characters from PDF")
+                            # Issue #23: Warn if extraction seems incomplete
+                            file_size_kb = len(company_file.getvalue()) / 1024
+                            if len(company_text) < 500 and file_size_kb > 100:
+                                st.warning("Extraction produced very little text relative to PDF size. Results may be incomplete.")
 
                             with st.spinner("Parsing company data with AI..."):
                                 try:
@@ -60,7 +75,8 @@ def create_simulation_page():
                                     st.session_state.dc_company_data = company_data
                                     st.success("Company data parsed successfully!")
                                 except Exception as e:
-                                    st.error(f"Failed to parse company data: {e}")
+                                    logger.error(f"Failed to parse company data: {e}")
+                                    st.error("Failed to parse company data. Please check the PDF format.")
 
         with col2:
             st.subheader("📚 Module Document")
@@ -71,14 +87,21 @@ def create_simulation_page():
             )
 
             if module_file:
-                st.success(f"Uploaded: {module_file.name}")
+                file_size_mb = len(module_file.getvalue()) / (1024 * 1024)
+                st.success(f"Uploaded: {module_file.name} ({file_size_mb:.1f} MB)")
 
-                if st.button("Extract Module Data", key="dc_extract_module"):
+                if file_size_mb > 20:
+                    st.error("File exceeds 20 MB limit. Please upload a smaller PDF.")
+                elif st.button("Extract Module Data", key="dc_extract_module"):
                     with st.spinner("Extracting module content..."):
-                        module_text = extract_pdf_with_gemini(module_file)
+                        module_text = extract_pdf_text(module_file)
                         if module_text:
                             st.session_state.dc_module_text = module_text
                             st.info(f"Extracted {len(module_text)} characters from PDF")
+                            # Issue #23: Warn if extraction seems incomplete
+                            file_size_kb = len(module_file.getvalue()) / 1024
+                            if len(module_text) < 500 and file_size_kb > 100:
+                                st.warning("Extraction produced very little text relative to PDF size. Results may be incomplete.")
 
                             with st.spinner("Parsing module content with AI..."):
                                 try:
@@ -86,7 +109,8 @@ def create_simulation_page():
                                     st.session_state.dc_module_data = module_data
                                     st.success("Module data parsed successfully!")
                                 except Exception as e:
-                                    st.error(f"Failed to parse module data: {e}")
+                                    logger.error(f"Failed to parse module data: {e}")
+                                    st.error("Failed to parse module data. Please check the PDF format.")
 
         st.divider()
 
@@ -168,13 +192,13 @@ def create_simulation_page():
 
             if st.button("💾 Save Data for Simulation", type="primary", key="dc_save_btn"):
                 with st.spinner("Saving data..."):
-                    filepath = save_extracted_data(
+                    doc_id = save_extracted_data(
                         st.session_state.dc_company_data,
                         st.session_state.dc_module_data,
                         session_name
                     )
                     st.success("Simulation saved! It's now available in the Simulations section.")
-                    st.info(f"File location: `{filepath}`")
+                    st.info(f"Simulation ID: `{doc_id}`")
                     st.balloons()
 
                     st.markdown("---")

@@ -256,7 +256,8 @@ def load_simulation_data(file_path: str) -> Optional[Dict]:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        st.error(f"Error loading simulation data: {e}")
+        logger.error(f"Error loading simulation data: {e}")
+        st.error("Failed to load simulation data. Please try again or contact admin.")
         return None
 
 
@@ -1541,7 +1542,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                 logger.debug(f"Generated {len(stances)} member stances")
             except Exception as e:
                 logger.error(f"Error generating stances: {e}")
-                st.error(f"Error generating board member stances: {e}")
+                st.error("Failed to generate board member stances. Please try again.")
                 st.session_state[delib_phase_key] = 'inactive'
                 return False
 
@@ -3394,7 +3395,8 @@ def simulation_page():
     try:
         llm = initialize_llm(st.session_state.api_key)
     except Exception as e:
-        st.error(f"Failed to initialize AI model: {e}")
+        logger.error(f"Failed to initialize AI model: {e}")
+        st.error("Failed to initialize AI model. Please check your API key configuration.")
         return
 
     # Initialize simulation state

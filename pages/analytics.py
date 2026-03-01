@@ -234,7 +234,7 @@ def analytics_page():
                 max_rounds = max(r.get("total_rounds", 5) for r in sim_completed)
                 round_scores = {}
                 for r in sim_completed:
-                    for rd in r.get("rounds", []):
+                    for rd in (r.get("rounds") or []):
                         rn = rd["round_number"]
                         if rn not in round_scores:
                             round_scores[rn] = []
@@ -244,6 +244,8 @@ def analytics_page():
                 if round_scores:
                     round_cols = st.columns(min(len(round_scores), 6))
                     for i, rn in enumerate(sorted(round_scores.keys())):
+                        if not round_scores[rn]:
+                            continue
                         avg = sum(round_scores[rn]) / len(round_scores[rn])
                         color = "#28a745" if avg >= 70 else "#ffc107" if avg >= 50 else "#dc3545"
                         round_cols[i % len(round_cols)].markdown(
@@ -274,11 +276,11 @@ def analytics_page():
                 st.markdown("---")
                 st.markdown("**Consultation Usage:**")
                 total_board = sum(
-                    sum(rd.get("board_consultations", 0) for rd in r.get("rounds", []))
+                    sum(rd.get("board_consultations", 0) for rd in (r.get("rounds") or []))
                     for r in sim_completed
                 )
                 total_committee = sum(
-                    sum(rd.get("committee_consultations", 0) for rd in r.get("rounds", []))
+                    sum(rd.get("committee_consultations", 0) for rd in (r.get("rounds") or []))
                     for r in sim_completed
                 )
                 total_rounds_all = sum(r.get("rounds_completed", 0) for r in sim_completed)
@@ -341,7 +343,7 @@ def analytics_page():
                 gc4.metric("Metrics Declined", detail_record.get("metrics_declined", "—"))
 
             # Round-by-round details
-            rounds = detail_record.get("rounds", [])
+            rounds = detail_record.get("rounds") or []
             if rounds:
                 st.markdown("---")
                 st.markdown("### Round-by-Round Breakdown")

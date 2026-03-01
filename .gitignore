@@ -1,5 +1,6 @@
 # Secrets
 .streamlit/secrets.toml
+.streamlit/firebase_key.json
 
 # Python
 __pycache__/

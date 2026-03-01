@@ -25,9 +25,84 @@ from components.dashboard import display_company_dashboard, display_current_prob
 from components.board_members import display_board_members_for_selection, display_board_members
 from components.deliberation import display_deliberation_phase
 from components.summary import display_final_summary
-from core.activity_tracker import start_session, log_round
+from core.activity_tracker import start_session, log_round, save_progress, find_resumable_session, clear_progress
 
 logger = logging.getLogger(__name__)
+
+
+def _save_checkpoint(checkpoint_name: str):
+    """Save current simulation state to Firestore for crash recovery."""
+    sid = st.session_state.get('activity_session_id')
+    if not sid:
+        return
+    cr = st.session_state.get('current_round', 0)
+    progress = {
+        'checkpoint': checkpoint_name,
+        'current_round': cr,
+        'total_score': st.session_state.get('total_score', 0),
+        'conversation_history': st.session_state.get('conversation_history', []),
+        'current_metrics': st.session_state.get('current_metrics', {}),
+        'metric_impact_reasons': st.session_state.get('metric_impact_reasons', {}),
+        'board_effectiveness_history': st.session_state.get('board_effectiveness_history', []),
+        'player_role': st.session_state.get('player_role'),
+        'game_goals': st.session_state.get('game_goals'),
+        'saved_at': datetime.now().isoformat(),
+        'round_state': {
+            'scenario': st.session_state.get(f'scenario_round_{cr}'),
+            'pending_decision': st.session_state.get(f'pending_decision_{cr}'),
+            'evaluation': st.session_state.get(f'evaluation_{cr}'),
+            'board_consultations': st.session_state.get(f'board_consultations_round_{cr}', 0),
+            'committee_consultations': st.session_state.get(f'committee_consultations_round_{cr}', 0),
+            'revisions': st.session_state.get(f'revisions_round_{cr}', 0),
+            'deliberation_phase': st.session_state.get(f'deliberation_phase_{cr}'),
+            'force_submitted': st.session_state.get(f'force_submitted_{cr}', False),
+        },
+    }
+    try:
+        save_progress(sid, progress)
+    except Exception:
+        logger.warning("Failed to save checkpoint %s", checkpoint_name)
+
+
+def _restore_from_progress(session_data: dict, company_data: dict):
+    """Restore simulation state from a saved progress checkpoint."""
+    progress = session_data['progress']
+    cr = progress.get('current_round', 0)
+
+    # Core state
+    st.session_state.current_round = cr
+    st.session_state.total_score = progress.get('total_score', 0)
+    st.session_state.conversation_history = progress.get('conversation_history', [])
+    st.session_state.current_metrics = progress.get('current_metrics', {})
+    st.session_state.metric_impact_reasons = progress.get('metric_impact_reasons', {})
+    st.session_state.board_effectiveness_history = progress.get('board_effectiveness_history', [])
+    st.session_state.simulation_started = True
+    st.session_state.activity_session_id = session_data['session_id']
+    st.session_state.initial_metrics = {k: v.copy() for k, v in company_data['metrics'].items()}
+
+    # Player role
+    if progress.get('player_role'):
+        st.session_state.player_role = progress['player_role']
+
+    # Game goals
+    if progress.get('game_goals'):
+        st.session_state.game_goals = progress['game_goals']
+
+    # Per-round state
+    rs = progress.get('round_state', {})
+    if rs.get('scenario'):
+        st.session_state[f'scenario_round_{cr}'] = rs['scenario']
+    if rs.get('pending_decision'):
+        st.session_state[f'pending_decision_{cr}'] = rs['pending_decision']
+    if rs.get('evaluation'):
+        st.session_state[f'evaluation_{cr}'] = rs['evaluation']
+        st.session_state.round_complete = True
+    st.session_state[f'board_consultations_round_{cr}'] = rs.get('board_consultations', 0)
+    st.session_state[f'committee_consultations_round_{cr}'] = rs.get('committee_consultations', 0)
+    st.session_state[f'revisions_round_{cr}'] = rs.get('revisions', 0)
+    if rs.get('deliberation_phase'):
+        st.session_state[f'deliberation_phase_{cr}'] = rs['deliberation_phase']
+    st.session_state[f'force_submitted_{cr}'] = rs.get('force_submitted', False)
 
 
 def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
@@ -36,7 +111,11 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
 
     company_data = data['company_data']
     module_data = data['module_data']
-    round_config = data['simulation_config']['rounds'][state.current_round]
+    rounds = data['simulation_config']['rounds']
+    if state.current_round >= len(rounds):
+        st.error(f"Round {state.current_round + 1} configuration not found. Only {len(rounds)} rounds are configured.")
+        st.stop()
+    round_config = rounds[state.current_round]
     player_role = st.session_state.get('player_role')
 
     # Initialize separate consultation counters for this round
@@ -74,9 +153,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
         """, unsafe_allow_html=True)
 
     with col2:
-        board_left = 1 - st.session_state[board_consult_key]
-        committee_left = 1 - st.session_state[committee_consult_key]
-        revision_left = 1 - st.session_state[revision_key]
+        board_left = max(0, 1 - st.session_state[board_consult_key])
+        committee_left = max(0, 1 - st.session_state[committee_consult_key])
+        revision_left = max(0, 1 - st.session_state[revision_key])
         st.markdown(f"""
         <div class="consultation-counter">
             👥 Director: {board_left}/1 | 🏛️ Committee: {committee_left}/1 | ✏️ Revise: {revision_left}/1
@@ -170,15 +249,22 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     timer_expired = st.session_state.get(timer_expired_key, False)
 
     if timer_expired and not decision_submitted:
-        st.warning("⚠️ **Time has expired!** You can still submit your decision, but this may affect your score.")
+        st.session_state[f"force_submitted_{state.current_round}"] = True
+        st.warning("⚠️ **Time has expired!** You can still submit your decision, but this will be recorded as a late submission and may affect your score.")
 
     # Generate or retrieve scenario
     scenario_key = f"scenario_round_{state.current_round}"
     if scenario_key not in st.session_state:
         with st.spinner("Generating scenario..."):
-            st.session_state[scenario_key] = generate_scenario(
-                llm, company_data, module_data, round_config, player_role
-            )
+            try:
+                st.session_state[scenario_key] = generate_scenario(
+                    llm, company_data, module_data, round_config, player_role
+                )
+            except Exception as e:
+                logger.error(f"Scenario generation failed: {e}")
+                st.error("Failed to generate scenario. Please refresh the page to retry.")
+                st.stop()
+        _save_checkpoint('scenario_generated')
 
     scenario = st.session_state[scenario_key]
 
@@ -205,49 +291,60 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                 st.warning("⚠️ You have already used your director consultation for this round.")
             else:
                 available_members = [m for m in company_data['board_members'] if m['name'] != player_role['name']]
-                member_names = [m['name'] for m in available_members]
 
-                selected_members = st.multiselect(
-                    "Select board member(s) to consult:",
-                    member_names,
-                    key=f"member_select_{state.current_round}",
-                    help="You can select multiple members for a group discussion (1 consultation per round)"
-                )
+                if not available_members:
+                    st.info("No other board members are available for consultation.")
+                else:
+                    member_names = [m['name'] for m in available_members]
 
-                user_question = st.text_input(
-                    "Your question or topic for discussion:",
-                    key=f"member_question_{state.current_round}",
-                    placeholder="e.g., What are your thoughts on the compliance implications?"
-                )
+                    selected_members = st.multiselect(
+                        "Select board member(s) to consult:",
+                        member_names,
+                        key=f"member_select_{state.current_round}",
+                        help="You can select multiple members for a group discussion (1 consultation per round)"
+                    )
 
-                if st.button("Ask Board Member(s)", key=f"ask_members_btn_{state.current_round}",
-                            disabled=len(selected_members) == 0 or not user_question):
-                    if selected_members and user_question:
-                        selected_member_data = [m for m in available_members if m['name'] in selected_members]
+                    user_question = st.text_input(
+                        "Your question or topic for discussion:",
+                        key=f"member_question_{state.current_round}",
+                        placeholder="e.g., What are your thoughts on the compliance implications?"
+                    )
 
-                        with st.spinner(f"{'Board members are' if len(selected_members) > 1 else selected_members[0] + ' is'} responding..."):
-                            response = get_board_member_response(
-                                llm, selected_member_data, company_data, module_data,
-                                scenario, user_question,
-                                st.session_state.get('conversation_history', []),
-                                player_role
-                            )
+                    _board_processing = st.session_state.get(f"_processing_board_{state.current_round}", False)
+                    if st.button("Ask Board Member(s)", key=f"ask_members_btn_{state.current_round}",
+                                disabled=len(selected_members) == 0 or not user_question or _board_processing):
+                        if selected_members and user_question:
+                            st.session_state[f"_processing_board_{state.current_round}"] = True
+                            selected_member_data = [m for m in available_members if m['name'] in selected_members]
 
-                            st.session_state[board_consult_key] += 1
+                            with st.spinner(f"{'Board members are' if len(selected_members) > 1 else selected_members[0] + ' is'} responding..."):
+                                try:
+                                    response = get_board_member_response(
+                                        llm, selected_member_data, company_data, module_data,
+                                        scenario, user_question,
+                                        st.session_state.get('conversation_history', []),
+                                        player_role
+                                    )
 
-                            if 'conversation_history' not in st.session_state:
-                                st.session_state.conversation_history = []
+                                    st.session_state[board_consult_key] += 1
 
-                            member_label = ", ".join(selected_members) if len(selected_members) > 1 else selected_members[0]
+                                    if 'conversation_history' not in st.session_state:
+                                        st.session_state.conversation_history = []
 
-                            st.session_state.conversation_history.append({
-                                'role': 'user', 'content': user_question, 'member': member_label
-                            })
-                            st.session_state.conversation_history.append({
-                                'role': 'assistant', 'content': response, 'member': member_label
-                            })
+                                    member_label = ", ".join(selected_members) if len(selected_members) > 1 else selected_members[0]
 
-                        st.rerun()
+                                    st.session_state.conversation_history.append({
+                                        'role': 'user', 'content': user_question, 'member': member_label
+                                    })
+                                    st.session_state.conversation_history.append({
+                                        'role': 'assistant', 'content': response, 'member': member_label
+                                    })
+                                except Exception as e:
+                                    logger.error(f"Board consultation failed: {e}")
+                                    st.error("Board member is temporarily unavailable. Your consultation was not consumed — please try again.")
+
+                            _save_checkpoint('consultation_done')
+                            st.rerun()
 
         with consult_tab2:
             if committee_consultation_used:
@@ -269,32 +366,39 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                         placeholder="e.g., What is the committee's recommendation on this matter?"
                     )
 
+                    _comm_processing = st.session_state.get(f"_processing_committee_{state.current_round}", False)
                     if st.button("Consult Committee", key=f"ask_committee_btn_{state.current_round}",
-                                disabled=not committee_question):
+                                disabled=not committee_question or _comm_processing):
                         if committee_question:
+                            st.session_state[f"_processing_committee_{state.current_round}"] = True
                             selected_committee_data = next(c for c in committees if c['name'] == selected_committee)
 
                             with st.spinner(f"{selected_committee} is deliberating..."):
-                                response = get_committee_response(
-                                    llm, selected_committee_data, company_data, module_data,
-                                    scenario, committee_question,
-                                    st.session_state.get('conversation_history', []),
-                                    player_role,
-                                    company_data['board_members']
-                                )
+                                try:
+                                    response = get_committee_response(
+                                        llm, selected_committee_data, company_data, module_data,
+                                        scenario, committee_question,
+                                        st.session_state.get('conversation_history', []),
+                                        player_role,
+                                        company_data['board_members']
+                                    )
 
-                                st.session_state[committee_consult_key] += 1
+                                    st.session_state[committee_consult_key] += 1
 
-                                if 'conversation_history' not in st.session_state:
-                                    st.session_state.conversation_history = []
+                                    if 'conversation_history' not in st.session_state:
+                                        st.session_state.conversation_history = []
 
-                                st.session_state.conversation_history.append({
-                                    'role': 'user', 'content': committee_question, 'member': selected_committee
-                                })
-                                st.session_state.conversation_history.append({
-                                    'role': 'assistant', 'content': response, 'member': selected_committee
-                                })
+                                    st.session_state.conversation_history.append({
+                                        'role': 'user', 'content': committee_question, 'member': selected_committee
+                                    })
+                                    st.session_state.conversation_history.append({
+                                        'role': 'assistant', 'content': response, 'member': selected_committee
+                                    })
+                                except Exception as e:
+                                    logger.error(f"Committee consultation failed: {e}")
+                                    st.error("Committee is temporarily unavailable. Your consultation was not consumed — please try again.")
 
+                            _save_checkpoint('consultation_done')
                             st.rerun()
                 else:
                     st.info("No committees are available for consultation.")
@@ -368,58 +472,68 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     if needs_evaluation:
         logger.debug("Running evaluation after deliberation")
         with st.spinner("Evaluating your decision and calculating impacts..."):
-            stances = st.session_state.get(f"member_stances_{state.current_round}", {})
-            debate_history = st.session_state.get(f"debate_history_{state.current_round}", [])
-            force_submitted = st.session_state.get(f"force_submitted_{state.current_round}", False)
+            try:
+                stances = st.session_state.get(f"member_stances_{state.current_round}", {})
+                debate_history = st.session_state.get(f"debate_history_{state.current_round}", [])
+                force_submitted = st.session_state.get(f"force_submitted_{state.current_round}", False)
 
-            consultations = st.session_state.get('conversation_history', [])
-            alignment_result = evaluate_consultation_alignment(
-                llm, consultations, st.session_state[pending_decision_key], stances
-            )
+                consultations = st.session_state.get('conversation_history', [])
+                alignment_result = evaluate_consultation_alignment(
+                    llm, consultations, st.session_state[pending_decision_key], stances
+                )
 
-            effectiveness = calculate_board_effectiveness_score(
-                state.current_round, stances, debate_history,
-                alignment_result.get('alignment_score', 50), force_submitted
-            )
+                effectiveness = calculate_board_effectiveness_score(
+                    state.current_round, stances, debate_history,
+                    alignment_result.get('alignment_score', 50), force_submitted
+                )
 
-            if "board_effectiveness_history" not in st.session_state:
-                st.session_state.board_effectiveness_history = []
-            st.session_state.board_effectiveness_history.append(effectiveness)
-            st.session_state[f"board_effectiveness_{state.current_round}"] = effectiveness
+                if "board_effectiveness_history" not in st.session_state:
+                    st.session_state.board_effectiveness_history = []
+                st.session_state.board_effectiveness_history.append(effectiveness)
+                st.session_state[f"board_effectiveness_{state.current_round}"] = effectiveness
 
-            evaluation = evaluate_decision(
-                llm, company_data, module_data,
-                scenario, st.session_state[pending_decision_key], round_config, player_role
-            )
+                evaluation = evaluate_decision(
+                    llm, company_data, module_data,
+                    scenario, st.session_state[pending_decision_key], round_config, player_role
+                )
 
-            evaluation['board_effectiveness'] = effectiveness
-            st.session_state[eval_key] = evaluation
+                evaluation['board_effectiveness'] = effectiveness
+                st.session_state[eval_key] = evaluation
 
-            if 'metric_impacts' in evaluation:
-                impacts = evaluation['metric_impacts']
-                current_metrics = st.session_state.get('current_metrics', company_data['metrics'].copy())
-                impact_values = impacts.get('impacts', {})
-                if force_submitted:
-                    impact_values = {k: v * 0.85 if v > 0 else v for k, v in impact_values.items()}
-                updated_metrics = apply_metric_impacts(current_metrics, impact_values)
-                st.session_state.current_metrics = updated_metrics
-                st.session_state.metric_impact_reasons = impacts.get('reasons', {})
-                st.session_state[f"impact_summary_{state.current_round}"] = impacts.get('summary', '')
+                if 'metric_impacts' in evaluation:
+                    impacts = evaluation['metric_impacts']
+                    current_metrics = st.session_state.get('current_metrics', company_data['metrics'].copy())
+                    impact_values = impacts.get('impacts', {})
+                    if force_submitted:
+                        impact_values = {k: v * 0.85 if v > 0 else v for k, v in impact_values.items()}
+                    updated_metrics = apply_metric_impacts(current_metrics, impact_values)
+                    st.session_state.current_metrics = updated_metrics
+                    st.session_state.metric_impact_reasons = impacts.get('reasons', {})
+                    st.session_state[f"impact_summary_{state.current_round}"] = impacts.get('summary', '')
 
-            st.session_state.round_complete = True
+                st.session_state.round_complete = True
+                _save_checkpoint('evaluated')
+            except Exception as e:
+                logger.error(f"Decision evaluation failed: {e}")
+                st.error("Failed to evaluate your decision. Please click 'Submit Decision' again to retry.")
+                del st.session_state[pending_decision_key]
+                st.stop()
         st.rerun()
 
     # Only show submit button if evaluation not yet done
     if eval_key not in st.session_state:
         col1, col2 = st.columns([1, 4])
         with col1:
-            if st.button("Submit Decision", key=f"submit_decision_{state.current_round}", type="primary"):
-                if decision:
-                    st.session_state[pending_decision_key] = decision
+            _submit_processing = st.session_state.get(f"_processing_submit_{state.current_round}", False)
+            if st.button("Submit Decision", key=f"submit_decision_{state.current_round}", type="primary",
+                         disabled=_submit_processing):
+                if decision and decision.strip():
+                    st.session_state[f"_processing_submit_{state.current_round}"] = True
+                    st.session_state[pending_decision_key] = decision.strip()
                     st.session_state[delib_phase_key] = 'inactive'
                     st.rerun()
                 else:
-                    st.warning("Please enter your decision before submitting.")
+                    st.warning("Please enter your decision before submitting (at least a few words).")
 
     # Display evaluation if available
     if eval_key in st.session_state:
@@ -524,7 +638,10 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                                 st.caption(f"↳ {reason}")
 
         # Next round button
-        if st.button("Proceed to Next Round", key=f"next_round_{state.current_round}"):
+        _next_processing = st.session_state.get(f"_processing_next_{state.current_round}", False)
+        if st.button("Proceed to Next Round", key=f"next_round_{state.current_round}",
+                     disabled=_next_processing):
+            st.session_state[f"_processing_next_{state.current_round}"] = True
             # Track round activity
             try:
                 _act_sid = st.session_state.get('activity_session_id')
@@ -551,6 +668,7 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
             st.session_state.round_complete = False
             st.session_state.total_score = st.session_state.get('total_score', 0) + score
             st.session_state.metric_impact_reasons = {}
+            _save_checkpoint('next_round')
             st.rerun()
 
 
@@ -565,7 +683,7 @@ def simulation_page():
         return
 
     sim = simulations[sim_index]
-    st.session_state.selected_file = sim['filepath']
+    st.session_state.selected_doc_id = sim['doc_id']
 
     st.markdown('<h1 class="main-header">🏢 Board Room Simulation</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666;">Corporate Governance Training & Decision Making</p>', unsafe_allow_html=True)
@@ -599,7 +717,7 @@ def simulation_page():
         with st.expander("⚙️ Options", expanded=False):
             if st.button("🔄 Restart Simulation", use_container_width=True):
                 preserve_keys = {
-                    'api_key', 'selected_file', 'selected_sim_index', '_sim_pages',
+                    'api_key', 'selected_doc_id', 'selected_sim_index', '_sim_pages',
                     'user_role', 'admin_authenticated',
                     'student_name', 'student_id', 'student_identified',
                     'activity_session_id'
@@ -750,29 +868,52 @@ def simulation_page():
         st.error("⚠️ API Key not configured. Please add GEMINI_API_KEY to your Streamlit secrets.")
         return
 
-    if not st.session_state.get('selected_file'):
-        st.warning("⚠️ Please select a simulation file.")
+    if not st.session_state.get('selected_doc_id'):
+        st.warning("⚠️ Please select a simulation.")
         return
 
-    data = load_simulation_data(st.session_state.selected_file)
+    data = load_simulation_data(st.session_state.selected_doc_id)
     if not data:
         st.error("Failed to load simulation data.")
+        return
+
+    # Validate required top-level fields
+    missing = [f for f in ('company_data', 'module_data', 'simulation_config') if f not in data or not data[f]]
+    if missing:
+        st.error(f"Simulation data is incomplete. Missing: {', '.join(missing)}. Please re-create this simulation.")
+        return
+
+    company_data = data['company_data']
+    module_data = data['module_data']
+    simulation_config = data['simulation_config']
+
+    # Validate required nested fields
+    required_company = {'company_name': 'Company Name', 'board_members': 'Board Members', 'metrics': 'Metrics'}
+    required_module = {'module_name': 'Module Name', 'learning_objectives': 'Learning Objectives', 'topics': 'Topics'}
+    missing_nested = []
+    for key, label in required_company.items():
+        if not company_data.get(key):
+            missing_nested.append(label)
+    for key, label in required_module.items():
+        if not module_data.get(key):
+            missing_nested.append(label)
+    if not simulation_config.get('rounds'):
+        missing_nested.append('Round Configuration')
+    if missing_nested:
+        st.error(f"Simulation data is incomplete. Missing: {', '.join(missing_nested)}. Please edit this simulation in Manage Simulations.")
         return
 
     try:
         llm = initialize_llm(st.session_state.api_key)
     except Exception as e:
-        st.error(f"Failed to initialize AI model: {e}")
+        logger.error(f"Failed to initialize AI model: {e}")
+        st.error("Failed to initialize AI model. Please check your API key configuration.")
         return
 
     if 'current_round' not in st.session_state:
         st.session_state.current_round = 0
     if 'simulation_started' not in st.session_state:
         st.session_state.simulation_started = False
-
-    company_data = data['company_data']
-    module_data = data['module_data']
-    simulation_config = data['simulation_config']
 
     # Student identification gate (skip for admins)
     if not st.session_state.get("admin_authenticated") and not st.session_state.get("student_identified"):
@@ -817,6 +958,27 @@ def simulation_page():
 
     # Get student name for personalization (empty string for admins)
     _student_first = st.session_state.get('student_name', '').split()[0] if st.session_state.get('student_name') else ''
+
+    # Check for resumable session (only before simulation has started)
+    if not st.session_state.get('simulation_started') and not st.session_state.get('player_role'):
+        _s_name = st.session_state.get('student_name', '')
+        _s_id = st.session_state.get('student_id', '')
+        if _s_name and _s_id and not st.session_state.get('_resume_declined'):
+            resumable = find_resumable_session(_s_name, _s_id, company_data['company_name'])
+            if resumable and resumable.get('progress'):
+                _prog = resumable['progress']
+                st.info(f"You have an in-progress session (Round {_prog.get('current_round', 0) + 1}, checkpoint: {_prog.get('checkpoint', 'unknown')}). Would you like to resume?")
+                _rc1, _rc2 = st.columns(2)
+                with _rc1:
+                    if st.button("Resume Session", type="primary"):
+                        _restore_from_progress(resumable, company_data)
+                        st.rerun()
+                with _rc2:
+                    if st.button("Start Fresh"):
+                        clear_progress(resumable['session_id'])
+                        st.session_state._resume_declined = True
+                        st.rerun()
+                return  # Block further rendering until choice is made
 
     # Main content area
     if not st.session_state.get('player_role'):
@@ -1069,6 +1231,12 @@ def simulation_page():
                 show_disclaimer_dialog()
 
     elif st.session_state.current_round >= simulation_config['total_rounds']:
+        # Clear saved progress — simulation is complete
+        _act_sid = st.session_state.get('activity_session_id')
+        if _act_sid and not st.session_state.get('_progress_cleared'):
+            clear_progress(_act_sid)
+            st.session_state._progress_cleared = True
+
         impact_reasons = st.session_state.get('metric_impact_reasons', {})
         display_sidebar_metrics(company_data, impact_reasons)
         display_final_summary(data)
@@ -1076,6 +1244,31 @@ def simulation_page():
     else:
         impact_reasons = st.session_state.get('metric_impact_reasons', {})
         display_sidebar_metrics(company_data, impact_reasons)
+
+        # Inject beforeunload warning (once per session)
+        if not st.session_state.get('_beforeunload_injected'):
+            st.markdown("""<script>
+                window.addEventListener('beforeunload', function(e) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                });
+            </script>""", unsafe_allow_html=True)
+            st.session_state._beforeunload_injected = True
+
+        # Inject session timeout warning (fires at 25 minutes)
+        if not st.session_state.get('_timeout_warning_injected'):
+            st.markdown("""<script>
+                if (!window._timeoutWarningSet) {
+                    window._timeoutWarningSet = true;
+                    setTimeout(function() {
+                        var el = document.createElement('div');
+                        el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff6b6b;color:white;padding:12px;text-align:center;z-index:9999;font-weight:bold;';
+                        el.innerHTML = 'Session may expire soon due to inactivity. Please interact with the page to keep it alive.';
+                        document.body.prepend(el);
+                    }, 25 * 60 * 1000);
+                }
+            </script>""", unsafe_allow_html=True)
+            st.session_state._timeout_warning_injected = True
 
         state = SimulationState(
             current_round=st.session_state.current_round,

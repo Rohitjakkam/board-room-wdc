@@ -10,7 +10,7 @@ from datetime import datetime
 from core.utils import safe_index, safe_key, safe_float, safe_int, safe_str
 from core.data_manager import (
     list_saved_sessions, load_extracted_data, delete_session,
-    save_extracted_data, get_default_simulation_config
+    save_extracted_data, get_default_simulation_config, update_simulation
 )
 
 
@@ -24,8 +24,8 @@ def manage_simulations_page():
     st.markdown("Manage saved sessions, audit extracted data, and configure simulation rounds.")
 
     # Initialize audit session state
-    if 'audit_loaded_file' not in st.session_state:
-        st.session_state.audit_loaded_file = None
+    if 'audit_loaded_doc_id' not in st.session_state:
+        st.session_state.audit_loaded_doc_id = None
     if 'audit_data' not in st.session_state:
         st.session_state.audit_data = None
     if 'audit_modified' not in st.session_state:
@@ -52,16 +52,16 @@ def manage_simulations_page():
 
                     with col2:
                         st.markdown(f"**Created:** {session['created_at'][:19].replace('T', ' ')}")
-                        st.markdown(f"**File:** `{session['filename']}`")
+                        st.markdown(f"**ID:** `{session['doc_id']}`")
 
                     with col3:
-                        if st.button("🗑️ Delete", key=f"del_{session['filename']}"):
-                            if delete_session(session['filepath']):
+                        if st.button("🗑️ Delete", key=f"del_{session['doc_id']}"):
+                            if delete_session(session['doc_id']):
                                 st.success("Deleted!")
                                 st.rerun()
 
-                        if st.button("📂 Load for Audit", key=f"load_{session['filename']}"):
-                            data = load_extracted_data(session['filepath'])
+                        if st.button("📂 Load for Audit", key=f"load_{session['doc_id']}"):
+                            data = load_extracted_data(session['doc_id'])
                             if data:
                                 # Ensure data structure integrity
                                 if 'company_data' not in data or data['company_data'] is None:
@@ -80,7 +80,7 @@ def manage_simulations_page():
                                         data['module_data'][key] = {} if key == 'key_terms' else []
 
                                 st.session_state.audit_data = data
-                                st.session_state.audit_loaded_file = session['filepath']
+                                st.session_state.audit_loaded_doc_id = session['doc_id']
                                 st.session_state.audit_modified = False
                                 st.success("Data loaded! Switch to 'Audit Data' tab to review and edit.")
                                 st.rerun()
@@ -100,7 +100,7 @@ def manage_simulations_page():
             if not sessions:
                 st.warning("No saved sessions found. Please create a simulation first.")
             else:
-                session_options = {s['display_name']: s['filepath'] for s in sessions}
+                session_options = {s['display_name']: s['doc_id'] for s in sessions}
                 selected_session = st.selectbox(
                     "Choose a session to audit",
                     options=list(session_options.keys()),
@@ -110,8 +110,8 @@ def manage_simulations_page():
                 col1, col2 = st.columns([1, 4])
                 with col1:
                     if st.button("🔄 Load for Audit", type="primary"):
-                        filepath = session_options[selected_session]
-                        data = load_extracted_data(filepath)
+                        doc_id = session_options[selected_session]
+                        data = load_extracted_data(doc_id)
                         if data:
                             if 'company_data' not in data or data['company_data'] is None:
                                 data['company_data'] = {}
@@ -129,7 +129,7 @@ def manage_simulations_page():
                                     data['module_data'][key] = {} if key == 'key_terms' else []
 
                             st.session_state.audit_data = data
-                            st.session_state.audit_loaded_file = filepath
+                            st.session_state.audit_loaded_doc_id = doc_id
                             st.session_state.audit_modified = False
                             st.success("Session loaded for auditing!")
                             st.rerun()
@@ -137,6 +137,14 @@ def manage_simulations_page():
                 with col2:
                     if st.session_state.audit_modified:
                         st.warning("⚠️ You have unsaved changes!")
+                        if not st.session_state.get('_admin_beforeunload_injected'):
+                            st.markdown("""<script>
+                                window.addEventListener('beforeunload', function(e) {
+                                    e.preventDefault();
+                                    e.returnValue = '';
+                                });
+                            </script>""", unsafe_allow_html=True)
+                            st.session_state._admin_beforeunload_injected = True
 
         if st.session_state.audit_data:
             st.divider()
@@ -159,14 +167,12 @@ def manage_simulations_page():
             col1, col2, col3 = st.columns([2, 2, 2])
 
             with col1:
-                if st.button("💾 Save to Current File", type="primary", disabled=not st.session_state.audit_modified):
-                    if st.session_state.audit_loaded_file:
-                        st.session_state.audit_data['modified_at'] = datetime.now().isoformat()
-                        with open(st.session_state.audit_loaded_file, 'w', encoding='utf-8') as f:
-                            json.dump(st.session_state.audit_data, f, indent=2, ensure_ascii=False)
-                        st.session_state.audit_modified = False
-                        st.success("Changes saved successfully!")
-                        st.rerun()
+                if st.button("💾 Save Changes", type="primary", disabled=not st.session_state.audit_modified):
+                    if st.session_state.audit_loaded_doc_id:
+                        if update_simulation(st.session_state.audit_loaded_doc_id, st.session_state.audit_data):
+                            st.session_state.audit_modified = False
+                            st.success("Changes saved successfully!")
+                            st.rerun()
 
             with col2:
                 new_session_name = st.text_input("New Session Name", key="audit_new_session_name", placeholder="Enter name to save as new")
@@ -176,13 +182,13 @@ def manage_simulations_page():
                     if new_session_name:
                         st.session_state.audit_data['session_name'] = new_session_name
                         st.session_state.audit_data['created_at'] = datetime.now().isoformat()
-                        filepath = save_extracted_data(
+                        doc_id = save_extracted_data(
                             st.session_state.audit_data.get('company_data', {}),
                             st.session_state.audit_data.get('module_data', {}),
                             new_session_name
                         )
                         st.session_state.audit_modified = False
-                        st.success(f"Saved as new session: {filepath}")
+                        st.success(f"Saved as new session: {doc_id}")
                     else:
                         st.error("Please enter a session name")
 
@@ -1061,7 +1067,7 @@ def _render_simulation_planning():
         st.warning("No saved sessions found. Please create a simulation first.")
         return
 
-    session_options = {s['display_name']: s['filepath'] for s in sessions}
+    session_options = {s['display_name']: s['doc_id'] for s in sessions}
     selected_planning_session = st.selectbox(
         "Choose a session to configure simulation",
         options=list(session_options.keys()),
@@ -1069,8 +1075,8 @@ def _render_simulation_planning():
     )
 
     if st.button("🔄 Load Session Config", type="primary", key="load_planning_session"):
-        filepath = session_options[selected_planning_session]
-        data = load_extracted_data(filepath)
+        doc_id = session_options[selected_planning_session]
+        data = load_extracted_data(doc_id)
         if data:
             if 'simulation_config' in data and data['simulation_config']:
                 loaded_config = data['simulation_config']
@@ -1111,7 +1117,7 @@ def _render_simulation_planning():
             if 'module_data' not in data or data['module_data'] is None:
                 data['module_data'] = {}
 
-            st.session_state.planning_loaded_file = filepath
+            st.session_state.planning_loaded_doc_id = doc_id
             st.session_state.planning_session_data = data
             st.success("Session loaded! Configure the simulation below.")
             st.rerun()
@@ -1385,15 +1391,13 @@ def _render_simulation_planning():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("💾 Save to Current Session", type="primary", key="save_planning_config"):
-            if 'planning_loaded_file' in st.session_state:
-                data = load_extracted_data(st.session_state.planning_loaded_file)
+            if 'planning_loaded_doc_id' in st.session_state:
+                data = load_extracted_data(st.session_state.planning_loaded_doc_id)
                 if data:
                     data['simulation_config'] = st.session_state.simulation_config
-                    data['modified_at'] = datetime.now().isoformat()
-                    with open(st.session_state.planning_loaded_file, 'w', encoding='utf-8') as f:
-                        json.dump(data, f, indent=2, ensure_ascii=False)
-                    st.success("Configuration saved successfully!")
-                    st.balloons()
+                    if update_simulation(st.session_state.planning_loaded_doc_id, data):
+                        st.success("Configuration saved successfully!")
+                        st.balloons()
 
     with col2:
         config_json = json.dumps(st.session_state.simulation_config, indent=2, ensure_ascii=False)

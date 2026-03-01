@@ -238,6 +238,8 @@ def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_deci
         final_score = (avg_decision_score * 0.6) + (normalized_metric_score * 0.4)
         board_effectiveness_component = 0
 
+    final_score = max(0, min(100, final_score))
+
     if final_score >= 90:
         grade, grade_description = 'A+', 'Outstanding Performance'
     elif final_score >= 85:

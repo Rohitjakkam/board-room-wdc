@@ -7,7 +7,13 @@
       "Bash(uv pip install -r requirements.txt --system)",
       "Bash(netstat -ano)",
       "Bash(head -100 /d/agentic_proj/boardroom_setup/data/*.json)",
-      "Bash(uv add google-cloud-firestore)"
+      "Bash(uv add google-cloud-firestore)",
+      "Bash(.venv/Scripts/python -c \":*)",
+      "Bash(.venv/Scripts/python -c \"import ast; ast.parse\\(open\\(''core/simulation_engine.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''simulation_engine.py: OK''\\)\")",
+      "Bash(.venv/Scripts/python -c \"import ast; ast.parse\\(open\\(''pages/simulation.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''simulation.py: OK''\\)\")",
+      "Bash(.venv/Scripts/python -c \"import ast; ast.parse\\(open\\(''components/deliberation.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''deliberation.py: OK''\\)\")",
+      "Bash(.venv/Scripts/python -c \"from google.api_core import exceptions as google_exceptions; print\\(''ResourceExhausted:'', google_exceptions.ResourceExhausted\\); print\\(''ServiceUnavailable:'', google_exceptions.ServiceUnavailable\\); print\\(''InternalServerError:'', google_exceptions.InternalServerError\\); print\\(''DeadlineExceeded:'', google_exceptions.DeadlineExceeded\\); print\\(''All imports OK''\\)\")",
+      "Bash(.venv/Scripts/python -c \"import ast; ast.parse\\(open\\(''pages/create_simulation.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''create_simulation.py: OK''\\)\")"
     ]
   }
 }

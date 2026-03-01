@@ -4,7 +4,9 @@ decision evaluation, stance generation, debate evaluation.
 """
 
 import logging
+import time
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
 from typing import Dict, List
 
 from core.llm import (
@@ -18,6 +20,29 @@ from core.llm import (
 
 logger = logging.getLogger(__name__)
 
+_RETRYABLE_EXCEPTIONS = (
+    google_exceptions.ResourceExhausted,
+    google_exceptions.ServiceUnavailable,
+    google_exceptions.InternalServerError,
+    google_exceptions.DeadlineExceeded,
+)
+
+
+def _call_llm(llm, prompt, max_retries=3):
+    """Call Gemini API with exponential backoff retry on transient errors."""
+    for attempt in range(max_retries + 1):
+        try:
+            response = llm.generate_content(prompt)
+            return response.text
+        except _RETRYABLE_EXCEPTIONS as e:
+            if attempt == max_retries:
+                raise
+            wait = 2 ** (attempt + 1)
+            logger.warning(f"Gemini API error (attempt {attempt+1}/{max_retries}): {e}. Retrying in {wait}s...")
+            time.sleep(wait)
+        except Exception:
+            raise
+
 
 def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
                       module_data: Dict, round_config: Dict, player_role: Dict) -> str:
@@ -26,8 +51,7 @@ def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
     full_prompt = f"""You are an expert corporate governance simulation designer.
 
 {prompt}"""
-    response = llm.generate_content(full_prompt)
-    return response.text
+    return _call_llm(llm, full_prompt)
 
 
 def get_board_member_response(llm: genai.GenerativeModel, members: List[Dict],
@@ -99,8 +123,7 @@ Format as:
 Each member should respond according to their expertise and personality. Keep each response concise (2-3 sentences).
 Address {player_role['name']} directly."""
 
-    response = llm.generate_content(full_prompt)
-    return response.text
+    return _call_llm(llm, full_prompt)
 
 
 def get_committee_response(llm: genai.GenerativeModel, committee: Dict,
@@ -137,8 +160,7 @@ Provide the committee's collective response, incorporating perspectives from:
 Be concise but comprehensive. Offer actionable recommendations aligned with the committee's purpose.
 Address {player_role['name']} directly."""
 
-    response = llm.generate_content(full_prompt)
-    return response.text
+    return _call_llm(llm, full_prompt)
 
 
 def calculate_metric_impacts(llm: genai.GenerativeModel, company_data: Dict,
@@ -193,8 +215,7 @@ Be realistic - not every decision affects all metrics. Use 0 for unaffected metr
 Good decisions (score > 70) should generally have positive impacts.
 Poor decisions (score < 50) should have negative impacts."""
 
-    response = llm.generate_content(impact_prompt)
-    content = response.text
+    content = _call_llm(llm, impact_prompt)
 
     impacts = {}
     reasons = {}
@@ -336,8 +357,7 @@ CRITICAL_FEEDBACK: [If score < 60, explain clearly what went WRONG and the poten
 
 ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60, instead provide constructive guidance on how to improve.]"""
 
-    response = llm.generate_content(evaluation_prompt)
-    content = response.text
+    content = _call_llm(llm, evaluation_prompt)
 
     # Extract score
     score = 50
@@ -545,8 +565,7 @@ def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
     prompt = get_debate_evaluation_prompt(member, company_data, original_counter,
                                            player_response, debate_history, player_role)
 
-    response = llm.generate_content(prompt)
-    content = response.text
+    content = _call_llm(llm, prompt)
 
     evaluation = ""
     score = 50
@@ -590,8 +609,7 @@ def evaluate_consultation_alignment(llm: genai.GenerativeModel, consultations: L
     """Evaluate how well player's consultations aligned with their decision."""
     prompt = get_consultation_alignment_prompt(consultations, player_decision, member_stances)
 
-    response = llm.generate_content(prompt)
-    content = response.text
+    content = _call_llm(llm, prompt)
 
     alignment_score = 50
     reasoning = ""
