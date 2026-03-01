@@ -25,6 +25,7 @@ from components.dashboard import display_company_dashboard, display_current_prob
 from components.board_members import display_board_members_for_selection, display_board_members
 from components.deliberation import display_deliberation_phase
 from components.summary import display_final_summary
+from core.activity_tracker import start_session, log_round
 
 logger = logging.getLogger(__name__)
 
@@ -524,6 +525,27 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
 
         # Next round button
         if st.button("Proceed to Next Round", key=f"next_round_{state.current_round}"):
+            # Track round activity
+            try:
+                _act_sid = st.session_state.get('activity_session_id')
+                if _act_sid:
+                    _round_start = st.session_state.get(f"round_start_time_{state.current_round}")
+                    _time_taken = int((datetime.now() - _round_start).total_seconds()) if _round_start else None
+                    log_round(
+                        session_id=_act_sid,
+                        round_number=state.current_round + 1,
+                        decision=st.session_state.get(f"pending_decision_{state.current_round}", ""),
+                        score=score,
+                        board_consultations=st.session_state.get(f"board_consultations_round_{state.current_round}", 0),
+                        committee_consultations=st.session_state.get(f"committee_consultations_round_{state.current_round}", 0),
+                        force_submitted=st.session_state.get(f"force_submitted_{state.current_round}", False),
+                        time_taken_seconds=_time_taken,
+                        strengths=evaluation.get('strengths', []),
+                        improvements=evaluation.get('improvements', []),
+                    )
+            except Exception:
+                logger.warning("Failed to log round activity")
+
             st.session_state.current_round += 1
             st.session_state.conversation_history = []
             st.session_state.round_complete = False
@@ -579,7 +601,8 @@ def simulation_page():
                 preserve_keys = {
                     'api_key', 'selected_file', 'selected_sim_index', '_sim_pages',
                     'user_role', 'admin_authenticated',
-                    'student_name', 'student_id', 'student_identified'
+                    'student_name', 'student_id', 'student_identified',
+                    'activity_session_id'
                 }
                 for key in list(st.session_state.keys()):
                     if key not in preserve_keys:
@@ -1023,6 +1046,21 @@ def simulation_page():
                 st.session_state.initial_metrics = {k: v.copy() for k, v in company_data['metrics'].items()}
                 st.session_state.current_metrics = {k: v.copy() for k, v in company_data['metrics'].items()}
                 st.session_state.metric_impact_reasons = {}
+
+                # Track activity
+                try:
+                    sid = start_session(
+                        student_name=st.session_state.get('student_name', 'Admin'),
+                        student_id=st.session_state.get('student_id', 'admin'),
+                        simulation_name=company_data['company_name'],
+                        module_name=module_data['module_name'],
+                        player_role=player_role.get('name', 'Unknown'),
+                        total_rounds=simulation_config['total_rounds'],
+                    )
+                    st.session_state.activity_session_id = sid
+                except Exception:
+                    logger.warning("Failed to start activity tracking session")
+
                 st.rerun()
 
         col1, col2, col3 = st.columns([1, 2, 1])

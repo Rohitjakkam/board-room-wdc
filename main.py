@@ -14,6 +14,7 @@ from pages.home import home_page
 from pages.create_simulation import create_simulation_page
 from pages.manage_simulations import manage_simulations_page
 from pages.simulation import simulation_page
+from pages.analytics import analytics_page
 
 
 def _slugify(text: str) -> str:
@@ -140,6 +141,9 @@ def main():
             "Create & Manage": [
                 st.Page(create_simulation_page, title="Create Simulation", icon="📤", url_path="create"),
                 st.Page(manage_simulations_page, title="Manage Simulations", icon="⚙️", url_path="manage"),
+            ],
+            "Analytics": [
+                st.Page(analytics_page, title="Student Analytics", icon="📊", url_path="analytics"),
             ],
         }
         if sim_pages:

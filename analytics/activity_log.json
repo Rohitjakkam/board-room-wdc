@@ -1,0 +1,21 @@
+[
+  {
+    "session_id": "50f47df5-ad3",
+    "student_name": "Rohit Jakkam",
+    "student_id": "101",
+    "simulation_name": "Aurora Synapse Systems Pvt. Ltd. II",
+    "module_name": "Ultimate Guide to Corporate Governance",
+    "started_at": "2026-03-01T17:34:52.578512+00:00",
+    "completed_at": null,
+    "status": "in_progress",
+    "player_role": "Ananya Rao",
+    "total_rounds": 8,
+    "rounds_completed": 0,
+    "rounds": [],
+    "final_score": null,
+    "grade": null,
+    "grade_description": null,
+    "metrics_improved": null,
+    "metrics_declined": null
+  }
+]

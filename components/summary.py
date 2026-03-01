@@ -5,7 +5,11 @@ Final summary, board effectiveness, and grade display components.
 import streamlit as st
 from typing import Dict
 
+import logging
 from core.scoring import calculate_overall_grade, calculate_goal_progress
+from core.activity_tracker import complete_session
+
+_logger = logging.getLogger(__name__)
 
 
 def display_board_effectiveness_summary(total_rounds: int):
@@ -119,6 +123,22 @@ def display_final_summary(data: Dict):
         avg_board_effectiveness = sum(r['deliberation_score'] for r in effectiveness_history) / len(effectiveness_history)
 
     grade_info = calculate_overall_grade(initial_metrics, final_metrics, avg_score, avg_board_effectiveness)
+
+    # Track completion
+    _act_sid = st.session_state.get('activity_session_id')
+    if _act_sid and not st.session_state.get('_activity_completed'):
+        try:
+            complete_session(
+                session_id=_act_sid,
+                final_score=grade_info['final_score'],
+                grade=grade_info['grade'],
+                grade_description=grade_info.get('grade_description', ''),
+                metrics_improved=grade_info.get('metrics_improved', 0),
+                metrics_declined=grade_info.get('metrics_declined', 0),
+            )
+            st.session_state._activity_completed = True
+        except Exception:
+            _logger.warning("Failed to log simulation completion")
 
     grade_color = {
         'A+': '#28a745', 'A': '#28a745', 'A-': '#5cb85c',
