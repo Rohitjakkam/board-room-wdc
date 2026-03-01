@@ -11,6 +11,10 @@ from core.data_manager import save_extracted_data
 
 def create_simulation_page():
     """Page for uploading PDFs, extracting data, and saving new simulations."""
+    if not st.session_state.get("admin_authenticated"):
+        st.warning("Please log in as admin to access this page.")
+        return
+
     st.markdown('<h1 class="main-header">📤 Create Simulation</h1>', unsafe_allow_html=True)
     st.markdown("Upload your company and module PDFs to prepare a new simulation.")
 

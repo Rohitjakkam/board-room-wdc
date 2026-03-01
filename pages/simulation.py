@@ -565,9 +565,22 @@ def simulation_page():
             </div>
             """, unsafe_allow_html=True)
 
+        if st.session_state.get("student_identified"):
+            st.markdown(f"""
+            <div style="background: #e7f3ff; padding: 0.6rem; border-radius: 8px;
+                        margin-top: 0.5rem; font-size: 0.85rem;">
+                <strong>Student:</strong> {st.session_state.get('student_name', '')}<br>
+                <strong>ID:</strong> {st.session_state.get('student_id', '')}
+            </div>
+            """, unsafe_allow_html=True)
+
         with st.expander("⚙️ Options", expanded=False):
             if st.button("🔄 Restart Simulation", use_container_width=True):
-                preserve_keys = {'api_key', 'selected_file', 'selected_sim_index', '_sim_pages'}
+                preserve_keys = {
+                    'api_key', 'selected_file', 'selected_sim_index', '_sim_pages',
+                    'user_role', 'admin_authenticated',
+                    'student_name', 'student_id', 'student_identified'
+                }
                 for key in list(st.session_state.keys()):
                     if key not in preserve_keys:
                         del st.session_state[key]
@@ -738,12 +751,57 @@ def simulation_page():
     module_data = data['module_data']
     simulation_config = data['simulation_config']
 
+    # Student identification gate (skip for admins)
+    if not st.session_state.get("admin_authenticated") and not st.session_state.get("student_identified"):
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1E3A5F 0%, #2d5a8a 100%);
+                    padding: 2rem; border-radius: 12px; margin-bottom: 1.5rem; color: white;
+                    text-align: center;">
+            <h2 style="margin: 0; color: white;">Welcome to the Boardroom Simulation</h2>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">
+                {company_data['company_name']} — {module_data['module_name']}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("### Please identify yourself to begin")
+
+        with st.form("student_id_form"):
+            student_name = st.text_input(
+                "Full Name",
+                placeholder="e.g., Rahul Sharma",
+                help="Enter your full name as it appears in your enrollment"
+            )
+            student_id = st.text_input(
+                "Student ID / Roll Number",
+                placeholder="e.g., STU-2026-001",
+                help="Enter your student ID or roll number"
+            )
+            submitted = st.form_submit_button(
+                "Continue to Simulation", type="primary", use_container_width=True
+            )
+
+            if submitted:
+                if not student_name.strip() or not student_id.strip():
+                    st.error("Please enter both your name and student ID.")
+                else:
+                    st.session_state.student_name = student_name.strip()
+                    st.session_state.student_id = student_id.strip()
+                    st.session_state.student_identified = True
+                    st.rerun()
+
+        return  # Block further rendering until identified
+
+    # Get student name for personalization (empty string for admins)
+    _student_first = st.session_state.get('student_name', '').split()[0] if st.session_state.get('student_name') else ''
+
     # Main content area
     if not st.session_state.get('player_role'):
         # Initial dashboard
+        _greeting = f", {_student_first}" if _student_first else ""
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, #1E3A5F 0%, #2d5a8a 100%); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; color: white;">
-            <h2 style="margin: 0; color: white;">Welcome to Boardroom Simulation, on "{module_data['module_name']}"</h2>
+            <h2 style="margin: 0; color: white;">Welcome{_greeting}! Boardroom Simulation on "{module_data['module_name']}"</h2>
             <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-style: italic;">Engineered by Directors' Institute.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -855,7 +913,7 @@ def simulation_page():
         st.markdown("---")
 
         # Choose Your Board Role
-        st.markdown("### 👤 Choose Your Board Role")
+        st.markdown(f"### 👤 {_student_first + ', c' if _student_first else 'C'}hoose Your Board Role")
         st.markdown("Select which board member you want to play as during this simulation:")
         selected_role = display_board_members_for_selection(company_data['board_members'])
         if selected_role:
@@ -864,7 +922,8 @@ def simulation_page():
 
     elif not st.session_state.simulation_started:
         player_role = st.session_state.player_role
-        st.success(f"✅ You are playing as **{player_role['name']}** - {player_role['role']}")
+        _role_msg = f"✅ {_student_first}, you are playing as **{player_role['name']}** - {player_role['role']}" if _student_first else f"✅ You are playing as **{player_role['name']}** - {player_role['role']}"
+        st.success(_role_msg)
 
         tab1, tab2, tab3 = st.tabs(["🏢 Company Overview", "👥 Board Members", "📚 Module Info"])
 
@@ -955,7 +1014,8 @@ def simulation_page():
 
             st.markdown("---")
 
-            if st.button("✅ I Understand, Let's Begin!", type="primary", use_container_width=True):
+            _begin_label = f"✅ Let's Begin, {_student_first}!" if _student_first else "✅ I Understand, Let's Begin!"
+            if st.button(_begin_label, type="primary", use_container_width=True):
                 st.session_state.simulation_started = True
                 st.session_state.current_round = 0
                 st.session_state.total_score = 0

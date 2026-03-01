@@ -16,6 +16,10 @@ from core.data_manager import (
 
 def manage_simulations_page():
     """Page for managing saved sessions, auditing data, and configuring simulation rounds."""
+    if not st.session_state.get("admin_authenticated"):
+        st.warning("Please log in as admin to access this page.")
+        return
+
     st.markdown('<h1 class="main-header">⚙️ Manage Simulations</h1>', unsafe_allow_html=True)
     st.markdown("Manage saved sessions, audit extracted data, and configure simulation rounds.")
 

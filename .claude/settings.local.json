@@ -4,7 +4,8 @@
       "Bash(xargs wc -l)",
       "Bash(python3 -c \"import json; f=open\\(''data/Aurora_Synapse_Systems_2__-_Ultimate_Guide_to_Corporate_Governance_complete_20260209_101951.json''\\); d=json.load\\(f\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(uv pip install -r requirements.txt)",
-      "Bash(uv pip install -r requirements.txt --system)"
+      "Bash(uv pip install -r requirements.txt --system)",
+      "Bash(netstat -ano)"
     ]
   }
 }

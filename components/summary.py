@@ -93,10 +93,18 @@ def display_board_effectiveness_summary(total_rounds: int):
 
 def display_final_summary(data: Dict):
     """Display final simulation summary."""
-    st.markdown("## 🎉 Simulation Complete!")
+    _student_name = st.session_state.get('student_name', '')
+    _student_id = st.session_state.get('student_id', '')
+
+    if _student_name:
+        st.markdown(f"## 🎉 Well Done, {_student_name.split()[0]}! Simulation Complete!")
+    else:
+        st.markdown("## 🎉 Simulation Complete!")
 
     player_role = st.session_state.get('player_role', {})
     st.markdown(f"**You played as:** {player_role.get('name', 'Unknown')} - {player_role.get('role', 'Unknown')}")
+    if _student_name:
+        st.markdown(f"**Student:** {_student_name} &nbsp;|&nbsp; **ID:** {_student_id}")
 
     total_score = st.session_state.get('total_score', 0)
     rounds_completed = st.session_state.get('current_round', 0)
@@ -119,8 +127,10 @@ def display_final_summary(data: Dict):
         'D': '#f44336', 'F': '#d32f2f'
     }.get(grade_info['grade'], '#666')
 
+    _name_line = f'<p style="color: #555; font-size: 1rem; margin: 0.3rem 0;">{_student_name} ({_student_id})</p>' if _student_name else ''
     st.markdown(f"""
     <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; margin-bottom: 2rem;">
+        {_name_line}
         <h1 style="color: {grade_color}; font-size: 4rem; margin: 0;">{grade_info['grade']}</h1>
         <h3 style="color: #333; margin: 0.5rem 0;">{grade_info['grade_description']}</h3>
         <p style="color: #666; font-size: 1.2rem;">Overall Score: {grade_info['final_score']:.1f}/100</p>
@@ -396,6 +406,69 @@ def display_final_summary(data: Dict):
                 st.markdown("**Key Principles:**")
                 for principle in topic['key_principles']:
                     st.markdown(f"- {principle}")
+
+    # ============ SHARE ACHIEVEMENT ============
+    st.markdown("---")
+    st.markdown("### 🏆 Share Your Achievement")
+
+    _company = data['company_data'].get('company_name', 'a company')
+    _module = data['module_data'].get('module_name', 'Corporate Governance')
+    _grade = grade_info['grade']
+    _score = f"{grade_info['final_score']:.0f}"
+    _name_tag = f"{_student_name} | " if _student_name else ""
+
+    _share_text = (
+        f"I just completed a Board Room Simulation on \"{_module}\" "
+        f"for {_company} and scored {_grade} ({_score}/100)! "
+        f"Sharpening my corporate governance & decision-making skills. "
+        f"#BoardRoomSimulation #CorporateGovernance #Leadership"
+    )
+
+    import urllib.parse
+    _encoded = urllib.parse.quote(_share_text)
+
+    _linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url=&summary={_encoded}"
+    _twitter_url = f"https://twitter.com/intent/tweet?text={_encoded}"
+    _whatsapp_url = f"https://wa.me/?text={_encoded}"
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown(f"""
+        <a href="{_linkedin_url}" target="_blank" style="text-decoration: none;">
+            <div style="background: #0077B5; color: white; padding: 0.7rem 1rem; border-radius: 8px;
+                        text-align: center; font-weight: 600; cursor: pointer;">
+                🔗 LinkedIn
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <a href="{_twitter_url}" target="_blank" style="text-decoration: none;">
+            <div style="background: #1DA1F2; color: white; padding: 0.7rem 1rem; border-radius: 8px;
+                        text-align: center; font-weight: 600; cursor: pointer;">
+                𝕏 Twitter
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <a href="{_whatsapp_url}" target="_blank" style="text-decoration: none;">
+            <div style="background: #25D366; color: white; padding: 0.7rem 1rem; border-radius: 8px;
+                        text-align: center; font-weight: 600; cursor: pointer;">
+                💬 WhatsApp
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        if st.button("📋 Copy Text", use_container_width=True):
+            st.code(_share_text, language=None)
+            st.success("Copy the text above!")
+
+    st.markdown("")
 
     if st.button("Start New Simulation"):
         for key in list(st.session_state.keys()):

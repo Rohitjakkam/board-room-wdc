@@ -9,6 +9,10 @@ from core.data_manager import get_available_simulations
 
 def home_page():
     """Home page listing all available simulations."""
+    if not st.session_state.get("admin_authenticated"):
+        st.warning("Please log in as admin to access this page.")
+        return
+
     st.markdown('<h1 class="main-header">🏢 Board Room Simulations</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666;">Corporate Governance Training & Decision Making</p>', unsafe_allow_html=True)
 
