@@ -1,0 +1,403 @@
+"""
+Final summary, board effectiveness, and grade display components.
+"""
+
+import streamlit as st
+from typing import Dict
+
+from core.scoring import calculate_overall_grade, calculate_goal_progress
+
+
+def display_board_effectiveness_summary(total_rounds: int):
+    """Display the board effectiveness score in the final summary."""
+    st.markdown("### 🏛️ Board Effectiveness Performance")
+
+    effectiveness_history = st.session_state.get("board_effectiveness_history", [])
+
+    if not effectiveness_history:
+        st.info("No board effectiveness data available.")
+        return 0
+
+    total_score = sum(r['deliberation_score'] for r in effectiveness_history)
+    avg_score = total_score / len(effectiveness_history)
+
+    if avg_score >= 80:
+        grade, grade_color, grade_desc = "A", "#28a745", "Excellent Board Management"
+    elif avg_score >= 60:
+        grade, grade_color, grade_desc = "B", "#5cb85c", "Good Board Management"
+    elif avg_score >= 40:
+        grade, grade_color, grade_desc = "C", "#ffc107", "Fair Board Management"
+    else:
+        grade, grade_color, grade_desc = "D", "#dc3545", "Needs Improvement"
+
+    st.markdown(f"""
+    <div style="text-align: center; padding: 1.5rem; background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%); border-radius: 10px; margin-bottom: 1rem;">
+        <h2 style="color: {grade_color}; margin: 0;">Board Effectiveness: {grade}</h2>
+        <p style="color: #666; font-size: 1.1rem;">{grade_desc}</p>
+        <p style="color: #333;">Average Score: {avg_score:.1f}/100</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    total_convinced = sum(r.get('members_convinced', 0) for r in effectiveness_history)
+    total_force_submits = sum(1 for r in effectiveness_history if r.get('force_submitted', False))
+    total_debates = sum(r.get('total_debate_exchanges', 0) for r in effectiveness_history)
+    total_opposing = sum(r.get('members_initially_opposing', 0) for r in effectiveness_history)
+
+    with col1:
+        st.metric("Dissenters Convinced", total_convinced,
+                 delta=f"of {total_opposing}" if total_opposing > 0 else None)
+    with col2:
+        st.metric("Force Submits", total_force_submits,
+                 delta_color="inverse" if total_force_submits > 0 else "normal")
+    with col3:
+        st.metric("Debate Exchanges", total_debates)
+    with col4:
+        avg_alignment = sum(r.get('consultation_alignment_score', 50) for r in effectiveness_history) / len(effectiveness_history)
+        st.metric("Avg Consultation Alignment", f"{avg_alignment:.0f}%")
+
+    with st.expander("📊 Round-by-Round Board Effectiveness", expanded=False):
+        for round_data in effectiveness_history:
+            score = round_data.get('deliberation_score', 0)
+            score_color = "#28a745" if score >= 70 else "#ffc107" if score >= 50 else "#dc3545"
+
+            st.markdown(f"""
+            **Round {round_data.get('round_number', 0) + 1}:**
+            <span style="color: {score_color}; font-weight: bold;">{score}/100</span>
+            """, unsafe_allow_html=True)
+
+            breakdown = round_data.get('score_breakdown', {})
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.caption(f"Initial Approval: {breakdown.get('initial_approval', 0)}/25")
+            with col2:
+                st.caption(f"Consultation: {breakdown.get('consultation', 0)}/25")
+            with col3:
+                st.caption(f"Debate: {breakdown.get('debate_effectiveness', 0)}/30")
+            with col4:
+                st.caption(f"Efficiency: {breakdown.get('efficiency', 0)}/20")
+
+            approving = round_data.get('members_initially_approving', 0)
+            opposing = round_data.get('members_initially_opposing', 0)
+            convinced = round_data.get('members_convinced', 0)
+
+            st.caption(f"👍 {approving} approved | 👎 {opposing} opposed | 🔄 {convinced} convinced")
+
+            if round_data.get('force_submitted', False):
+                st.warning("⚠️ Decision was force-submitted")
+            st.markdown("---")
+
+    return avg_score
+
+
+def display_final_summary(data: Dict):
+    """Display final simulation summary."""
+    st.markdown("## 🎉 Simulation Complete!")
+
+    player_role = st.session_state.get('player_role', {})
+    st.markdown(f"**You played as:** {player_role.get('name', 'Unknown')} - {player_role.get('role', 'Unknown')}")
+
+    total_score = st.session_state.get('total_score', 0)
+    rounds_completed = st.session_state.get('current_round', 0)
+    avg_score = total_score / max(rounds_completed, 1)
+
+    initial_metrics = st.session_state.get('initial_metrics', data['company_data']['metrics'])
+    final_metrics = st.session_state.get('current_metrics', data['company_data']['metrics'])
+
+    effectiveness_history = st.session_state.get("board_effectiveness_history", [])
+    avg_board_effectiveness = None
+    if effectiveness_history:
+        avg_board_effectiveness = sum(r['deliberation_score'] for r in effectiveness_history) / len(effectiveness_history)
+
+    grade_info = calculate_overall_grade(initial_metrics, final_metrics, avg_score, avg_board_effectiveness)
+
+    grade_color = {
+        'A+': '#28a745', 'A': '#28a745', 'A-': '#5cb85c',
+        'B+': '#8bc34a', 'B': '#9acd32', 'B-': '#cddc39',
+        'C+': '#ffc107', 'C': '#ff9800', 'C-': '#ff5722',
+        'D': '#f44336', 'F': '#d32f2f'
+    }.get(grade_info['grade'], '#666')
+
+    st.markdown(f"""
+    <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; margin-bottom: 2rem;">
+        <h1 style="color: {grade_color}; font-size: 4rem; margin: 0;">{grade_info['grade']}</h1>
+        <h3 style="color: #333; margin: 0.5rem 0;">{grade_info['grade_description']}</h3>
+        <p style="color: #666; font-size: 1.2rem;">Overall Score: {grade_info['final_score']:.1f}/100</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Goal Achievement
+    if 'game_goals' in st.session_state:
+        st.markdown("### 🎯 Mission Objectives - Final Results")
+
+        goal_progress = calculate_goal_progress(st.session_state.game_goals, final_metrics)
+        achieved_count = sum(1 for g in goal_progress if g.get('achieved', False))
+        total_goals = len(goal_progress)
+
+        achievement_pct = (achieved_count / total_goals * 100) if total_goals > 0 else 0
+
+        if achievement_pct >= 80:
+            achievement_color, achievement_msg = "#28a745", "Outstanding! You exceeded expectations!"
+        elif achievement_pct >= 50:
+            achievement_color, achievement_msg = "#ffc107", "Good progress! Some goals need more attention."
+        else:
+            achievement_color, achievement_msg = "#dc3545", "Keep practicing! Many goals were not achieved."
+
+        st.markdown(f"""
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 10px; margin-bottom: 1rem; border: 2px solid {achievement_color};">
+            <h2 style="color: {achievement_color}; margin: 0;">{achieved_count}/{total_goals} Goals Achieved</h2>
+            <p style="color: #666; margin: 0.5rem 0 0 0;">{achievement_msg}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        goal_cols = st.columns(3)
+        for idx, goal in enumerate(goal_progress):
+            with goal_cols[idx % 3]:
+                achieved = goal.get('achieved', False)
+                progress = goal.get('progress_pct', 0)
+                current_val = goal.get('current_value', goal['current'])
+                start_val = goal['current']
+                target_val = goal['target']
+                unit = goal['unit']
+
+                if achieved:
+                    status_icon, bg_color, border_color = "✅", "#d4edda", "#28a745"
+                elif progress >= 50:
+                    status_icon, bg_color, border_color = "🔶", "#fff3cd", "#ffc107"
+                else:
+                    status_icon, bg_color, border_color = "❌", "#f8d7da", "#dc3545"
+
+                st.markdown(f"""
+                <div style="background: {bg_color}; padding: 0.8rem; border-radius: 8px; border-left: 4px solid {border_color}; margin-bottom: 0.5rem;">
+                    <div style="font-weight: 600;">{status_icon} {goal['name']}</div>
+                    <div style="font-size: 0.85rem; color: #666; margin: 0.3rem 0;">
+                        Start: {start_val}{unit} → Final: {current_val}{unit}
+                    </div>
+                    <div style="font-size: 0.85rem;">
+                        Target: <strong>{target_val}{unit}</strong> | Progress: <strong>{progress:.0f}%</strong>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+    # Score breakdown
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Rounds Completed", rounds_completed)
+    with col2:
+        st.metric("Decision Score", f"{avg_score:.1f}/100")
+    with col3:
+        st.metric("Metrics Improved", f"{grade_info['metrics_improved']}", delta=f"+{grade_info['metrics_improved']}")
+    with col4:
+        st.metric("Metrics Declined", f"{grade_info['metrics_declined']}", delta=f"-{grade_info['metrics_declined']}", delta_color="inverse")
+
+    # Score composition
+    st.markdown("### 📊 Score Composition")
+    if avg_board_effectiveness is not None:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"**Decision Quality (50%):** {grade_info['decision_score_component']:.1f} pts\n*Based on your choices across {rounds_completed} rounds*")
+        with col2:
+            st.markdown(f"**Business Impact (30%):** {grade_info['metric_score_component']:.1f} pts\n*Based on metric improvements: {grade_info['normalized_metric_score']:.1f}/100*")
+        with col3:
+            st.markdown(f"**Board Effectiveness (20%):** {grade_info['board_effectiveness_component']:.1f} pts\n*Based on board management: {avg_board_effectiveness:.1f}/100*")
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"**Decision Quality (60%):** {grade_info['decision_score_component']:.1f} pts\n*Based on your choices across {rounds_completed} rounds*")
+        with col2:
+            st.markdown(f"**Business Impact (40%):** {grade_info['metric_score_component']:.1f} pts\n*Based on metric improvements: {grade_info['normalized_metric_score']:.1f}/100*")
+
+    # Board Effectiveness Summary
+    if effectiveness_history:
+        display_board_effectiveness_summary(rounds_completed)
+
+    # Metrics Before vs After
+    st.markdown("### 📈 Metrics Comparison: Before vs After Simulation")
+
+    metric_categories = {
+        '💰 Financial': ['total_revenue_annual', 'annual_recurring_revenue', 'ebitda',
+                        'net_profit_margin', 'revenue_growth_yoy', 'monthly_burn_rate'],
+        '👥 Customer': ['net_promoter_score', 'customer_churn_rate_annual',
+                       'customer_lifetime_value', 'customer_acquisition_cost'],
+        '⚙️ Operations': ['platform_uptime', 'deployment_frequency',
+                         'average_incident_resolution_time', 'automation_coverage'],
+        '👔 Human Resources': ['employee_count', 'employee_engagement_score',
+                              'annual_attrition_rate', 'avg_training_hours_per_employee'],
+        '🛡️ Risk & Compliance': ['regulatory_compliance_score', 'open_high_severity_risks',
+                                 'data_privacy_incident_count']
+    }
+
+    inverse_metrics = ['customer_churn_rate_annual', 'annual_attrition_rate',
+                      'open_high_severity_risks', 'monthly_burn_rate',
+                      'data_processing_latency', 'average_incident_resolution_time',
+                      'data_privacy_incident_count', 'customer_acquisition_cost']
+
+    for category, metric_keys in metric_categories.items():
+        with st.expander(category, expanded=True):
+            for key in metric_keys:
+                if key in initial_metrics and key in final_metrics:
+                    initial = initial_metrics[key]
+                    final = final_metrics[key]
+
+                    initial_val = initial['value']
+                    final_val = final['value']
+                    change = final_val - initial_val
+
+                    if initial_val != 0:
+                        pct_change = ((final_val - initial_val) / abs(initial_val)) * 100
+                    else:
+                        pct_change = 0
+
+                    is_inverse = key in inverse_metrics
+                    is_improvement = (change < 0 if is_inverse else change > 0)
+                    is_decline = (change > 0 if is_inverse else change < 0)
+
+                    unit = initial.get('unit', '')
+
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+
+                    with col1:
+                        priority_badge = "🔴 " if initial.get('priority') == 'High' else ""
+                        st.markdown(f"**{priority_badge}{initial['description']}**")
+                    with col2:
+                        st.markdown(f"Before: `{initial_val} {unit}`")
+                    with col3:
+                        st.markdown(f"After: `{final_val} {unit}`")
+                    with col4:
+                        if change != 0:
+                            change_str = f"{change:+.1f}" if isinstance(change, float) else f"{change:+d}"
+                            pct_str = f"({pct_change:+.1f}%)"
+                            if is_improvement:
+                                st.markdown(f"✅ {change_str} {pct_str}")
+                            elif is_decline:
+                                st.markdown(f"⚠️ {change_str} {pct_str}")
+                            else:
+                                st.markdown(f"➡️ {change_str} {pct_str}")
+                        else:
+                            st.markdown("➡️ No change")
+
+    # Performance assessment
+    metrics_worse = grade_info['metrics_declined'] > grade_info['metrics_improved']
+
+    if avg_score >= 80 and not metrics_worse:
+        performance, assessment_color, assessment_border = "Excellent! You demonstrated strong understanding of corporate governance and made decisions that positively impacted the business.", "#d4edda", "#28a745"
+    elif avg_score >= 70 and not metrics_worse:
+        performance, assessment_color, assessment_border = "Good performance. You showed solid governance understanding with room for improvement in some areas.", "#d4edda", "#28a745"
+    elif avg_score >= 60:
+        performance, assessment_color, assessment_border = "Adequate performance. Your decisions showed basic understanding but missed important considerations. Review the best approaches for each round.", "#fff3cd", "#ffc107"
+    elif avg_score >= 45:
+        performance, assessment_color, assessment_border = "Below average performance. Many of your decisions did not align with governance best practices. Significant improvement is needed.", "#f8d7da", "#dc3545"
+    else:
+        performance, assessment_color, assessment_border = "Poor performance. Your decisions showed fundamental gaps in governance understanding. You should revisit the module materials.", "#f8d7da", "#dc3545"
+
+    if metrics_worse and avg_score < 70:
+        performance += f" Additionally, your decisions resulted in more metrics declining ({grade_info['metrics_declined']}) than improving ({grade_info['metrics_improved']}), indicating negative business impact."
+
+    st.markdown(f"""
+    <div style="background: {assessment_color}; padding: 1rem; border-radius: 10px; border-left: 4px solid {assessment_border}; margin: 1rem 0;">
+        <h3 style="margin-top: 0;">Performance Assessment</h3>
+        <p style="margin-bottom: 0;">{performance}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Round-by-Round Summary
+    st.markdown("### 🎯 Round-by-Round Performance Review")
+    st.markdown("*Review your decisions, scores, and see what the best approach would have been for each scenario.*")
+
+    for round_num in range(rounds_completed):
+        eval_key = f"evaluation_{round_num}"
+        scenario_key = f"scenario_round_{round_num}"
+
+        if eval_key in st.session_state:
+            evaluation = st.session_state[eval_key]
+            scenario = st.session_state.get(scenario_key, "Scenario not available")
+            round_config = data['simulation_config']['rounds'][round_num]
+
+            round_score = evaluation.get('score', 0)
+            score_color = "#28a745" if round_score >= 70 else "#ffc107" if round_score >= 50 else "#dc3545"
+            score_emoji = "🟢" if round_score >= 70 else "🟡" if round_score >= 50 else "🔴"
+
+            with st.expander(f"{score_emoji} Round {round_num + 1}: Score {round_score}/100 | Difficulty: {round_config.get('difficulty', 'N/A').title()}", expanded=False):
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                    <strong>Focus Area:</strong> {round_config.get('focus_area', 'General')}<br>
+                    <strong>Time Pressure:</strong> {round_config.get('time_pressure', 'normal').title()}<br>
+                    <strong>Your Score:</strong> <span style="color: {score_color}; font-weight: bold;">{round_score}/100</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("#### 📋 Scenario Presented")
+                with st.container():
+                    st.markdown(f"""
+                    <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; border-left: 4px solid #ffc107; max-height: 400px; overflow-y: auto;">
+                        {scenario}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("#### 🎯 Your Decision")
+                decision_text = evaluation.get('decision', 'Decision not recorded')
+                st.markdown(f"""
+                <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    {decision_text}
+                </div>
+                """, unsafe_allow_html=True)
+
+                if evaluation.get('score_reasoning'):
+                    st.markdown("#### 📊 Score Breakdown")
+                    st.markdown(evaluation['score_reasoning'])
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("#### ✅ What You Did Well")
+                    if evaluation.get('strengths'):
+                        st.success(evaluation['strengths'])
+                    else:
+                        st.info("No specific strengths recorded")
+                with col2:
+                    st.markdown("#### 🔧 Areas for Improvement")
+                    if evaluation.get('improvements'):
+                        st.warning(evaluation['improvements'])
+                    else:
+                        st.info("No specific improvements recorded")
+
+                st.markdown("#### 💡 Recommended Best Approach")
+                if evaluation.get('best_approach'):
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 1.5rem; border-radius: 10px; border: 2px solid #28a745;">
+                        <strong style="color: #155724;">What would have been the ideal decision:</strong><br><br>
+                        {evaluation['best_approach']}
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("Best approach recommendation not available")
+
+                if evaluation.get('learning_points'):
+                    st.markdown("#### 📚 Key Learning Points")
+                    st.info(evaluation['learning_points'])
+
+                impact_summary = st.session_state.get(f"impact_summary_{round_num}", "")
+                if impact_summary:
+                    st.markdown("#### 📈 Business Impact from This Decision")
+                    st.markdown(impact_summary)
+
+                st.markdown("---")
+
+    # Key concepts
+    module_data = data['module_data']
+    st.markdown("### 📚 Key Concepts Covered")
+
+    for topic in module_data['topics'][:5]:
+        with st.expander(topic['name']):
+            st.markdown(topic['description'])
+            if topic.get('key_principles'):
+                st.markdown("**Key Principles:**")
+                for principle in topic['key_principles']:
+                    st.markdown(f"- {principle}")
+
+    if st.button("Start New Simulation"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()

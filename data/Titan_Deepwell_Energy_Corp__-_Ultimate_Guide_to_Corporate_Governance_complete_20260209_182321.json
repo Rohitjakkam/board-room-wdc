@@ -1,0 +1,791 @@
+{
+  "session_name": "Titan Deepwell Energy Corp. - Ultimate Guide to Corporate Governance",
+  "created_at": "2026-02-09T17:25:51.692924",
+  "modified_at": "2026-02-09T18:22:55.898912",
+  "export_timestamp": "2026-02-09T18:23:21.024130",
+  "status": "confirmed_ready",
+  "company_data": {
+    "company_name": "Titan Deepwell Energy Corp.",
+    "company_overview": "Titan Deepwell Energy Corp. is an integrated oil & gas exploration, production, and refining company founded in March 2009 and headquartered in Houston, Texas. With a global presence in Calgary, Abu Dhabi, Lagos, and Aberdeen, the company operates a diverse business model encompassing upstream E&P, midstream pipeline operations, and downstream refining & trading. Titan Deepwell Energy focuses on maximizing hydrocarbon recovery while pioneering a transition towards safer, cleaner, and more intelligent energy operations, aiming to be the most technologically advanced and operationally resilient independent energy company in the Western Hemisphere.",
+    "metrics": {
+      "annual_revenue": {
+        "value": 3.8,
+        "unit": "Billion $",
+        "description": "Annual Revenue",
+        "priority": "High"
+      },
+      "upstream_production_revenue": {
+        "value": 2.1,
+        "unit": "Billion $",
+        "description": "Upstream Production Revenue",
+        "priority": "High"
+      },
+      "net_profit_margin": {
+        "value": 18.3,
+        "unit": "%",
+        "description": "Net Profit Margin",
+        "priority": "High"
+      },
+      "ebitda": {
+        "value": 1.14,
+        "unit": "Billion $",
+        "description": "EBITDA",
+        "priority": "High"
+      },
+      "monthly_operational_burn_rate": {
+        "value": 47,
+        "unit": "Million $",
+        "description": "Monthly Operational Burn Rate",
+        "priority": "High"
+      },
+      "proved_reserves_value_pv_10": {
+        "value": 12.6,
+        "unit": "Billion $",
+        "description": "Proved Reserves Value (PV-10)",
+        "priority": null
+      },
+      "revenue_growth_yoy": {
+        "value": 14.7,
+        "unit": "%",
+        "description": "Revenue Growth YOY",
+        "priority": null
+      },
+      "r_and_d_spend_percentage_of_revenue": {
+        "value": 6.8,
+        "unit": "%",
+        "description": "R&D Spend (% of Revenue)",
+        "priority": null
+      },
+      "daily_production_output": {
+        "value": 186000,
+        "unit": "BOE/d",
+        "description": "Daily Production Output",
+        "priority": null
+      },
+      "refinery_utilization_rate": {
+        "value": 91.4,
+        "unit": "%",
+        "description": "Refinery Utilization Rate",
+        "priority": null
+      },
+      "pipeline_uptime": {
+        "value": 99.87,
+        "unit": "%",
+        "description": "Pipeline Uptime",
+        "priority": null
+      },
+      "drilling_efficiency_ft_day": {
+        "value": 1420,
+        "unit": "ft/day",
+        "description": "Drilling Efficiency (ft/day)",
+        "priority": null
+      },
+      "average_well_completion_time": {
+        "value": 22,
+        "unit": "days",
+        "description": "Average Well Completion Time",
+        "priority": null
+      },
+      "lost_time_incident_rate_ltir": {
+        "value": 0.34,
+        "unit": "%",
+        "description": "Lost Time Incident Rate (LTIR)",
+        "priority": null
+      },
+      "equipment_non_productive_time": {
+        "value": 4.2,
+        "unit": "%",
+        "description": "Equipment Non-Productive Time",
+        "priority": null
+      },
+      "net_promoter_score_nps": {
+        "value": 68,
+        "unit": "",
+        "description": "Net Promoter Score (NPS)",
+        "priority": null
+      },
+      "customer_retention_rate_annual": {
+        "value": 91.8,
+        "unit": "%",
+        "description": "Customer Retention Rate (Annual)",
+        "priority": null
+      },
+      "customer_acquisition_cost_cac": {
+        "value": 1.8,
+        "unit": "Million $",
+        "description": "Customer Acquisition Cost (CAC)",
+        "priority": null
+      },
+      "average_contract_value_acv": {
+        "value": 24,
+        "unit": "Million $",
+        "description": "Average Contract Value (ACV)",
+        "priority": null
+      },
+      "offtake_agreement_renewal_rate": {
+        "value": 88,
+        "unit": "%",
+        "description": "Offtake Agreement Renewal Rate",
+        "priority": null
+      },
+      "client_satisfaction_score_csat": {
+        "value": 4.3,
+        "unit": "/ 5",
+        "description": "Client Satisfaction Score (CSAT)",
+        "priority": null
+      },
+      "employee_engagement_score": {
+        "value": 76,
+        "unit": "/ 100",
+        "description": "Employee Engagement Score",
+        "priority": null
+      },
+      "annual_attrition_rate": {
+        "value": 11.4,
+        "unit": "%",
+        "description": "Annual Attrition Rate",
+        "priority": null
+      },
+      "avg_training_hours_employee": {
+        "value": 62,
+        "unit": "hrs",
+        "description": "Avg Training Hours / Employee",
+        "priority": null
+      },
+      "internal_promotion_rate": {
+        "value": 14,
+        "unit": "%",
+        "description": "Internal Promotion Rate",
+        "priority": null
+      },
+      "diversity_ratio_women_percentage": {
+        "value": 24,
+        "unit": "%",
+        "description": "Diversity Ratio (Women %)",
+        "priority": null
+      },
+      "hse_compliance_score": {
+        "value": 93,
+        "unit": "%",
+        "description": "HSE Compliance Score",
+        "priority": null
+      },
+      "open_high_severity_risks": {
+        "value": 5,
+        "unit": "",
+        "description": "Open High-Severity Risks",
+        "priority": null
+      },
+      "carbon_emissions_intensity_yoy": {
+        "value": -7,
+        "unit": "%",
+        "description": "Carbon Emissions Intensity (YoY)",
+        "priority": null
+      },
+      "environmental_incident_count": {
+        "value": 2,
+        "unit": "",
+        "description": "Environmental Incident Count",
+        "priority": null
+      }
+    },
+    "board_members": [
+      {
+        "name": "Richard \"Rick\" Callahan",
+        "role": "Chairperson & CEO",
+        "personality": "Prioritizes long-term reserve growth, operational dominance, and shareholder returns. Aggressively opposes premature energy transition pivots. Believes 'Barrels in the ground are the only real currency'. Has agenda control power and a casting vote. Biased towards legacy upstream assets and underestimates ESG regulatory momentum. Needs to decide on accelerating clean energy pivot or doubling down on hydrocarbon exploration.",
+        "tenure_years": 15,
+        "expertise": "Long-term reserve growth, operational dominance & shareholder returns"
+      },
+      {
+        "name": "Dr. Elena Vasquez",
+        "role": "Executive Director & CTO",
+        "personality": "Focuses on technological innovation and subsurface data intelligence. Believes AI-driven exploration can cut finding costs significantly and that legacy drilling methods are a competitive liability. Has deep influence over engineering and R&D leadership. Prone to over-investing in unproven technologies and impatient with field execution. Seeks a $200M dedicated AI and digital twin R&D budget.",
+        "tenure_years": 8,
+        "expertise": "Technological innovation & subsurface data intelligence"
+      },
+      {
+        "name": "Margaret \"Maggie\" Chen",
+        "role": "Independent Director (Regulatory & Environmental Law)",
+        "personality": "Prioritizes regulatory exposure and environmental liability, believing one spill could be catastrophic and carbon regulations will tighten. Has strong sway with audit and compliance committees. Can be overly risk-averse and distrusts aggressive drilling. Pushes for immediate environmental compliance overhaul and voluntary carbon disclosure.",
+        "tenure_years": 4,
+        "expertise": "Regulatory exposure & environmental liability"
+      },
+      {
+        "name": "James \"Jim\" Thornton",
+        "role": "Investor Director (Energy-Focused PE Fund)",
+        "personality": "Focuses on production growth, exit multiples, and cash flow yield, believing cash flow is paramount and ESG is a branding exercise. Controls future capital commitments and liquidity. Has a short investment horizon, prioritizing near-term IRR. Wants aggressive production ramp to 250,000 BOE/d before a potential IPO or strategic sale.",
+        "tenure_years": 3,
+        "expertise": "Production growth, exit multiples, cash flow yield"
+      },
+      {
+        "name": "Ingrid Halvorsen",
+        "role": "Independent Director (International Operations)",
+        "personality": "Prioritizes international asset portfolio and geopolitical risk, believing geographic diversification is key and deepwater assets are undervalued. Has influence with international joint venture partners. Tends to overweigh international expansion versus domestic opportunities. Advocates for fast-track entry into Guyana and Namibia offshore blocks.",
+        "tenure_years": 5,
+        "expertise": "International asset portfolio & geopolitical risk"
+      },
+      {
+        "name": "David Park",
+        "role": "Executive Director & CFO",
+        "personality": "Focuses on balance sheet strength and capital discipline, aiming to keep Debt-to-EBITDA below 2.0x and increase shareholder returns. Controls budget approvals, capital allocation, and dividend policy. May optimize financial ratios over operational investment needs. Proposes capping total capex at $1.2B annually and increasing dividends by 15%.",
+        "tenure_years": 7,
+        "expertise": "Balance sheet strength & capital discipline"
+      },
+      {
+        "name": "Aisha Okonkwo",
+        "role": "Independent Director (Talent & Safety Culture)",
+        "personality": "Prioritizes workforce safety, talent pipeline, and field crew retention, viewing field crew attrition as a major threat and safety culture as a leading operational indicator. Has board influence on succession planning and safety governance. May soften hard business calls and prioritize people metrics. Pushes for increased field compensation and a hiring freeze in corporate roles.",
+        "tenure_years": 3,
+        "expertise": "Workforce safety, talent pipeline & field crew retention"
+      },
+      {
+        "name": "Colonel (Ret.) Marcus Webb",
+        "role": "Independent Director (Security & Geopolitical Risk)",
+        "personality": "Focuses on physical asset security, geopolitical instability, and supply chain risk, believing 'zero incidents' in hostile regions is luck and cyber-physical threats are underestimated. Has risk committee escalation authority. Tends towards worst-case scenario thinking, potentially paralyzing decision-making. Warns of escalating security threats in Nigeria and the Middle East requiring significant protective investment.",
+        "tenure_years": 2,
+        "expertise": "Physical asset security, geopolitical instability & supply chain risk"
+      },
+      {
+        "name": "Sarah Mitchell",
+        "role": "Customer Advocate Director",
+        "personality": "Prioritizes offtake partner satisfaction and supply reliability, believing reliability matters more than price and long-term partners desire transparency. Shapes enterprise sales and partnership strategy. May underestimate spot market trading. Demands 99.5% supply commitment reliability and dedicated account teams for top clients.",
+        "tenure_years": 2,
+        "expertise": "Offtake partner satisfaction & supply reliability perception"
+      },
+      {
+        "name": "Nathan Cruz",
+        "role": "Observer Director (Future CEO Candidate)",
+        "personality": "Focuses on execution feasibility and cross-functional alignment, believing strategy needs field buy-in and middle management is overstretched. Influences succession planning. Is politically cautious and avoids open conflict. Watches for board alignment on a unified 5-year strategy to prevent talent and partner loss.",
+        "tenure_years": 1,
+        "expertise": "Execution feasibility & cross-functional alignment"
+      }
+    ],
+    "current_problems": [
+      "Aggressive production growth strategy is colliding with mounting ESG pressure.",
+      "Rising operational risks, including five open high-severity risks across HSE and operational compliance.",
+      "A divided board with conflicting priorities on production growth versus ESG-led transformation.",
+      "Threatened long-term license to operate despite strong short-term financial performance.",
+      "Aggressive drilling program pushing equipment and field crews beyond safe capacity.",
+      "Two environmental incidents in the last 12 months drawing regulatory scrutiny.",
+      "Rising geopolitical instability threatening international asset value.",
+      "Field crew attrition at 11.4%, significantly above the industry benchmark of 8%.",
+      "Increasing carbon disclosure pressure from institutional investors.",
+      "The central tension between maintaining aggressive growth for a potential exit or moderating growth for safety, compliance, and transition readiness."
+    ],
+    "initial_scenario": "Titan Deepwell Energy Corp. is experiencing record-breaking short-term financial performance with strong revenue, margins, and production volumes. However, leading indicators suggest structural fractures are developing that could cause significant problems within the next 2-4 quarters if not addressed. The company faces a critical strategic dilemma: continue an aggressive production growth trajectory to facilitate a potential IPO or strategic exit, or pivot towards moderating growth to invest in crucial areas like safety, environmental compliance, workforce stability, and energy transition readiness. This decision has profound implications for the company's valuation, talent retention, partner confidence, and regulatory standing.",
+    "committees": [
+      {
+        "name": "Compliance Committee",
+        "type": "Compliance Committee",
+        "purpose": "Ensure regulatory compliance\nMakes sure the organization follows all applicable laws, regulations, and industry standards.\n\nMonitor compliance risks\nIdentifies, assesses, and oversees legal, regulatory, and ethical risks before they become issues.\n\nOversee policies & controls\nReviews and strengthens internal policies, procedures, and control systems to prevent violations.\n\nPromote ethical culture\nEncourages ethical conduct across the organization through training, awareness, and accountability.\n\nAct as a governance watchdog\nReports compliance status to the board and ensures corrective actions are taken when violations occur.",
+        "members": [
+          "Margaret \"Maggie\" Chen",
+          "Dr. Elena Vasquez",
+          "David Park",
+          "Sarah Mitchell",
+          "Aisha Okonkwo"
+        ],
+        "chairperson": "Dr. Elena Vasquez",
+        "created_at": "2026-02-09T18:21:14.576954"
+      }
+    ]
+  },
+  "module_data": {
+    "module_name": "Ultimate Guide to Corporate Governance",
+    "subject_area": "Corporate Governance",
+    "learning_objectives": [
+      "Understand the fundamentals of corporate governance in India and global perspectives.",
+      "Learn about company formation, types, and incorporation processes.",
+      "Understand share capital, issuance, and transfer of securities.",
+      "Comprehend shareholder rights and duties.",
+      "Analyze the role and importance of share certificates.",
+      "Explore private placement and public offering mechanisms for raising capital.",
+      "Understand the legal framework and process for public debenture issuance.",
+      "Learn the legal requirements and process for an Initial Public Offering (IPO).",
+      "Understand capital reduction and share buyback strategies.",
+      "Grasp the intricacies of shareholder meetings, voting, proxies, and resolutions."
+    ],
+    "overview": "This module provides a comprehensive guide to corporate governance, covering company formation, share capital, shareholder rights, fundraising methods (private placement, public issues, IPOs), debentures, capital restructuring, and shareholder meetings. It aims to equip aspiring and existing directors with the knowledge and skills to enhance board effectiveness and contribute to strong corporate governance.",
+    "topics": [
+      {
+        "name": "Company Formation, Types & Incorporation",
+        "description": "Covers the legal definition of a company, the role of promoters, the process of company formation, types of companies in India (Public, Private, OPC), classification based on liability (Limited by Shares, Guarantee, Unlimited), and the core legal documents: Memorandum of Association (MOA) and Articles of Association (AOA). It also details the incorporation procedure under the Companies Act, 2013, including the roles of CRC and ROC, and modern incorporation pathways like RUN and SPICe+.",
+        "key_principles": [
+          "A company is a separate legal entity.",
+          "Promoters are liable for pre-incorporation contracts.",
+          "MOA defines the company's objectives and scope; AOA governs internal management.",
+          "Incorporation vests legal existence and unique identity (CIN)."
+        ],
+        "formulas": [],
+        "application": "Understanding how companies are legally created and structured, which is foundational for governance.",
+        "examples": [
+          "Section 3 of the Companies Act, 2013 for minimum members required.",
+          "RUN and SPICe+ as digital tools for incorporation."
+        ]
+      },
+      {
+        "name": "Share Capital & Issue and Transfer of Securities",
+        "description": "Explains the concept of share capital, its difference from debt capital, and various types of share capital (Authorized, Issued, Subscribed, Paid-up, Called-up, Reserve Capital). It details different kinds of shares (Equity, Preference, Sweat Equity) and methods of issuing shares like Rights Issue, Bonus Issue, ESOPs, Private Placement, and Preferential Allotment. The session also covers the process of share transfer and transmission, including restrictions and legal implications.",
+        "key_principles": [
+          "Share capital represents ownership and confers rights and liabilities.",
+          "Equity shares offer voting rights; Preference shares offer priority in dividends/repayment.",
+          "Share allotment follows a strict legal process.",
+          "Share transfers are voluntary, transmission is by operation of law.",
+          "Restrictions on share transfers can exist, especially in private companies."
+        ],
+        "formulas": [],
+        "application": "Crucial for understanding ownership, control, funding, and the financial structure of a company.",
+        "examples": [
+          "Flipkart's use of preference shares and share transfer restrictions in its growth.",
+          "Form SH-4 for share transfer deed."
+        ]
+      },
+      {
+        "name": "Rights and Duties of Shareholders",
+        "description": "Delves into the rights and duties of shareholders, categorizing rights into financial (dividends, profit participation, assets in liquidation, transfer of shares, lock-in & special rights) and voting rights (election/removal of directors, approval of financials, changes to company structure, dividends, constitution amendments, convening meetings, attending/voting in meetings, challenging board resolutions). It also covers information and protection rights, and the duties shareholders owe to the company (acting in good faith, adhering to bylaws, supporting initiatives).",
+        "key_principles": [
+          "Shareholders are the owners of the company.",
+          "Rights are divided into financial and voting.",
+          "Voting power is often proportional to shareholding.",
+          "Shareholders have duties to act in good faith and follow company bylaws.",
+          "Minority shareholders have protection against oppression and mismanagement."
+        ],
+        "formulas": [],
+        "application": "Essential for directors to understand stakeholder expectations and manage relationships, as well as for shareholders to exercise their influence responsibly.",
+        "examples": [
+          "Netflix's shareholder influence on leadership and strategic direction.",
+          "NCLT's role in protecting minority shareholders."
+        ]
+      },
+      {
+        "name": "Issue of Share Certificates (Section 46)",
+        "description": "Explains the legal framework for issuing share certificates under Section 46 of the Companies Act, 2013. It details what a share certificate must include (company name, shareholder name, number of shares, certificate number, distinctive numbers, date of issue, signatures). The session outlines the step-by-step process of issuance (board approval, allotment, register update, issuance) and discusses various modes of issuing share capital, including IPO, FPO, Bonus Issue, Rights Issue, Sweat Equity, ESOPs, and Private Placement.",
+        "key_principles": [
+          "Share certificates are legal proof of ownership.",
+          "Certificates grant entitlement to dividends and voting rights.",
+          "Traceability of ownership is established through certificates.",
+          "Issuance requires board approval and adherence to prescribed procedures."
+        ],
+        "formulas": [],
+        "application": "Understanding the tangible representation of ownership and the legal implications of share issuance.",
+        "examples": [
+          "Uber's IPO complexity with multiple share classes.",
+          "The role of signatures of authorized signatories."
+        ]
+      },
+      {
+        "name": "Private Placement",
+        "description": "Covers the concept of private placement as a fundraising method, detailing its legal framework under Section 42 of the Companies Act, 2013. It outlines the process: offer letter (PAS-4), investor subscription, board and shareholder approval (special resolution, MGT-14 filing), allotment within 60 days, refund by 75th day, and PAS-3 filing. The session explains why startups, large corporations, and real estate developers use private placement, contrasting it with public offerings, and discusses Shareholding Agreements (SHAs) with rights like Put Option, Call Option, ROFO, and ROFR. It also touches upon PIPE transactions and promoter-controlled companies in India.",
+        "key_principles": [
+          "Private placement is a targeted, discreet way to raise capital.",
+          "Strict limits on the number of offerees (200 per security type, excluding QIBs/ESOPs).",
+          "Requires board approval, special shareholder resolution, and RoC filing.",
+          "Allotment and PAS-3 filing have strict timelines.",
+          "SHAs are crucial for defining investor rights and protecting interests."
+        ],
+        "formulas": [],
+        "application": "A key strategy for companies seeking capital without the complexities of public markets.",
+        "examples": [
+          "Reliance Industries raising capital for Jio Platforms via private deals.",
+          "Put Option, Call Option, ROFO, ROFR as investor rights within SHAs."
+        ]
+      },
+      {
+        "name": "Public Issue of Debentures",
+        "description": "Details the process of issuing debentures to the public, differentiating it from private placement. It covers the legal framework (SEBI regulations for NCDs and convertible debentures, Rule 18 for secured debentures), the step-by-step process: board approval, appointing intermediaries (lead managers, debenture trustee, registrar), drafting and filing the prospectus with RoC/SEBI, marketing, opening subscription, allotment, listing on stock exchange, and issuance of debenture certificates. It also touches upon convertible instruments and FEMA/RBI rules, and real-world examples like Tata Power's issue.",
+        "key_principles": [
+          "Public debenture issues are open to the general public and highly regulated.",
+          "Key intermediaries like lead managers and debenture trustees are mandatory.",
+          "Prospectus provides comprehensive information for investor decision-making.",
+          "Compliance with SEBI regulations is paramount.",
+          "Debenture Redemption Reserve (DRR) is a key legal requirement."
+        ],
+        "formulas": [],
+        "application": "A significant method for companies to raise debt capital from a broad investor base.",
+        "examples": [
+          "Tata Power's 2019 public debenture issuance.",
+          "The role of a Debenture Trustee in protecting investor interests."
+        ]
+      },
+      {
+        "name": "Legal Framework of IPO Requirements",
+        "description": "Explains the process and legal requirements for a company going public through an Initial Public Offering (IPO). It covers the definition and purpose of an IPO, the role of promoters, underwriters, merchant bankers, and other participants. Key steps include board approval, appointment of underwriters, drafting and filing the Red Herring Prospectus (RHP) with SEBI/RoC, regulatory approval, pricing, roadshows, final prospectus, share allotment, and listing on the stock exchange. It also briefly discusses Further Public Offerings (FPOs) and Rights Issues, and pricing methods like Fixed Price and Book Building.",
+        "key_principles": [
+          "An IPO is a public offering of shares for the first time.",
+          "Stringent legal and regulatory compliance is required.",
+          "The prospectus is a critical disclosure document.",
+          "Underwriters play a key role in managing the IPO process and risks.",
+          "Promoters have significant responsibilities and post-IPO lock-in periods."
+        ],
+        "formulas": [],
+        "application": "The gateway for companies to access public capital markets and achieve significant growth.",
+        "examples": [
+          "Zoom's IPO as a case study for successful timing and valuation.",
+          "Sections 23, 24, 26, 34, 35, 40, 62 of the Companies Act, 2013 relevant to IPOs."
+        ]
+      },
+      {
+        "name": "Capital Reduction and Share Buyback",
+        "description": "Focuses on strategic financial tools for optimizing a company's capital structure. Capital reduction (Section 66) involves reducing share capital, often due to excess capital or to improve financial ratios, requiring special resolution and NCLT approval. Share buyback (Section 68) involves repurchasing own shares to boost stock price, return surplus cash, signal confidence, or as a defensive strategy. It details the strict legal conditions, limits, solvency declaration, and process for buybacks, contrasting them with capital reduction.",
+        "key_principles": [
+          "Capital reduction and buybacks can enhance shareholder value and streamline operations.",
+          "Capital reduction requires special resolution and NCLT approval.",
+          "Share buybacks have specific conditions on funding sources, quantum, and debt-equity ratio.",
+          "Solvency declaration is mandatory before a buyback.",
+          "Companies cannot issue same securities within 6 months post-buyback."
+        ],
+        "formulas": [
+          "Debt-equity ratio post-buyback should not exceed 2:1 (unless government allows higher)."
+        ],
+        "application": "Tools for financial management, capital optimization, and shareholder value creation.",
+        "examples": [
+          "Cisco's 2001 capital reduction via stock buyback.",
+          "Coca-Cola's share buyback plan to boost stock price and signal confidence."
+        ]
+      },
+      {
+        "name": "Shareholder Meetings: AGMs and EGMs",
+        "description": "Explains the fundamental types of shareholder meetings: Annual General Meetings (AGMs) and Extraordinary General Meetings (EGMs). AGMs are mandatory annual events for reviewing performance and making key decisions (director appointments, dividends) within strict timelines (Section 96). EGMs are called for urgent matters by the board or by shareholders holding at least 10% paid-up capital/voting power (Section 100), with strict timelines for calling and holding.",
+        "key_principles": [
+          "AGMs are mandatory annual events for corporate accountability.",
+          "EGMs are for urgent or extraordinary matters.",
+          "Strict timelines and notice periods apply to both meeting types.",
+          "NCLT can call meetings if statutory requirements are not met."
+        ],
+        "formulas": [],
+        "application": "The primary platforms for shareholder engagement and decision-making.",
+        "examples": [
+          "First AGM within 9 months of financial year end.",
+          "NCLT's power to call meetings under Section 97 and 98."
+        ]
+      },
+      {
+        "name": "Voting Rights, Proxies, and Resolutions",
+        "description": "Details the mechanics of shareholder voting in meetings. It covers notice periods (21 clear days, with provisions for shorter notice), quorum requirements (varying by company size and type under Section 103), election of Chairman (Section 104), and voting methods: Show of Hands (Section 107), Electronic Voting (Section 108, Rule 20), and Postal Ballots (Section 110, Rule 22). It emphasizes the importance of voting rights, the role of proxies (Section 105, Form MGT-11), and the distinction between Ordinary and Special Resolutions (Section 114) for different types of decisions. It also covers the filing of resolutions with RoC (Section 117), restrictions on voting for unpaid calls (Section 106), and the importance of meeting minutes (Section 118, 119, 120).",
+        "key_principles": [
+          "Shareholders exercise their power through voting.",
+          "Proper notice and quorum are essential for valid meetings.",
+          "Multiple voting methods exist to ensure participation.",
+          "Proxies allow absent shareholders to vote.",
+          "Resolutions require specific majority thresholds (ordinary vs. special).",
+          "Minutes are crucial records of decisions.",
+          "Shareholders with unpaid calls may lose voting rights."
+        ],
+        "formulas": [],
+        "application": "Ensures fair and transparent decision-making processes in shareholder meetings.",
+        "examples": [
+          "The use of e-voting for global investors.",
+          "Sova Pharmaceuticals' use of proxy voting for a major acquisition.",
+          "The distinction between a simple majority for ordinary resolutions and a 75% majority for special resolutions."
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "Company Formation Process (Section 3 & 7, Companies Act, 2013)",
+        "description": "A structured approach to legally establishing a company in India.",
+        "components": [
+          "Identifying Promoter(s)",
+          "Determining Company Type (Public, Private, OPC)",
+          "Drafting MOA & AOA",
+          "Filing Incorporation Documents with RoC/CRC",
+          "Obtaining Certificate of Incorporation",
+          "Obtaining CIN"
+        ],
+        "application_scenario": "When starting a new business or legal entity in India."
+      },
+      {
+        "name": "Share Allotment Process",
+        "description": "The systematic procedure for issuing shares to investors after approval.",
+        "components": [
+          "Board Resolution for Share Issuance",
+          "Allotment of Shares (via Prospectus, Private Placement, etc.)",
+          "Update Register of Members",
+          "Issuance of Share Certificates"
+        ],
+        "application_scenario": "When a company offers new shares to investors."
+      },
+      {
+        "name": "Share Transfer Process (Section 56, Companies Act, 2013)",
+        "description": "The legal steps involved when a shareholder voluntarily transfers ownership of shares.",
+        "components": [
+          "Execution of Transfer Deed (Form SH-4)",
+          "Payment of Stamp Duty",
+          "Submission to Company",
+          "Board Approval",
+          "Updating Register of Members",
+          "Issuance of New Share Certificate"
+        ],
+        "application_scenario": "When a shareholder wishes to sell their shares."
+      },
+      {
+        "name": "Private Placement Process (Section 42, Companies Act, 2013)",
+        "description": "A regulated process for raising capital from a select group of investors.",
+        "components": [
+          "Private Placement Offer Letter (PAS-4)",
+          "Investor Subscription & Payment",
+          "Board Approval",
+          "Shareholder Special Resolution & MGT-14 Filing",
+          "Allotment within 60 Days",
+          "Refund by Day 75 (if applicable)",
+          "PAS-3 Filing"
+        ],
+        "application_scenario": "For companies seeking capital from specific investors without a public offering."
+      },
+      {
+        "name": "Public Debenture Issue Process",
+        "description": "A comprehensive framework for raising debt capital by issuing debentures to the general public.",
+        "components": [
+          "Board Approval & Decision Making",
+          "Appointing Intermediaries (Lead Managers, Debenture Trustee, Registrar)",
+          "Drafting & Filing Prospectus (with RoC/SEBI)",
+          "Marketing the Issue",
+          "Opening Subscription Period",
+          "Debenture Allotment",
+          "Listing on Stock Exchange",
+          "Issuance of Debenture Certificates",
+          "Compliance (DRR, Security Cover, Trustee Monitoring)"
+        ],
+        "application_scenario": "When a company needs to raise significant debt capital from the public."
+      },
+      {
+        "name": "IPO Process (Companies Act, 2013 & SEBI Regulations)",
+        "description": "The multi-stage legal and regulatory process for a company to offer its shares to the public for the first time.",
+        "components": [
+          "Board Approval & Decision Making",
+          "Appointing Underwriters",
+          "Drafting & Filing Red Herring Prospectus (RHP)",
+          "Regulatory Approval (SEBI)",
+          "Pricing and Roadshow",
+          "Final Prospectus and Offering",
+          "Listing on Stock Exchange"
+        ],
+        "application_scenario": "When a private company transitions to becoming a publicly traded entity."
+      },
+      {
+        "name": "Capital Reduction Framework (Section 66, Companies Act, 2013)",
+        "description": "The legal process for a company to reduce its share capital.",
+        "components": [
+          "Approval by Special Resolution",
+          "Application to National Company Law Tribunal (NCLT)",
+          "Creditors' Approval (if applicable)",
+          "NCLT's Consideration of Creditor Rights and Company Interests"
+        ],
+        "application_scenario": "When a company has excess capital or needs to restructure its balance sheet."
+      },
+      {
+        "name": "Share Buyback Framework (Section 68, Companies Act, 2013)",
+        "description": "The legal framework and conditions under which a company can repurchase its own shares.",
+        "components": [
+          "Authorization by Articles of Association",
+          "Board/Special Resolution Approval",
+          "Quantum Limit (≤ 25% of paid-up capital + free reserves)",
+          "Debt-Equity Ratio Constraint",
+          "Declaration of Solvency",
+          "Permissible Modes (Tender Offer, Open Market, ESOP Buyback)",
+          "Restrictions on Fresh Issue Post-Buyback",
+          "Filing of Return with RoC/SEBI"
+        ],
+        "application_scenario": "To boost stock price, return surplus cash, signal confidence, or defend against takeovers."
+      },
+      {
+        "name": "Shareholder Meeting Notice and Quorum (Sections 101 & 103, Companies Act, 2013)",
+        "description": "The procedural requirements for validly convening shareholder meetings.",
+        "components": [
+          "Notice Period (21 clear days, with provisions for shorter notice)",
+          "Contents of Notice (Time, Place, Agenda, Special Business Details)",
+          "Quorum Calculation (based on company size and type)"
+        ],
+        "application_scenario": "Ensuring that shareholder meetings are legally constituted and all members are properly informed."
+      },
+      {
+        "name": "Voting Methods in Shareholder Meetings (Sections 107-110, Companies Act, 2013)",
+        "description": "The different mechanisms through which shareholders can cast their votes on resolutions.",
+        "components": [
+          "Show of Hands",
+          "Electronic Voting (e-voting)",
+          "Postal Ballots",
+          "Poll Voting (for proxies)"
+        ],
+        "application_scenario": "Facilitating shareholder participation in decision-making processes."
+      }
+    ],
+    "key_terms": {
+      "Corporate Governance": "The system of rules, practices, and processes by which a company is directed and controlled. It involves balancing the interests of a company's many stakeholders, such as shareholders, management, customers, suppliers, financiers, government, and the community.",
+      "Memorandum of Association (MOA)": "A charter document that outlines the company's name, registered address, business objectives, liability clause, and capital structure. It defines the external boundaries of a company's operations.",
+      "Articles of Association (AOA)": "The internal rulebook of a company that defines how it will be governed, including rules for board meetings, shareholder rights, director appointments, and management policies.",
+      "Promoter": "A visionary who imagines a company, drafts its initial documents, and sets the ball rolling. They are legally liable for early groundwork and pre-incorporation contracts.",
+      "Registrar of Companies (ROC)": "A statutory authority responsible for registering companies and LLPs in each state/UT, maintaining records, and ensuring compliance with statutory obligations.",
+      "Central Registration Centre (CRC)": "A flagship initiative under MCA that handles name approvals (RUN service) and processes incorporation forms quickly.",
+      "Public Company": "A company not a private company, requiring minimum paid-up capital, and capable of raising capital from the public. A subsidiary of a public company is also deemed public.",
+      "Private Company": "A company that restricts the transfer of shares, limits membership to 200, and cannot invite the public to subscribe to shares or debentures.",
+      "One Person Company (OPC)": "A company with only one individual as a member, enabling solo entrepreneurs with limited liability and corporate status.",
+      "Company Limited by Shares": "A company where members' liability is limited to the unpaid amount on shares held.",
+      "Company Limited by Guarantee": "A company where members contribute a pre-agreed sum only if the company winds up; ideal for non-profits.",
+      "Unlimited Company": "A company with no limit on member liability; rare due to high financial risk.",
+      "Share": "A slice of a company's share capital, also including stock. It represents an interest in the company measured by money, rights, and duties.",
+      "Share Capital": "The amount of capital raised by a company through the issue of shares to its shareholders. It represents the stake or ownership a shareholder holds.",
+      "Debt Capital": "Financing obtained through loans, where creditors claim only the principal and interest.",
+      "Equity Capital": "Financing obtained by sharing the company's equity, where holders earn dividends and voting privileges.",
+      "Authorized Capital": "The maximum capital a company is allowed to raise through share issuance, as stated in its MOA.",
+      "Issued Capital": "The portion of authorized capital offered to shareholders.",
+      "Subscribed Capital": "The portion of issued capital that has been subscribed to by investors.",
+      "Paid-up Capital": "The actual money received by the company against subscribed shares.",
+      "Called-up Capital": "The portion of subscribed capital that a company has asked shareholders to pay.",
+      "Reserve Capital": "A portion of subscribed capital intentionally kept aside and not touched unless for serious situations like liquidation.",
+      "Equity Shares": "The default form of ownership, carrying voting rights, dividends (if declared), and last claim in winding-up.",
+      "Preference Shares": "Shareholders receive fixed dividends, usually before equity holders, and may have priority in capital return, usually without voting rights.",
+      "Sweat Equity Shares": "Shares issued by a company to its directors or employees at a discount or for non-cash consideration.",
+      "Rights Issue": "New shares offered to existing shareholders in proportion to their holdings, usually at a concessional price.",
+      "Bonus Issue": "Additional shares allotted to existing shareholders at no cost, by capitalizing the company’s reserves.",
+      "Employee Stock Option Plan (ESOP)": "Employee benefit plans that give workers ownership interest in the company as an incentive and retention tool.",
+      "Private Placement": "Offering shares or securities to a specific, handpicked group of investors, not through a public offer.",
+      "Public Offering (IPO)": "The process by which a company offers its shares to the public for the first time to raise capital.",
+      "Shareholding Agreement (SHA)": "A written deal between shareholders outlining how they will run the company together, covering aspects like share sales, voting, profit sharing, and dispute resolution.",
+      "Put Option": "An option that gives the investor the right to sell their shares back to another party at a predetermined price.",
+      "Call Option": "An option that gives the investor the right to buy shares from another party at a predetermined price.",
+      "Right of First Offer (ROFO)": "A right that allows a shareholder to offer their shares to existing shareholders first at a fixed price before selling to an outsider.",
+      "Right of First Refusal (ROFR)": "A right that requires a shareholder to give existing shareholders the chance to match an offer from an outside buyer before selling to that buyer.",
+      "Private Investment in Public Equity (PIPE)": "A transaction where a publicly listed company raises capital by selling shares directly to a select group of private investors.",
+      "Debenture": "A debt instrument representing a loan made to a company, with a promise to repay the principal plus interest.",
+      "Convertible Debentures": "Debentures that can be converted into shares after a set period.",
+      "Non-Convertible Debentures (NCDs)": "Debentures that do not convert into shares; investors are paid back principal and interest.",
+      "Secured Debentures": "Debentures backed by a specific asset of the company, providing collateral.",
+      "Unsecured Debentures": "Debentures not backed by collateral, carrying higher risk but often higher interest rates.",
+      "Debenture Trustee": "An appointed individual or entity tasked with protecting the interests of debenture holders and addressing their grievances.",
+      "Debenture Redemption Reserve (DRR)": "A mandatory reserve created from profits to be used solely for redeeming debentures.",
+      "Annual General Meeting (AGM)": "A mandatory annual meeting of shareholders to review company performance, financials, and make key decisions.",
+      "Extraordinary General Meeting (EGM)": "A special meeting called for urgent or out-of-ordinary matters requiring immediate shareholder attention.",
+      "Quorum": "The minimum number of shareholders required to be present for a shareholder meeting to be valid.",
+      "Resolution": "A formal proposal put to a shareholder vote.",
+      "Ordinary Resolution": "Requires a simple majority to pass, used for routine matters.",
+      "Special Resolution": "Requires a three-fourths majority (75%) to pass, used for significant decisions.",
+      "Proxy": "A person appointed by a shareholder to attend and vote on their behalf at a meeting.",
+      "Minutes": "Official records of decisions made and discussions held during shareholder meetings.",
+      "Capital Reduction": "The strategic process of reducing a company's share capital.",
+      "Share Buyback": "The repurchase of a company's own shares from the market or shareholders.",
+      "Red Herring Prospectus (RHP)": "A preliminary version of the IPO prospectus containing details about the company and the proposed offering."
+    },
+    "assessment_criteria": [
+      "Understanding of core corporate governance principles and Indian legal framework.",
+      "Ability to explain company formation, types, and documentation (MOA, AOA).",
+      "Knowledge of share capital, types, issuance, and transfer mechanisms.",
+      "Comprehension of shareholder rights, duties, and their role in governance.",
+      "Understanding of the legal and procedural aspects of fundraising (Private Placement, Public Issues, IPOs).",
+      "Knowledge of debenture types, rights, and issuance processes.",
+      "Ability to analyze capital restructuring strategies like buybacks and reductions.",
+      "Understanding of shareholder meeting procedures, voting rights, proxies, and resolutions.",
+      "Application of learned concepts to real-world scenarios and case studies.",
+      "Identification and mitigation of red flags in corporate actions and processes."
+    ]
+  },
+  "simulation_config": {
+    "total_rounds": 8,
+    "initial_setup": {
+      "starting_scenario": "default",
+      "custom_scenario_text": "",
+      "initial_difficulty": "medium"
+    },
+    "rounds": [
+      {
+        "round_number": 1,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 2,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 3,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 4,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 5,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 6,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 7,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 8,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      }
+    ],
+    "difficulty_settings": {
+      "easy": {
+        "question_complexity": "straightforward",
+        "board_pressure": "supportive",
+        "time_allocation": "generous",
+        "hints_available": true
+      },
+      "medium": {
+        "question_complexity": "moderate",
+        "board_pressure": "balanced",
+        "time_allocation": "standard",
+        "hints_available": false
+      },
+      "hard": {
+        "question_complexity": "challenging",
+        "board_pressure": "demanding",
+        "time_allocation": "tight",
+        "hints_available": false
+      }
+    },
+    "round_type_settings": {
+      "business": {
+        "description": "Focus on company-specific challenges and decisions",
+        "uses_company_data": true,
+        "uses_module_data": false
+      },
+      "module": {
+        "description": "Focus on applying theoretical concepts from the module",
+        "uses_company_data": false,
+        "uses_module_data": true
+      },
+      "both": {
+        "description": "Integrate theoretical concepts with company challenges",
+        "uses_company_data": true,
+        "uses_module_data": true
+      }
+    }
+  },
+  "validation": {
+    "issues_count": 0,
+    "warnings_count": 0,
+    "is_valid": true
+  }
+}

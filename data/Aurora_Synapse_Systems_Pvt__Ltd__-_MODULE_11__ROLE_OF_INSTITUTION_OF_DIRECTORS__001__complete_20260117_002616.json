@@ -1,0 +1,686 @@
+{
+  "session_name": "Aurora Synapse Systems Pvt. Ltd. - MODULE 11: ROLE OF INSTITUTION OF DIRECTORS (001)",
+  "created_at": "2026-01-13T12:19:35.410262",
+  "modified_at": "2026-01-13T12:26:23.258472",
+  "export_timestamp": "2026-01-17T00:26:16.807213",
+  "status": "confirmed_ready",
+  "company_data": {
+    "company_name": "Aurora Synapse Systems Pvt. Ltd.",
+    "company_overview": "Aurora Synapse Systems Pvt. Ltd. is an AI-driven enterprise intelligence and automation company founded in August 2016, with headquarters in Bengaluru, India, and global offices in Singapore, Berlin, and Toronto. The company operates on a B2B SaaS, enterprise licensing, and consulting business model, offering core products like SynapseIQ (AI Decision Platform), OpsPulse (Operational Intelligence Suite), and RegulaMind (Compliance Automation Engine). Their mission is to augment enterprise decision-making through adaptive intelligence systems, with a vision to become the global standard for AI-powered business orchestration. They primarily serve large enterprises in the BFSI, Manufacturing, Pharma, and Logistics sectors.",
+    "metrics": {
+      "annual_recurring_revenue": {
+        "value": 412,
+        "unit": "Cr ₹",
+        "description": "Annual Recurring Revenue",
+        "priority": null
+      },
+      "total_revenue_annual": {
+        "value": 468,
+        "unit": "Cr ₹",
+        "description": "Total Revenue (Annual)",
+        "priority": null
+      },
+      "net_profit_margin": {
+        "value": 21.6,
+        "unit": "%",
+        "description": "Net Profit Margin",
+        "priority": null
+      },
+      "ebitda": {
+        "value": 132,
+        "unit": "Cr ₹",
+        "description": "EBITDA",
+        "priority": "High"
+      },
+      "monthly_burn_rate": {
+        "value": 6.8,
+        "unit": "Cr ₹",
+        "description": "Monthly Burn Rate",
+        "priority": null
+      },
+      "customer_lifetime_value": {
+        "value": 2.4,
+        "unit": "Cr ₹",
+        "description": "Customer Lifetime Value",
+        "priority": null
+      },
+      "revenue_growth_yoy": {
+        "value": 28.4,
+        "unit": "%",
+        "description": "Revenue Growth YoY",
+        "priority": null
+      },
+      "r_and_d_spend_percentage_of_revenue": {
+        "value": 14.2,
+        "unit": "%",
+        "description": "R&D Spend (% of Revenue)",
+        "priority": null
+      },
+      "platform_uptime": {
+        "value": 99.93,
+        "unit": "%",
+        "description": "Platform Uptime",
+        "priority": null
+      },
+      "deployment_frequency": {
+        "value": 18,
+        "unit": "releases/month",
+        "description": "Deployment Frequency",
+        "priority": null
+      },
+      "average_incident_resolution_time": {
+        "value": 2.6,
+        "unit": "hrs",
+        "description": "Average Incident Resolution Time",
+        "priority": null
+      },
+      "automation_coverage": {
+        "value": 71,
+        "unit": "%",
+        "description": "Automation Coverage",
+        "priority": null
+      },
+      "infrastructure_cost_efficiency": {
+        "value": 87,
+        "unit": "%",
+        "description": "Infrastructure Cost Efficiency",
+        "priority": null
+      },
+      "data_processing_latency": {
+        "value": 340,
+        "unit": "ms",
+        "description": "Data Processing Latency",
+        "priority": null
+      },
+      "project_delivery_on_time_rate": {
+        "value": 92,
+        "unit": "%",
+        "description": "Project Delivery On-Time Rate",
+        "priority": null
+      },
+      "net_promoter_score": {
+        "value": 74,
+        "unit": "NPS",
+        "description": "Net Promoter Score",
+        "priority": null
+      },
+      "customer_churn_rate_annual": {
+        "value": 3.2,
+        "unit": "%",
+        "description": "Customer Churn Rate (Annual)",
+        "priority": null
+      },
+      "customer_acquisition_cost": {
+        "value": 9.6,
+        "unit": "L ₹",
+        "description": "Customer Acquisition Cost",
+        "priority": null
+      },
+      "average_contract_value": {
+        "value": 1.9,
+        "unit": "Cr ₹",
+        "description": "Average Contract Value",
+        "priority": null
+      },
+      "expansion_revenue_rate": {
+        "value": 34,
+        "unit": "%",
+        "description": "Expansion Revenue Rate",
+        "priority": null
+      },
+      "support_ticket_csat": {
+        "value": 4.6,
+        "unit": "/ 5",
+        "description": "Support Ticket CSAT",
+        "priority": null
+      },
+      "employee_engagement_score": {
+        "value": 82,
+        "unit": "/ 100",
+        "description": "Employee Engagement Score",
+        "priority": null
+      },
+      "annual_attrition_rate": {
+        "value": 9.1,
+        "unit": "%",
+        "description": "Annual Attrition Rate",
+        "priority": "High"
+      },
+      "avg_training_hours_per_employee": {
+        "value": 46,
+        "unit": "hrs",
+        "description": "Avg Training Hours / Employee",
+        "priority": null
+      },
+      "internal_promotion_rate": {
+        "value": 18,
+        "unit": "%",
+        "description": "Internal Promotion Rate",
+        "priority": null
+      },
+      "diversity_ratio_women_percentage": {
+        "value": 38,
+        "unit": "%",
+        "description": "Diversity Ratio (Women %)",
+        "priority": null
+      },
+      "regulatory_compliance_score": {
+        "value": 96,
+        "unit": "%",
+        "description": "Regulatory Compliance Score",
+        "priority": null
+      },
+      "open_high_severity_risks": {
+        "value": 3,
+        "unit": "count",
+        "description": "Open High-Severity Risks",
+        "priority": "High"
+      },
+      "carbon_footprint_yoy_change": {
+        "value": -11,
+        "unit": "%",
+        "description": "Carbon Footprint (YoY Change)",
+        "priority": null
+      },
+      "data_privacy_incident_count": {
+        "value": 0,
+        "unit": "count",
+        "description": "Data Privacy Incident Count",
+        "priority": null
+      },
+      "employee_count": {
+        "value": 1280,
+        "unit": "employees",
+        "description": "Total employee count",
+        "priority": null
+      }
+    },
+    "board_members": [
+      {
+        "name": "Ananya Rao",
+        "role": "Chairperson & CEO",
+        "personality": "AI entrepreneur with a founder's mindset, prioritizing long-term vision and market leadership over short-term optics. Believes trust follows innovation and strongly resists slowing growth. Prone to emotional attachment with SynapseIQ and may underestimate regulatory risks. Holds power through agenda control and casting vote. Faces a decision on whether to publicly slow growth to rebuild trust.",
+        "tenure_years": 4,
+        "expertise": "Finance"
+      },
+      {
+        "name": "Dr. Marcus Feld",
+        "role": "Executive Director & CTO",
+        "personality": "Holds a PhD in AI Systems and a background in EU research. Focuses on technical integrity and system resilience. Believes current release velocity is unsafe and compliance debt is real technical debt. His influence lies with engineering leadership. Has a bias for over-engineering solutions and lacks commercial instincts. Wants to freeze feature rollouts for 1-2 quarters.",
+        "tenure_years": 10,
+        "expertise": "Technology"
+      },
+      {
+        "name": "Kavita Mehra",
+        "role": "Independent Director (Compliance & Law)",
+        "personality": "Former regulator and data privacy law expert. Her primary lens is regulatory exposure and reputational risk. Believes one audit failure could destroy valuation and compliance shortcuts are existential threats. Has strong sway with the audit committee. Is risk-averse to a fault and distrusts aggressive sales teams. Pushes for an immediate compliance-first restructuring.",
+        "expertise": "Law",
+        "tenure_years": 4
+      },
+      {
+        "name": "Rajiv Malhotra",
+        "role": "Investor Director (Growth PE Fund)",
+        "personality": "Background in Private Equity and led the Series C round. Focuses on ARR growth, exit multiples, and valuation. Believes growth cures all problems and issues can be managed post-IPO. Controls future capital infusions. Has a short investment horizon (3-4 years). Wants no slowdown before the IPO narrative is locked.",
+        "expertise": "Finanace",
+        "tenure_years": 11
+      },
+      {
+        "name": "Elena Kovács",
+        "role": "Independent Director (EU Markets)",
+        "personality": "Former COO of a European SaaS unicorn. Her lens is enterprise trust and customer renewal risk. Believes silent dissatisfaction is more dangerous than churn and EU clients will test compliance aggressively. Holds sway as the voice of international customers. Overweights EU risks compared to India/US markets. Advocates for a separate compliance-grade product tier.",
+        "expertise": "Compliance",
+        "tenure_years": 15
+      },
+      {
+        "name": "Sanjay Kulkarni",
+        "role": "Executive Director & CFO",
+        "personality": "A Big-4 alum and IPO specialist. Focuses on financial stability and predictability. Believes margins can absorb short-term pain and burn rate must stay under control. Holds power over budget approvals and capital reallocation. Optimizes spreadsheets over people. Proposes reallocating R&D without increasing burn.",
+        "expertise": "Finance",
+        "tenure_years": 6
+      },
+      {
+        "name": "Meera Iyer",
+        "role": "Independent Director (Human Capital)",
+        "personality": "Former CHRO of a Fortune 100 tech firm. Her primary lens is talent retention and leadership bench. Believes losing top talent is a silent killer and burnout leads to future execution failure. Holds board influence on succession and culture. Tends to soften hard business calls. Pushes for slowing down releases to protect teams.",
+        "expertise": "Leadership",
+        "tenure_years": 9
+      },
+      {
+        "name": "Thomas Greene",
+        "role": "Independent Director (Cybersecurity & Risk)",
+        "personality": "Ex-CISO of a global cloud provider. Focuses on systemic risk and incident preparedness. Believes 'zero incidents' is luck, not design, and latency plus compliance gaps equal breach risk. Has escalation authority with the risk committee. Is a worst-case scenario thinker. Warns that one breach could collapse BFSI trust overnight.",
+        "expertise": "Operations",
+        "tenure_years": 7
+      },
+      {
+        "name": "Neha Verma",
+        "role": "Customer Advocate Director",
+        "personality": "Former CIO of a large BFSI client. Her lens is client perception and procurement realities. Believes buyers care more about explainability than features and trust sells better than innovation. Shapes enterprise sales strategy. Underestimates competitive pressure. Demands slower rollouts and stronger auditability.",
+        "expertise": "Sales",
+        "tenure_years": 4
+      },
+      {
+        "name": "Arjun Patel",
+        "role": "Observer Director (Future CEO Candidate)",
+        "personality": "COO-level operator and board observer. Focuses on execution feasibility and internal alignment. Believes strategy without execution discipline fails and middle management is overstretched. Influences succession planning. Is politically cautious and avoids open conflict. Watches whether leadership can align fast enough.",
+        "expertise": "Compliance",
+        "tenure_years": 4
+      }
+    ],
+    "current_problems": [
+      "Rapid enterprise growth is undermining customer trust and operational stability.",
+      "High deployment frequency (18 releases/month) is straining system stability.",
+      "Three open high-severity risks in compliance and operations.",
+      "Customer trust concerns are emerging despite a strong NPS.",
+      "The Board is deeply divided on prioritizing growth velocity versus operational resilience.",
+      "Potential regulatory backlash threatens the BFSI customer base.",
+      "Engineering team burnout risk due to the current release cadence.",
+      "Compliance debt is accumulating faster than it is being resolved.",
+      "The company faces a strategic inflection point crisis.",
+      "The tension between maintaining aggressive growth for IPO plans and deliberately slowing down for resilience."
+    ],
+    "initial_scenario": "Aurora Synapse Systems is experiencing strong short-term financial growth with healthy revenue, margins, and a high growth rate. However, leading indicators are signaling a structural risk that rapid expansion is beginning to strain operational stability and erode customer trust. This growth is driven by high deployment frequency and a business model encompassing B2B SaaS, enterprise licensing, and consulting, aimed at achieving an IPO. The company faces a critical decision regarding whether to continue its aggressive growth trajectory or to deliberately slow down to address accumulating compliance debt, system stability issues, and potential damage to customer trust, which could jeopardize future valuation and market position.",
+    "committees": [
+      {
+        "name": "Compliance Committee",
+        "type": "Compliance Committee",
+        "purpose": "Compliance monitoring",
+        "members": [
+          "Arjun Patel",
+          "Elena Kovács",
+          "Kavita Mehra",
+          "Ananya Rao"
+        ],
+        "chairperson": "Elena Kovács",
+        "created_at": "2026-01-13T12:24:23.384669"
+      }
+    ]
+  },
+  "module_data": {
+    "module_name": "MODULE 11: ROLE OF INSTITUTION OF DIRECTORS",
+    "subject_area": "Corporate Governance",
+    "learning_objectives": [
+      "Understand the fundamental role and responsibilities of a Board of Directors.",
+      "Comprehend the legal framework governing board powers and limitations under the Companies Act, 2013.",
+      "Identify the different types of directors and their specific roles and responsibilities.",
+      "Analyze the appointment, duties, liabilities, and evaluation processes for directors, particularly independent directors.",
+      "Grasp the principles of effective board composition, functioning, and crisis management.",
+      "Learn how directors add strategic value and contribute to good corporate governance."
+    ],
+    "overview": "This module provides a comprehensive understanding of the institution of directors, demystifying the perception of boards as merely ceremonial bodies. It delves into their legal powers, ethical duties, strategic oversight, and critical role in ensuring good corporate governance and long-term company success.",
+    "topics": [
+      {
+        "name": "What the Board Really Does",
+        "description": "This topic breaks the misconception of boards being just 'suits in a room', highlighting their function as the nerve center for vision, risk management, and shareholder protection. It introduces the legal basis of their authority.",
+        "key_principles": [
+          "Board as the nerve center of a company.",
+          "Steering vision, managing risks, protecting shareholders."
+        ],
+        "formulas": [],
+        "application": "Understanding the fundamental purpose and function of a Board of Directors.",
+        "examples": [
+          "Cipla Ltd. diversifying into respiratory devices and digital therapeutics under Section 179 powers."
+        ]
+      },
+      {
+        "name": "Section 179: Board's Powers",
+        "description": "Explains the powers granted to the Board of Directors by Section 179 of the Companies Act, 2013, outlining the boundaries set by the Act, Memorandum and Articles of Association, and shareholder resolutions.",
+        "key_principles": [
+          "Board's power to run the company is derived from Section 179.",
+          "Powers are exercised within legal and constitutional limits.",
+          "Certain powers must be exercised via board resolutions.",
+          "Delegation of powers is possible for some functions, but strategic decisions remain with the Board."
+        ],
+        "formulas": [],
+        "application": "Understanding the specific operational and strategic powers of the Board.",
+        "examples": [
+          "Approving buybacks, authorizing issue of securities, borrowing money, investing funds, approving financials, diversifying business, approving M&A deals."
+        ]
+      },
+      {
+        "name": "Section 180: Shareholder Approval Requirements",
+        "description": "Details the powers that the Board cannot exercise unilaterally and require shareholder approval through a special resolution, as outlined in Section 180 of the Companies Act, 2013.",
+        "key_principles": [
+          "Certain significant decisions require shareholder consent.",
+          "Acts as a check on the Board's power for major corporate actions."
+        ],
+        "formulas": [],
+        "application": "Identifying major corporate actions that necessitate shareholder consent.",
+        "examples": [
+          "Selling or leasing major assets (over 20% of total income or net worth).",
+          "Investing merger compensation in risky places.",
+          "Borrowing beyond paid-up capital + reserves + securities premium.",
+          "Writing off loans from directors."
+        ]
+      },
+      {
+        "name": "Role of the Board: Vision, Strategy, Oversight, and Accountability",
+        "description": "This topic outlines the core responsibilities of a Board, including defining vision and values, setting strategic direction, delegating authority with robust oversight, and ensuring accountability to all stakeholders.",
+        "key_principles": [
+          "Defining company's purpose and ethical compass.",
+          "Assessing risks and opportunities to chart a course.",
+          "Governing, not managing; delegating with monitoring.",
+          "Responsibility extends beyond shareholders to all stakeholders."
+        ],
+        "formulas": [],
+        "application": "Understanding the strategic and ethical leadership role of the Board.",
+        "examples": [
+          "Info Edge (India) Ltd.'s strategic investment in startups like Zomato and PolicyBazaar.",
+          "HDFC Ltd.'s long-term board discipline overseeing expansion."
+        ]
+      },
+      {
+        "name": "Board Composition and Structure",
+        "description": "Covers the legal and regulatory requirements for board composition, including minimum and maximum director numbers, residential director mandates, and SEBI LODR requirements for listed companies regarding executive/non-executive mix and independent directors.",
+        "key_principles": [
+          "Board composition is legally defined and guided by good governance.",
+          "A well-structured board is a blend of skill, perspective, independence, and diversity.",
+          "Statutory minimums and maximums apply.",
+          "Listed companies have additional requirements under SEBI LODR."
+        ],
+        "formulas": [],
+        "application": "Ensuring compliance with legal and regulatory mandates for board structure.",
+        "examples": [
+          "Minimum 3 directors for public companies, 2 for private, 1 for OPC.",
+          "Maximum 15 directors, extendable via special resolution.",
+          "At least 50% non-executive directors in listed companies.",
+          "Mandatory woman director in listed and large public companies."
+        ]
+      },
+      {
+        "name": "Independent Directors: Role and Eligibility",
+        "description": "Defines the critical role of Independent Directors (IDs), their eligibility criteria as per Section 149(6), and the importance of their independence, objectivity, and fresh perspective.",
+        "key_principles": [
+          "IDs provide independence, objectivity, and fresh perspectives.",
+          "Must be free from pecuniary or material relationships with the company.",
+          "Selected for integrity, experience, and ability to challenge.",
+          "Legal requirements for independence are stringent."
+        ],
+        "formulas": [],
+        "application": "Understanding the qualifications and functional importance of independent directors.",
+        "examples": [
+          "Not being a promoter or related to promoters/management.",
+          "No major financial interest or prior employment/consulting relationships in the last 3 years."
+        ]
+      },
+      {
+        "name": "Appointment and Tenure of Independent Directors",
+        "description": "Details the process for appointing independent directors, including using the MCA Data Bank, shareholder approval, and their tenure limits (5 years per term, max 2 consecutive terms) and the mandatory cooling-off period.",
+        "key_principles": [
+          "Appointment is a formal process with shareholder approval.",
+          "Strict tenure limits ensure sustained independence.",
+          "Mandatory cooling-off period prevents familiarity erosion."
+        ],
+        "formulas": [],
+        "application": "Ensuring compliance with the appointment and tenure regulations for independent directors.",
+        "examples": [
+          "Appointment from MCA Data Bank.",
+          "Maximum 10 years of service (2 terms of 5 years each).",
+          "3-year cooling-off period after two terms."
+        ]
+      },
+      {
+        "name": "Duties and Liabilities of Directors",
+        "description": "Explains the statutory duties of directors under Section 166 (act in good faith, due care, avoid conflict, etc.) and fiduciary duties (loyalty, honesty). It also covers personal liabilities for misstatements, fraud, and breaches, with a distinction for Non-Executive and Independent Directors.",
+        "key_principles": [
+          "Directors have legal and fiduciary duties towards the company and stakeholders.",
+          "Duty of care and good faith is paramount.",
+          "Conflict of interest must be avoided or disclosed.",
+          "Personal liability exists for certain actions, but IDs have limited liability for omissions without knowledge/consent/negligence.",
+          "Business Judgment Rule offers protection for well-intended decisions."
+        ],
+        "formulas": [],
+        "application": "Understanding the legal obligations and potential liabilities associated with directorship.",
+        "examples": [
+          "Infosys whistleblower case highlighting board's duty to investigate.",
+          "IL&FS scandal leading to director disqualification for alleged negligence."
+        ]
+      },
+      {
+        "name": "Director Removal and Resignation",
+        "description": "Covers the legal procedures for a director's resignation (written notice, ROC filing) and removal by shareholders (special notice, opportunity to be heard, ordinary resolution), as well as the implications for liabilities post-exit.",
+        "key_principles": [
+          "Resignation is a formal legal process requiring notice and filing.",
+          "Removal requires a special notice and an ordinary resolution, with a right to be heard.",
+          "Liabilities for actions during tenure persist post-resignation/removal."
+        ],
+        "formulas": [],
+        "application": "Managing the legal and procedural aspects of a director's exit.",
+        "examples": [
+          "Snapdeal board shake-up due to internal disputes.",
+          "Jet Airways director removals during financial crisis."
+        ]
+      },
+      {
+        "name": "Director Performance Evaluation",
+        "description": "Explores the importance and methods of evaluating director performance, including self-assessment, peer review, and external evaluations. It outlines key areas for evaluation and the process for conducting effective reviews.",
+        "key_principles": [
+          "Regular evaluations are crucial for improving governance and accountability.",
+          "Various methods exist: self, peer, and external assessments.",
+          "Evaluations should cover strategy, collaboration, skills, and ethical leadership.",
+          "Action must be taken based on evaluation results."
+        ],
+        "formulas": [],
+        "application": "Ensuring continuous improvement and accountability of directors and the board.",
+        "examples": [
+          "Wipro implementing annual board evaluations.",
+          "Reliance Power IPO disaster as a lesson in governance failures due to poor oversight."
+        ]
+      },
+      {
+        "name": "Crisis Management for Directors",
+        "description": "Focuses on the director's role in navigating corporate crises, emphasizing strategic oversight, transparent communication, and maintaining the long-term vision, even when management handles operational responses.",
+        "key_principles": [
+          "Directors provide strategic oversight and calm leadership during crises.",
+          "Transparency and early acknowledgment are key to communication.",
+          "Maintaining long-term vision while stabilizing operations is crucial.",
+          "Learning from crises to improve future preparedness."
+        ],
+        "formulas": [],
+        "application": "Equipping directors to effectively lead and guide the company through challenging times.",
+        "examples": [
+          "Johnson & Johnson's Tylenol crisis response.",
+          "Imaginary case of 'BlueTech Innovations' data breach."
+        ]
+      },
+      {
+        "name": "Other Types of Directors",
+        "description": "Introduces various other director roles such as Small Shareholders' Directors, Additional Directors, Alternate Directors, Nominee Directors, and Shadow Directors, detailing their appointment, tenure, and specific responsibilities.",
+        "key_principles": [
+          "Diverse roles exist to ensure representation, continuity, and control.",
+          "Each type has specific legal provisions for appointment and function.",
+          "Shadow directors may hold influence without official appointment, carrying potential liability."
+        ],
+        "formulas": [],
+        "application": "Understanding the complete spectrum of director roles within a company.",
+        "examples": [
+          "Small Shareholders' Director representing retail investors.",
+          "Nominee Director representing financial institutions or government.",
+          "Shadow Director's influence in family-run businesses."
+        ]
+      },
+      {
+        "name": "Director Appointment Process",
+        "description": "Outlines the step-by-step legal process for appointing a director, including obtaining a DIN, providing consent, declaring non-disqualification, passing resolutions, and filing necessary forms with the Registrar of Companies.",
+        "key_principles": [
+          "Appointment is a regulated legal process.",
+          "Requires specific documentation and filings.",
+          "Compliance with timelines is essential."
+        ],
+        "formulas": [],
+        "application": "Ensuring a compliant and legal appointment of directors.",
+        "examples": [
+          "Applying for DIN using Form DIR-3.",
+          "Filing Form DIR-12 within 30 days of appointment."
+        ]
+      },
+      {
+        "name": "Director Disqualification Grounds",
+        "description": "Details the various grounds under Section 164 of the Companies Act, 2013, that disqualify a person from becoming or continuing as a director, including unsound mind, insolvency, convictions, and non-compliance with financial filings.",
+        "key_principles": [
+          "Specific legal conditions prevent individuals from holding directorships.",
+          "Disqualification can be due to personal circumstances or company-related failures.",
+          "Non-compliance in one company can lead to disqualification in others."
+        ],
+        "formulas": [],
+        "application": "Identifying individuals who are legally ineligible to serve as directors.",
+        "examples": [
+          "Conviction with sentence of 6 months or more.",
+          "Failure to file financials/annual returns for 3 consecutive years by a company."
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "Business Judgment Rule",
+        "description": "A legal principle that protects directors from liability for business decisions made in good faith, with due care, and without conflict of interest, even if the outcome is unfavorable.",
+        "components": [
+          "Good Faith",
+          "Due Care",
+          "No Conflict of Interest",
+          "Rational Judgment"
+        ],
+        "application_scenario": "When directors need to make significant decisions in uncertain environments and seek protection from hindsight criticism."
+      }
+    ],
+    "key_terms": {
+      "Board of Directors": "The governing body of a company, responsible for steering its vision, managing risks, and protecting shareholders.",
+      "Companies Act, 2013": "The primary legislation in India governing companies, including the role and responsibilities of directors.",
+      "Section 179": "Section of the Companies Act, 2013, that grants powers to the Board of Directors to manage the company's affairs.",
+      "Section 180": "Section of the Companies Act, 2013, that outlines powers requiring shareholder approval via special resolution.",
+      "Memorandum of Association (MoA)": "The charter document of a company that defines its fundamental objectives and structure.",
+      "Articles of Association (AoA)": "The internal rules and regulations that govern the management and operation of a company.",
+      "Resolution": "A formal decision passed by the Board of Directors or shareholders.",
+      "Special Resolution": "A resolution passed by a majority of not less than 75% of the votes cast at a shareholder meeting.",
+      "Ordinary Resolution": "A resolution passed by a simple majority of votes at a shareholder meeting.",
+      "Buyback": "The repurchase of a company's own shares from the open market.",
+      "Issue of Securities": "The act of a company offering new shares, bonds, or other financial instruments to raise capital.",
+      "Mergers and Acquisitions (M&A)": "The consolidation of companies or their assets through various types of financial transactions.",
+      "Independent Director (ID)": "A director who meets specific criteria of independence and is free from material relationships with the company.",
+      "Non-Executive Director (NED)": "A director who is not involved in the day-to-day management of the company.",
+      "Executive Director": "A director who is also an employee of the company, often involved in its day-to-day operations (e.g., Managing Director, Whole-time Director).",
+      "Director Identification Number (DIN)": "A unique identification number issued to individuals intending to become directors or existing directors in India.",
+      "Registrar of Companies (ROC)": "A government authority responsible for company registration and compliance.",
+      "Form DIR-3": "The form used to apply for a Director Identification Number (DIN).",
+      "Form DIR-2": "The form for a director's consent to act as a director.",
+      "Form DIR-12": "The form filed with the ROC for the appointment, resignation, or removal of directors.",
+      "Fiduciary Duty": "A legal or ethical relationship of trust between two or more parties, requiring one party to act in the best interests of the other.",
+      "Duty of Care": "The legal obligation of a director to act with the prudence and diligence that a reasonably prudent person would exercise in similar circumstances.",
+      "Conflict of Interest": "A situation where an individual's personal interests could potentially compromise their professional judgment or actions.",
+      "Insider Trading": "Trading of a public company's stock or other securities by individuals with access to non-public information about the company.",
+      "Statutory Duties": "Duties imposed on directors by law, such as those outlined in the Companies Act, 2013.",
+      "Small Shareholders' Director": "A director elected to represent the interests of small shareholders (holding shares worth ₹20,000 or less in listed companies).",
+      "Additional Director": "A director appointed by the Board to fill a vacancy or bring specific expertise, serving until the next AGM.",
+      "Alternate Director": "A director appointed to act in place of an original director who is absent from India for at least three months.",
+      "Nominee Director": "A director appointed to represent the interests of specific stakeholders like financial institutions or the government.",
+      "Shadow Director": "An individual who is not an officially appointed director but whose instructions the Board habitually follows.",
+      "Resignation": "The voluntary act of a director stepping down from their position.",
+      "Removal": "The process by which a director is involuntarily dismissed from their position, typically by shareholders.",
+      "Cooling-off Period": "A mandatory period after serving two consecutive terms as an independent director, during which they cannot be reappointed to the same board.",
+      "Business Judgment Rule": "A legal principle protecting directors from liability for informed business decisions made in good faith.",
+      "SEBI (Listing Obligations and Disclosure Requirements) Regulations, 2015 (SEBI LODR)": "Regulations issued by SEBI that govern listed companies, including aspects of corporate governance.",
+      "Corporate Governance": "The system of rules, practices, and processes by which a company is directed and controlled.",
+      "Stakeholders": "All parties who have an interest in a company, including shareholders, employees, customers, suppliers, and the community.",
+      "Whistleblower": "A person who reports misconduct or illegal activity within an organization.",
+      "Crisis Management": "The process of dealing with an unexpected and disruptive event that threatens an organization's stability and reputation.",
+      "Board Performance Evaluation": "The process of assessing the effectiveness of individual directors and the board as a whole.",
+      "Continuous Learning": "The ongoing process of acquiring new knowledge and skills, essential for directors to stay relevant."
+    },
+    "assessment_criteria": [
+      "Understanding of the legal framework governing directors' powers and duties.",
+      "Ability to identify different types of directors and their roles.",
+      "Knowledge of appointment, tenure, and disqualification procedures for directors.",
+      "Comprehension of director liabilities and responsibilities.",
+      "Capacity to analyze board composition and its impact on governance.",
+      "Understanding of effective board functioning, including crisis management and performance evaluation.",
+      "Application of learned concepts through case studies and practical examples."
+    ]
+  },
+  "simulation_config": {
+    "total_rounds": 5,
+    "initial_setup": {
+      "starting_scenario": "crisis",
+      "custom_scenario_text": "",
+      "initial_difficulty": "easy"
+    },
+    "rounds": [
+      {
+        "round_number": 1,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": "High deployment frequency (18 releases/month) is straining system stability.",
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 2,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": "Section 179: Board's Powers",
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 3,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": "Section 180: Shareholder Approval Requirements",
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 4,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      },
+      {
+        "round_number": 5,
+        "round_type": "both",
+        "difficulty": "medium",
+        "focus_area": null,
+        "time_pressure": "normal"
+      }
+    ],
+    "difficulty_settings": {
+      "easy": {
+        "question_complexity": "straightforward",
+        "board_pressure": "supportive",
+        "time_allocation": "generous",
+        "hints_available": true
+      },
+      "medium": {
+        "question_complexity": "moderate",
+        "board_pressure": "balanced",
+        "time_allocation": "standard",
+        "hints_available": false
+      },
+      "hard": {
+        "question_complexity": "challenging",
+        "board_pressure": "demanding",
+        "time_allocation": "tight",
+        "hints_available": false
+      }
+    },
+    "round_type_settings": {
+      "business": {
+        "description": "Focus on company-specific challenges and decisions",
+        "uses_company_data": true,
+        "uses_module_data": false
+      },
+      "module": {
+        "description": "Focus on applying theoretical concepts from the module",
+        "uses_company_data": false,
+        "uses_module_data": true
+      },
+      "both": {
+        "description": "Integrate theoretical concepts with company challenges",
+        "uses_company_data": true,
+        "uses_module_data": true
+      }
+    }
+  },
+  "validation": {
+    "issues_count": 0,
+    "warnings_count": 0,
+    "is_valid": true
+  }
+}
