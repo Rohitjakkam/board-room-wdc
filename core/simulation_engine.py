@@ -169,7 +169,12 @@ def calculate_metric_impacts(llm: genai.GenerativeModel, company_data: Dict,
     metrics = company_data['metrics']
 
     metrics_context = "\n".join([
-        f"- {metrics[key]['description']}: {metrics[key]['value']} {metrics[key]['unit']} (Priority: {metrics[key].get('priority', 'Normal')})"
+        f"- {key}: {metrics[key]['description']} = {metrics[key]['value']} {metrics[key]['unit']} (Priority: {metrics[key].get('priority', 'Normal')})"
+        for key in metrics.keys()
+    ])
+
+    metric_keys_format = "\n".join([
+        f"- {key}: [change as number, e.g., +5 or -3 or 0] | [brief reason]"
         for key in metrics.keys()
     ])
 
@@ -186,34 +191,21 @@ SCENARIO:
 DECISION MADE:
 {decision}
 
-DECISION QUALITY SCORE: {score}/100
-
 Based on this decision, analyze the realistic impact on company metrics. Consider:
 1. Direct impacts from the decision
 2. Indirect/ripple effects
 3. Short-term vs long-term implications
-4. The quality of the decision (score: {score})
+4. Whether the decision actually addresses the scenario's core problem
 
 Provide metric impacts in this EXACT format (use these exact metric keys):
 METRIC_IMPACTS:
-- total_revenue_annual: [change as number, e.g., +5 or -3 or 0] | [brief reason]
-- ebitda: [change as number] | [brief reason]
-- net_profit_margin: [change as decimal, e.g., +0.5 or -0.2] | [brief reason]
-- platform_uptime: [change as decimal] | [brief reason]
-- net_promoter_score: [change as number] | [brief reason]
-- customer_churn_rate_annual: [change as decimal] | [brief reason]
-- employee_engagement_score: [change as number] | [brief reason]
-- annual_attrition_rate: [change as decimal] | [brief reason]
-- regulatory_compliance_score: [change as number] | [brief reason]
-- open_high_severity_risks: [change as number] | [brief reason]
-- deployment_frequency: [change as number] | [brief reason]
-- revenue_growth_yoy: [change as decimal] | [brief reason]
+{metric_keys_format}
 
 IMPACT_SUMMARY: [2-3 sentence summary of overall business impact]
 
 Be realistic - not every decision affects all metrics. Use 0 for unaffected metrics.
-Good decisions (score > 70) should generally have positive impacts.
-Poor decisions (score < 50) should have negative impacts."""
+A decision can have mixed impacts: positive on some metrics, negative on others.
+Focus on the logical consequences of the decision, not on whether it seems "good" or "bad" overall."""
 
     content = _call_llm(llm, impact_prompt)
 
@@ -261,6 +253,14 @@ Poor decisions (score < 50) should have negative impacts."""
 
 def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
     """Apply calculated impacts to metrics and return updated metrics."""
+    # Per-round change caps to prevent unrealistic single-round swings
+    MAX_CHANGE = {
+        '%': 5.0,           # percentage metrics: max 5pp per round
+        'count': 3,         # count metrics (risks, etc.): max 3 per round
+        'employees': 50,    # headcount: max 50 per round
+    }
+    MAX_REVENUE_PCT = 0.10  # revenue/currency metrics: max 10% of current value
+
     updated_metrics = {}
 
     for key, metric in metrics.items():
@@ -268,9 +268,20 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
         if key in impacts:
             change = impacts[key]
             old_value = metric['value']
+            unit = metric.get('unit', '')
+
+            # Clamp change to per-round caps
+            if unit in MAX_CHANGE:
+                cap = MAX_CHANGE[unit]
+                change = max(-cap, min(cap, change))
+            elif old_value != 0:
+                # Currency/large-number metrics: cap at 10% of current value
+                cap = abs(old_value) * MAX_REVENUE_PCT
+                change = max(-cap, min(cap, change))
+
             new_value = old_value + change
 
-            unit = metric.get('unit', '')
+            # Type-based bounds
             if unit == '%':
                 new_value = max(0, min(100, new_value))
             elif unit in ('count', 'employees'):

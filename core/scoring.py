@@ -67,73 +67,86 @@ def calculate_board_effectiveness_score(round_number: int,
 
 
 def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
-    """Generate clear numeric goals/milestones for the simulation."""
+    """Generate goals dynamically from whatever metrics the company has, scaled by round count."""
+    # Metrics where lower values are better
+    LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect'}
+
+    # Category detection from metric key/description
+    CATEGORY_MAP = {
+        'revenue': 'Financial', 'profit': 'Financial', 'ebitda': 'Financial',
+        'margin': 'Financial', 'growth': 'Financial', 'debt': 'Financial',
+        'customer': 'Customer', 'churn': 'Customer', 'promoter': 'Customer',
+        'satisfaction': 'Customer', 'retention': 'Customer',
+        'employee': 'HR', 'engagement': 'HR', 'attrition': 'HR', 'headcount': 'HR',
+        'uptime': 'Operations', 'deployment': 'Operations', 'platform': 'Operations',
+        'risk': 'Risk', 'compliance': 'Risk', 'regulatory': 'Risk', 'severity': 'Risk',
+    }
+
+    CATEGORY_ICONS = {
+        'Financial': '💰', 'Customer': '😊', 'HR': '👥',
+        'Operations': '⚙️', 'Risk': '🛡️',
+    }
+
+    # Scale factor: 5 rounds is the baseline
+    round_scale = total_rounds / 5.0
+
     goals = []
+    for key, metric in metrics.items():
+        current = metric.get('value', 0)
+        unit = metric.get('unit', '')
+        description = metric.get('description', key.replace('_', ' ').title())
+        priority = metric.get('priority', 'medium').lower()
 
-    if 'revenue_growth_yoy' in metrics:
-        current = metrics['revenue_growth_yoy']['value']
-        target = current + 5
+        # Detect direction
+        key_lower = key.lower()
+        lower_is_better = any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
+
+        # Detect category
+        category = 'General'
+        for kw, cat in CATEGORY_MAP.items():
+            if kw in key_lower or kw in description.lower():
+                category = cat
+                break
+
+        # Calculate target delta based on unit type, scaled by rounds
+        if unit == '%':
+            base_delta = 3.0
+        elif unit in ('count', 'score'):
+            base_delta = max(2, abs(current) * 0.05) if current != 0 else 2
+        elif unit == 'employees':
+            continue  # Skip headcount — not a performance goal
+        else:
+            # Currency or other large-number metrics
+            base_delta = abs(current) * 0.05 if current != 0 else 5
+
+        delta = base_delta * round_scale
+
+        if lower_is_better:
+            target = max(current - delta, 0)
+        else:
+            if unit == '%':
+                target = min(current + delta, 100)
+            else:
+                target = current + delta
+
+        target = round(target, 2) if isinstance(target, float) else target
+
         goals.append({
-            'category': 'Financial', 'metric_key': 'revenue_growth_yoy',
-            'name': 'Revenue Growth', 'description': 'Increase year-over-year revenue growth',
-            'current': current, 'target': target, 'unit': '%', 'icon': '📈', 'priority': 'high'
+            'category': category,
+            'metric_key': key,
+            'name': description,
+            'description': f"{'Reduce' if lower_is_better else 'Improve'} {description.lower()}",
+            'current': current,
+            'target': target,
+            'unit': unit,
+            'icon': CATEGORY_ICONS.get(category, '📊'),
+            'priority': priority if priority in ('high', 'medium', 'low') else 'medium',
+            **({"lower_is_better": True} if lower_is_better else {}),
         })
 
-    if 'net_profit_margin' in metrics:
-        current = metrics['net_profit_margin']['value']
-        target = min(current + 3, 25)
-        goals.append({
-            'category': 'Financial', 'metric_key': 'net_profit_margin',
-            'name': 'Profit Margin', 'description': 'Improve net profit margin',
-            'current': current, 'target': target, 'unit': '%', 'icon': '💰', 'priority': 'high'
-        })
-
-    if 'net_promoter_score' in metrics:
-        current = metrics['net_promoter_score']['value']
-        target = min(current + 10, 80)
-        goals.append({
-            'category': 'Customer', 'metric_key': 'net_promoter_score',
-            'name': 'Customer Satisfaction', 'description': 'Improve Net Promoter Score',
-            'current': current, 'target': target, 'unit': '', 'icon': '😊', 'priority': 'high'
-        })
-
-    if 'customer_churn_rate_annual' in metrics:
-        current = metrics['customer_churn_rate_annual']['value']
-        target = max(current - 2, 3)
-        goals.append({
-            'category': 'Customer', 'metric_key': 'customer_churn_rate_annual',
-            'name': 'Reduce Churn', 'description': 'Decrease customer churn rate',
-            'current': current, 'target': target, 'unit': '%', 'icon': '🔒',
-            'priority': 'medium', 'lower_is_better': True
-        })
-
-    if 'platform_uptime' in metrics:
-        current = metrics['platform_uptime']['value']
-        target = min(current + 0.5, 99.99)
-        goals.append({
-            'category': 'Operations', 'metric_key': 'platform_uptime',
-            'name': 'System Reliability', 'description': 'Maintain platform uptime',
-            'current': current, 'target': target, 'unit': '%', 'icon': '⚙️', 'priority': 'medium'
-        })
-
-    if 'open_high_severity_risks' in metrics:
-        current = metrics['open_high_severity_risks']['value']
-        target = max(current - 2, 0)
-        goals.append({
-            'category': 'Risk', 'metric_key': 'open_high_severity_risks',
-            'name': 'Risk Mitigation', 'description': 'Reduce high-severity open risks',
-            'current': current, 'target': target, 'unit': '', 'icon': '🛡️',
-            'priority': 'high', 'lower_is_better': True
-        })
-
-    if 'employee_engagement_score' in metrics:
-        current = metrics['employee_engagement_score']['value']
-        target = min(current + 5, 95)
-        goals.append({
-            'category': 'HR', 'metric_key': 'employee_engagement_score',
-            'name': 'Employee Engagement', 'description': 'Improve employee engagement',
-            'current': current, 'target': target, 'unit': '%', 'icon': '👥', 'priority': 'medium'
-        })
+    # Sort: high priority first, then medium, then low
+    priority_order = {'high': 0, 'medium': 1, 'low': 2}
+    goals.sort(key=lambda g: priority_order.get(g['priority'], 1))
 
     return goals
 
@@ -183,41 +196,40 @@ def get_time_pressure_minutes(time_pressure: str) -> int:
 def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_decision_score: float,
                             avg_board_effectiveness: float = None) -> Dict:
     """Calculate overall simulation grade based on metric changes, decision scores, and board effectiveness."""
-    key_metrics = {
-        'total_revenue_annual': {'weight': 1.5, 'higher_better': True},
-        'ebitda': {'weight': 1.5, 'higher_better': True},
-        'net_profit_margin': {'weight': 1.2, 'higher_better': True},
-        'revenue_growth_yoy': {'weight': 1.2, 'higher_better': True},
-        'net_promoter_score': {'weight': 1.0, 'higher_better': True},
-        'customer_churn_rate_annual': {'weight': 1.0, 'higher_better': False},
-        'employee_engagement_score': {'weight': 0.8, 'higher_better': True},
-        'annual_attrition_rate': {'weight': 0.8, 'higher_better': False},
-        'regulatory_compliance_score': {'weight': 1.0, 'higher_better': True},
-        'open_high_severity_risks': {'weight': 1.0, 'higher_better': False},
-        'platform_uptime': {'weight': 0.8, 'higher_better': True},
-    }
+    # Metrics where lower values are better
+    LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect'}
+
+    # Priority-based weights for grading
+    PRIORITY_WEIGHTS = {'high': 1.5, 'medium': 1.0, 'low': 0.6}
 
     metric_score = 0
     total_weight = 0
     improvements = 0
     declines = 0
 
-    for metric_key, config in key_metrics.items():
-        if metric_key in initial_metrics and metric_key in final_metrics:
+    # Grade based on all metrics that exist in both initial and final
+    for metric_key in initial_metrics:
+        if metric_key in final_metrics:
             initial_val = initial_metrics[metric_key]['value']
             final_val = final_metrics[metric_key]['value']
+            priority = initial_metrics[metric_key].get('priority', 'medium').lower()
+            weight = PRIORITY_WEIGHTS.get(priority, 1.0)
+
+            # Detect direction from metric key
+            key_lower = metric_key.lower()
+            higher_better = not any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
 
             if initial_val != 0:
                 pct_change = ((final_val - initial_val) / abs(initial_val)) * 100
             else:
                 pct_change = final_val * 10
 
-            if not config['higher_better']:
+            if not higher_better:
                 pct_change = -pct_change
 
             capped_change = max(-20, min(20, pct_change))
-            metric_score += capped_change * config['weight']
-            total_weight += config['weight']
+            metric_score += capped_change * weight
+            total_weight += weight
 
             if pct_change > 0:
                 improvements += 1

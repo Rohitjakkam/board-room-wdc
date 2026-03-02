@@ -505,7 +505,10 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                     current_metrics = st.session_state.get('current_metrics', company_data['metrics'].copy())
                     impact_values = impacts.get('impacts', {})
                     if force_submitted:
-                        impact_values = {k: v * 0.85 if v > 0 else v for k, v in impact_values.items()}
+                        impact_values = {
+                            k: v * 0.85 if v > 0 else v * 1.15 if v < 0 else 0
+                            for k, v in impact_values.items()
+                        }
                     updated_metrics = apply_metric_impacts(current_metrics, impact_values)
                     st.session_state.current_metrics = updated_metrics
                     st.session_state.metric_impact_reasons = impacts.get('reasons', {})
