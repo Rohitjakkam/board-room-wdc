@@ -41,7 +41,21 @@ def get_firestore_client() -> firestore.Client | None:
         raw_json = st.secrets.get("FIREBASE_JSON")
         if raw_json:
             creds = json.loads(raw_json)
-            client = firestore.Client.from_service_account_info(creds)
+            pk = creds.get("private_key", "")
+            logger.info(
+                f"FIREBASE_JSON: pk_len={len(pk)}, "
+                f"lines={len(pk.splitlines())}, "
+                f"starts={repr(pk[:40])}, "
+                f"ends={repr(pk[-30:])}"
+            )
+            # Write to temp file — avoids any in-memory string encoding issues
+            tmp = tempfile.NamedTemporaryFile(
+                mode='w', suffix='.json', delete=False, encoding='utf-8'
+            )
+            json.dump(creds, tmp)
+            tmp.close()
+            client = firestore.Client.from_service_account_json(tmp.name)
+            os.unlink(tmp.name)
             logger.info("Firestore initialized from FIREBASE_JSON secret")
             return client
     except Exception as e:
