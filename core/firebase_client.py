@@ -42,17 +42,22 @@ def get_firestore_client() -> firestore.Client | None:
             logger.warning("No Firebase credentials found (no key file or secrets entry)")
             return None
 
-        # Round-trip through JSON to strip AttrDict wrappers completely
-        creds = json.loads(json.dumps(dict(raw)))
+        # Build creds dict with explicit str() to strip any AttrDict wrappers
+        creds = {str(k): str(v) for k, v in dict(raw).items()}
 
-        # Fix private_key: handle both literal "\n" and already-decoded newlines
-        if "private_key" in creds and isinstance(creds["private_key"], str):
-            creds["private_key"] = creds["private_key"].replace("\\n", "\n")
+        # Fix private_key newlines: TOML may give literal "\n" or real newlines
+        pk = creds.get("private_key", "")
+        logger.info(f"PK length={len(pk)}, has_real_newlines={'\\n' in pk and len(pk.splitlines()) > 1}")
+
+        if "\\n" in pk:
+            # Literal backslash+n found — replace with real newlines
+            creds["private_key"] = pk.replace("\\n", "\n")
+            logger.info("Replaced literal \\n with real newlines in private_key")
 
         credentials = service_account.Credentials.from_service_account_info(creds)
         client = firestore.Client(credentials=credentials, project=creds.get("project_id"))
         logger.info("Firestore initialized from secrets.toml")
         return client
     except Exception as e:
-        logger.error(f"Failed to initialize Firestore: {e}")
+        logger.error(f"Failed to initialize Firestore: {e}", exc_info=True)
         return None
