@@ -274,8 +274,14 @@ def display_final_summary(data: Dict):
                     initial = initial_metrics[key]
                     final = final_metrics[key]
 
-                    initial_val = initial['value']
-                    final_val = final['value']
+                    try:
+                        initial_val = float(initial.get('value') or 0)
+                    except (TypeError, ValueError):
+                        initial_val = 0
+                    try:
+                        final_val = float(final.get('value') or 0)
+                    except (TypeError, ValueError):
+                        final_val = 0
                     change = final_val - initial_val
 
                     if initial_val != 0:
@@ -295,7 +301,7 @@ def display_final_summary(data: Dict):
 
                     with col1:
                         priority_badge = "🔴 " if initial.get('priority') == 'High' else ""
-                        st.markdown(f"**{priority_badge}{initial['description']}**")
+                        st.markdown(f"**{priority_badge}{initial.get('description', key)}**")
                     with col2:
                         st.markdown(f"Before: `{initial_val} {unit}`")
                     with col3:

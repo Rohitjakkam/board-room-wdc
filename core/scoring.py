@@ -162,9 +162,13 @@ def calculate_goal_progress(goals: List[Dict], current_metrics: Dict) -> List[Di
     for goal in goals:
         metric_key = goal['metric_key']
         if metric_key in current_metrics:
-            current_value = current_metrics[metric_key]['value']
-            start_value = goal['current']
-            target_value = goal['target']
+            raw_cv = current_metrics[metric_key].get('value')
+            try:
+                current_value = float(raw_cv) if raw_cv is not None else 0
+            except (TypeError, ValueError):
+                current_value = 0
+            start_value = float(goal.get('current') or 0)
+            target_value = float(goal.get('target') or 0)
 
             lower_is_better = goal.get('lower_is_better', False)
 
@@ -214,8 +218,16 @@ def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_deci
     # Grade based on all metrics that exist in both initial and final
     for metric_key in initial_metrics:
         if metric_key in final_metrics:
-            initial_val = initial_metrics[metric_key]['value']
-            final_val = final_metrics[metric_key]['value']
+            raw_init = initial_metrics[metric_key].get('value')
+            raw_final = final_metrics[metric_key].get('value')
+            try:
+                initial_val = float(raw_init) if raw_init is not None else 0
+            except (TypeError, ValueError):
+                initial_val = 0
+            try:
+                final_val = float(raw_final) if raw_final is not None else 0
+            except (TypeError, ValueError):
+                final_val = 0
             priority = (initial_metrics[metric_key].get('priority') or 'medium').lower()
             weight = PRIORITY_WEIGHTS.get(priority, 1.0)
 

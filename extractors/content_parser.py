@@ -57,15 +57,24 @@ def _validate_company_data(data: Dict) -> Dict:
     data.setdefault('industry', 'Unknown')
     data.setdefault('founded', '')
 
-    # Metrics — ensure dict, each metric has value/unit/description
+    # Metrics — ensure dict, each metric has numeric value/unit/description
     metrics = _ensure_dict(data, 'metrics')
     for key, info in list(metrics.items()):
         if not isinstance(info, dict):
-            metrics[key] = {'value': info, 'unit': '', 'description': key.replace('_', ' ').title()}
+            try:
+                val = float(info) if info is not None else 0
+            except (TypeError, ValueError):
+                val = 0
+            metrics[key] = {'value': val, 'unit': '', 'description': key.replace('_', ' ').title()}
         else:
-            info.setdefault('value', 0)
-            info.setdefault('unit', '')
-            info.setdefault('description', key.replace('_', ' ').title())
+            # Ensure value is numeric (not None or string)
+            raw_val = info.get('value')
+            try:
+                info['value'] = float(raw_val) if raw_val is not None else 0
+            except (TypeError, ValueError):
+                info['value'] = 0
+            info['unit'] = info.get('unit') or ''
+            info['description'] = info.get('description') or key.replace('_', ' ').title()
 
     # Board members — ensure list, each member has all required fields
     _ensure_list(data, 'board_members', {

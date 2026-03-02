@@ -856,7 +856,7 @@ def simulation_page():
                     delta_str = None
                     if change != 0:
                         delta_str = f"{change:+.1f}" if isinstance(change, float) else f"{change:+d}"
-                    st.metric(metric['description'], f"{metric['value']} {metric['unit']}",
+                    st.metric(metric.get('description', key), f"{metric.get('value', 0)} {metric.get('unit', '')}",
                              delta=delta_str, delta_color="normal" if change >= 0 else "inverse")
                     if impact_reasons and key in impact_reasons:
                         st.caption(f"📝 {impact_reasons[key]}")
@@ -877,15 +877,15 @@ def simulation_page():
             def show_metric(key):
                 if key in metrics:
                     metric = metrics[key]
-                    value = metric['value']
+                    value = metric.get('value', 0) or 0
                     unit = metric.get('unit', '')
-                    change = metric.get('change', 0)
+                    change = metric.get('change', 0) or 0
                     display_val = f"{value} {unit}"
                     delta_str = None
                     if change != 0:
                         delta_str = f"{change:+.2f}" if isinstance(change, float) else f"{change:+d}"
                     delta_color = "inverse" if key in inverse_metrics else "normal"
-                    st.metric(metric['description'], display_val, delta=delta_str, delta_color=delta_color)
+                    st.metric(metric.get('description', key), display_val, delta=delta_str, delta_color=delta_color)
                     if key in impact_reasons and impact_reasons[key]:
                         st.caption(f"↳ {impact_reasons[key]}")
 
@@ -1112,7 +1112,7 @@ def simulation_page():
             metric_cols = st.columns(num_cols)
             for idx, (key, metric) in enumerate(key_metric_items):
                 with metric_cols[idx % num_cols]:
-                    st.metric(metric['description'], f"{metric['value']} {metric['unit']}")
+                    st.metric(metric.get('description', key), f"{metric.get('value', 0)} {metric.get('unit', '')}")
 
         st.markdown("---")
 

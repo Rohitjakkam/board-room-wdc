@@ -34,14 +34,31 @@ def _make_doc_id(session_name: str) -> str:
 
 
 def _normalize_metrics(data: Dict) -> Dict:
-    """Normalize metrics structure: ensure all metrics have priority field."""
+    """Normalize metrics structure: ensure all metrics have valid value, unit, description, priority."""
     if 'company_data' in data and 'metrics' in data['company_data']:
-        for metric_key, metric_info in data['company_data']['metrics'].items():
-            if isinstance(metric_info, dict):
-                if 'priority' not in metric_info:
-                    metric_info['priority'] = None
-                elif metric_info['priority'] not in ["High", "Medium"]:
-                    metric_info['priority'] = None
+        metrics = data['company_data']['metrics']
+        for metric_key, metric_info in list(metrics.items()):
+            if not isinstance(metric_info, dict):
+                metrics[metric_key] = {
+                    'value': 0, 'unit': '', 'priority': None,
+                    'description': metric_key.replace('_', ' ').title(),
+                }
+                continue
+            # Ensure value is numeric
+            raw_val = metric_info.get('value')
+            try:
+                metric_info['value'] = float(raw_val) if raw_val is not None else 0
+            except (TypeError, ValueError):
+                metric_info['value'] = 0
+            # Ensure unit and description are strings
+            metric_info['unit'] = metric_info.get('unit') or ''
+            metric_info['description'] = (
+                metric_info.get('description')
+                or metric_key.replace('_', ' ').title()
+            )
+            # Normalize priority
+            if metric_info.get('priority') not in ("High", "Medium", "Low"):
+                metric_info['priority'] = None
     return data
 
 

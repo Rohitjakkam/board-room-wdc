@@ -169,7 +169,7 @@ def calculate_metric_impacts(llm: genai.GenerativeModel, company_data: Dict,
     metrics = company_data['metrics']
 
     metrics_context = "\n".join([
-        f"- {key}: {metrics[key]['description']} = {metrics[key]['value']} {metrics[key]['unit']} (Priority: {metrics[key].get('priority', 'Normal')})"
+        f"- {key}: {metrics[key].get('description', key)} = {metrics[key].get('value', 0)} {metrics[key].get('unit', '')} (Priority: {metrics[key].get('priority', 'Normal')})"
         for key in metrics.keys()
     ])
 
@@ -266,8 +266,15 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
     for key, metric in metrics.items():
         updated_metrics[key] = metric.copy()
         if key in impacts:
-            change = impacts[key]
-            old_value = metric['value']
+            try:
+                change = float(impacts[key])
+            except (TypeError, ValueError):
+                continue
+            raw_old = metric.get('value')
+            try:
+                old_value = float(raw_old) if raw_old is not None else 0
+            except (TypeError, ValueError):
+                old_value = 0
             unit = metric.get('unit', '')
 
             # Clamp change to per-round caps
