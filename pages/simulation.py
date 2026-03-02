@@ -235,6 +235,16 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                 }})();
             </script>
             """, unsafe_allow_html=True)
+
+            # Auto-rerun fragment: polls every 15s, triggers full rerun when timer expires
+            if remaining_seconds > 0:
+                @st.fragment(run_every=timedelta(seconds=15))
+                def _timer_watchdog():
+                    _elapsed = datetime.now() - st.session_state[timer_key]
+                    if _elapsed.total_seconds() >= total_seconds:
+                        st.session_state[timer_expired_key] = True
+                        st.rerun()
+                _timer_watchdog()
         else:
             st.markdown(f"""
             <div class="timer-container timer-relaxed">
@@ -250,7 +260,7 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
 
     if timer_expired and not decision_submitted:
         st.session_state[f"force_submitted_{state.current_round}"] = True
-        st.warning("⚠️ **Time has expired!** You can still submit your decision, but this will be recorded as a late submission and may affect your score.")
+        st.warning("⚠️ **Time has expired!** Consultations are now locked. You can still submit your decision, but it will be recorded as a late submission.")
 
     # Generate or retrieve scenario
     scenario_key = f"scenario_round_{state.current_round}"
@@ -283,7 +293,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     board_consultation_used = st.session_state[board_consult_key] >= 1
     committee_consultation_used = st.session_state[committee_consult_key] >= 1
 
-    if not board_consultation_used or not committee_consultation_used:
+    if timer_expired:
+        st.warning("⏱️ Time has expired — consultations are locked. Please submit your decision.")
+    elif not board_consultation_used or not committee_consultation_used:
         consult_tab1, consult_tab2 = st.tabs(["👥 Consult Board Members", "🏛️ Consult Committee"])
 
         with consult_tab1:
@@ -505,8 +517,13 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                     current_metrics = st.session_state.get('current_metrics', company_data['metrics'].copy())
                     impact_values = impacts.get('impacts', {})
                     if force_submitted:
+                        # Escalating penalty: 15% base, grows to 50% over 10 min overtime
+                        _round_start = st.session_state.get(f"round_start_time_{state.current_round}")
+                        _total_secs = get_time_pressure_minutes(round_config.get('time_pressure', 'normal')) * 60
+                        _overtime = max(0, (datetime.now() - _round_start).total_seconds() - _total_secs) if _round_start else 0
+                        _penalty = min(0.50, 0.15 + (_overtime / 600) * 0.35)
                         impact_values = {
-                            k: v * 0.85 if v > 0 else v * 1.15 if v < 0 else 0
+                            k: v * (1 - _penalty) if v > 0 else v * (1 + _penalty) if v < 0 else 0
                             for k, v in impact_values.items()
                         }
                     updated_metrics = apply_metric_impacts(current_metrics, impact_values)
@@ -532,6 +549,7 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                          disabled=_submit_processing):
                 if decision and decision.strip():
                     st.session_state[f"_processing_submit_{state.current_round}"] = True
+                    st.session_state[f"decision_submit_time_{state.current_round}"] = datetime.now()
                     st.session_state[pending_decision_key] = decision.strip()
                     st.session_state[delib_phase_key] = 'inactive'
                     st.rerun()
@@ -650,7 +668,8 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                 _act_sid = st.session_state.get('activity_session_id')
                 if _act_sid:
                     _round_start = st.session_state.get(f"round_start_time_{state.current_round}")
-                    _time_taken = int((datetime.now() - _round_start).total_seconds()) if _round_start else None
+                    _submit_time = st.session_state.get(f"decision_submit_time_{state.current_round}", datetime.now())
+                    _time_taken = int((_submit_time - _round_start).total_seconds()) if _round_start else None
                     log_round(
                         session_id=_act_sid,
                         round_number=state.current_round + 1,
