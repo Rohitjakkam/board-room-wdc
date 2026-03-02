@@ -54,7 +54,9 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
         logger.debug("Starting stance generation (phase: inactive -> generating)")
         st.session_state[delib_phase_key] = 'generating'
         st.session_state[debate_history_key] = []
-        st.session_state[force_key] = False
+        # Preserve force_submitted if already set True by timer expiry
+        if force_key not in st.session_state:
+            st.session_state[force_key] = False
         st.session_state[current_dissenter_key] = 0
 
         with st.spinner("Board members are reviewing your decision..."):
@@ -191,8 +193,11 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                     col1, col2 = st.columns([1, 2])
                     with col1:
                         _debate_processing = st.session_state.get(f"_processing_debate_{round_num}_{name}_{exchanges}", False)
+                        _response_too_short = len((player_response or "").strip()) < 20
+                        if _response_too_short and player_response:
+                            st.caption("⚠️ Response must be at least 20 characters.")
                         if st.button(f"Submit Response", key=f"submit_debate_{round_num}_{name}_{exchanges}",
-                                    type="primary", disabled=not player_response or _debate_processing):
+                                    type="primary", disabled=not player_response or _response_too_short or _debate_processing):
                             if player_response:
                                 st.session_state[f"_processing_debate_{round_num}_{name}_{exchanges}"] = True
                                 with st.spinner(f"{name} is considering your response..."):
@@ -215,7 +220,8 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                                     except Exception as e:
                                         logger.error(f"Debate evaluation failed for {name}: {e}")
                                         st.error("Failed to evaluate your response. Please try submitting again.")
-                                        return True
+                                        st.session_state.pop(f"_processing_debate_{round_num}_{name}_{exchanges}", None)
+                                        return False
 
                                     exchange_record = {
                                         'dissenter_name': name,
@@ -235,6 +241,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                                     else:
                                         st.session_state[stances_key][name]['counter_opinion'] = result['follow_up']
 
+                                st.session_state.pop(f"_processing_debate_{round_num}_{name}_{exchanges}", None)
                                 st.rerun()
 
                     with col2:
@@ -296,6 +303,9 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                                           current_dissenter_key, debate_history_key]:
                                     if k in st.session_state:
                                         del st.session_state[k]
+                                st.session_state.pop(f"_processing_submit_{round_num}", None)
+                                st.session_state.pop(f"_force_confirm_{round_num}", None)
+                                st.session_state.pop(f"_processing_force_{round_num}", None)
                                 st.rerun()
                 else:
                     st.success("✅ All dissenters have been convinced!")
@@ -324,15 +334,32 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                 col_revise_alt = None
 
             with col_force:
+                _force_confirm_key = f"_force_confirm_{round_num}"
+                _force_confirmed = st.session_state.get(_force_confirm_key, False)
                 _force_processing = st.session_state.get(f"_processing_force_{round_num}", False)
-                if st.button("⚡ Force Submit", key=f"force_submit_{round_num}",
-                            help="Submit without full board approval (scoring penalty applies)",
-                            use_container_width=True, disabled=_force_processing):
-                    st.session_state[f"_processing_force_{round_num}"] = True
-                    logger.debug("Force Submit clicked")
-                    st.session_state[force_key] = True
-                    st.session_state[delib_phase_key] = 'resolved'
-                    st.rerun()
+
+                if not _force_confirmed:
+                    if st.button("⚡ Force Submit", key=f"force_submit_{round_num}",
+                                help="Submit without full board approval (scoring penalty applies)",
+                                use_container_width=True):
+                        st.session_state[_force_confirm_key] = True
+                        st.rerun()
+                else:
+                    st.warning("⚠️ Force submitting will apply a scoring penalty. Are you sure?")
+                    col_yes, col_no = st.columns(2)
+                    with col_yes:
+                        if st.button("Yes, Force Submit", key=f"force_confirm_yes_{round_num}",
+                                    type="primary", use_container_width=True, disabled=_force_processing):
+                            st.session_state[f"_processing_force_{round_num}"] = True
+                            logger.debug("Force Submit confirmed")
+                            st.session_state[force_key] = True
+                            st.session_state[delib_phase_key] = 'resolved'
+                            st.rerun()
+                    with col_no:
+                        if st.button("Cancel", key=f"force_confirm_no_{round_num}",
+                                    use_container_width=True):
+                            st.session_state[_force_confirm_key] = False
+                            st.rerun()
 
             if show_revise_here and col_revise_alt:
                 with col_revise_alt:
@@ -349,6 +376,9 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                                       current_dissenter_key, debate_history_key]:
                                 if k in st.session_state:
                                     del st.session_state[k]
+                            st.session_state.pop(f"_processing_submit_{round_num}", None)
+                            st.session_state.pop(f"_force_confirm_{round_num}", None)
+                            st.session_state.pop(f"_processing_force_{round_num}", None)
                             st.rerun()
 
     is_resolved = st.session_state.get(delib_phase_key) == 'resolved'

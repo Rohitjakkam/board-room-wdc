@@ -95,7 +95,7 @@ def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
         current = metric.get('value', 0)
         unit = metric.get('unit', '')
         description = metric.get('description', key.replace('_', ' ').title())
-        priority = metric.get('priority', 'medium').lower()
+        priority = (metric.get('priority') or 'medium').lower()
 
         # Detect direction
         key_lower = key.lower()
@@ -212,7 +212,7 @@ def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_deci
         if metric_key in final_metrics:
             initial_val = initial_metrics[metric_key]['value']
             final_val = final_metrics[metric_key]['value']
-            priority = initial_metrics[metric_key].get('priority', 'medium').lower()
+            priority = (initial_metrics[metric_key].get('priority') or 'medium').lower()
             weight = PRIORITY_WEIGHTS.get(priority, 1.0)
 
             # Detect direction from metric key

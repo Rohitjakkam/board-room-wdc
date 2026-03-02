@@ -76,7 +76,11 @@ def create_simulation_page():
                                     st.success("Company data parsed successfully!")
                                 except Exception as e:
                                     logger.error(f"Failed to parse company data: {e}")
+                                    st.session_state.dc_company_data = None
                                     st.error("Failed to parse company data. Please check the PDF format.")
+                        else:
+                            st.session_state.dc_company_data = None
+                            st.error("No text could be extracted from this PDF. Please try a different file.")
 
         with col2:
             st.subheader("📚 Module Document")
@@ -110,7 +114,11 @@ def create_simulation_page():
                                     st.success("Module data parsed successfully!")
                                 except Exception as e:
                                     logger.error(f"Failed to parse module data: {e}")
+                                    st.session_state.dc_module_data = None
                                     st.error("Failed to parse module data. Please check the PDF format.")
+                        else:
+                            st.session_state.dc_module_data = None
+                            st.error("No text could be extracted from this PDF. Please try a different file.")
 
         st.divider()
 
@@ -190,21 +198,29 @@ def create_simulation_page():
                 key="dc_session_name"
             )
 
-            if st.button("💾 Save Data for Simulation", type="primary", key="dc_save_btn"):
+            _save_processing = st.session_state.get("_dc_save_processing", False)
+            if st.button("💾 Save Data for Simulation", type="primary", key="dc_save_btn",
+                        disabled=_save_processing):
+                st.session_state._dc_save_processing = True
                 with st.spinner("Saving data..."):
                     doc_id = save_extracted_data(
                         st.session_state.dc_company_data,
                         st.session_state.dc_module_data,
                         session_name
                     )
-                    st.success("Simulation saved! It's now available in the Simulations section.")
-                    st.info(f"Simulation ID: `{doc_id}`")
-                    st.balloons()
-
-                    st.markdown("---")
-                    st.markdown("### Ready for Simulation!")
-                    st.markdown("Navigate to the simulation from the sidebar or Home page.")
-                    st.rerun()
+                    if doc_id:
+                        st.success("Simulation saved! It's now available in the Simulations section.")
+                        st.info(f"Simulation ID: `{doc_id}`")
+                        st.balloons()
+                        # Clear state to prevent duplicate saves
+                        st.session_state.dc_company_data = None
+                        st.session_state.dc_module_data = None
+                        st.session_state.dc_company_text = None
+                        st.session_state.dc_module_text = None
+                        st.session_state.pop("_dc_save_processing", None)
+                        st.rerun()
+                    else:
+                        st.session_state.pop("_dc_save_processing", None)
         else:
             missing = []
             if not st.session_state.dc_company_data:

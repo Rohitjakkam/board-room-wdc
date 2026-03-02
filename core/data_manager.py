@@ -117,14 +117,15 @@ def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str
         col = _get_collection()
         if col is None:
             st.error("Database connection unavailable. Cannot save.")
-            return doc_id
+            return None
         col.document(doc_id).set(data)
         get_available_simulations.clear()
+        list_saved_sessions.clear()
+        return doc_id
     except Exception as e:
         logger.error(f"Error saving simulation: {e}")
         st.error("Failed to save simulation. Please try again.")
-
-    return doc_id
+        return None
 
 
 def load_extracted_data(doc_id: str) -> Optional[Dict]:
@@ -135,8 +136,9 @@ def load_extracted_data(doc_id: str) -> Optional[Dict]:
     return data
 
 
+@st.cache_data(ttl=30)
 def list_saved_sessions() -> list:
-    """List all saved sessions from Firestore."""
+    """List all saved sessions from Firestore (cached 30s)."""
     try:
         col = _get_collection()
         if col is None:
@@ -172,6 +174,7 @@ def delete_session(doc_id: str) -> bool:
             return False
         col.document(doc_id).delete()
         get_available_simulations.clear()
+        list_saved_sessions.clear()
         return True
     except Exception as e:
         logger.error(f"Error deleting session: {e}")
@@ -193,6 +196,8 @@ def update_simulation(doc_id: str, data: Dict) -> bool:
             return False
         data['modified_at'] = datetime.now().isoformat()
         col.document(doc_id).set(data, merge=True)
+        get_available_simulations.clear()
+        list_saved_sessions.clear()
         return True
     except Exception as e:
         logger.error(f"Error updating simulation: {e}")

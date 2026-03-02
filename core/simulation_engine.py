@@ -664,3 +664,59 @@ def parse_scenario_options(scenario: str) -> List[Dict]:
         options.append(current_option)
 
     return options
+
+
+def parse_scenario_sections(scenario: str) -> Dict:
+    """Parse LLM scenario text into structured sections for display.
+
+    Expected LLM format:
+        SCENARIO TITLE: ...
+        SITUATION: ...
+        KEY QUESTION: ...
+        STAKEHOLDERS AFFECTED: ...
+        TIME SENSITIVITY: ...
+        OPTIONS TO CONSIDER: A) ... B) ... C) ... D) ...
+    """
+    import re
+
+    sections: Dict = {
+        'title': '',
+        'situation': '',
+        'key_question': '',
+        'stakeholders': '',
+        'time_sensitivity': '',
+        'options_text': '',
+        'raw': scenario,
+    }
+
+    # Section headers the LLM is instructed to produce
+    markers = [
+        ('SCENARIO TITLE:', 'title'),
+        ('SITUATION:', 'situation'),
+        ('KEY QUESTION:', 'key_question'),
+        ('STAKEHOLDERS AFFECTED:', 'stakeholders'),
+        ('TIME SENSITIVITY:', 'time_sensitivity'),
+        ('OPTIONS TO CONSIDER:', 'options_text'),
+    ]
+
+    # Build regex that splits on any of the markers
+    marker_labels = [re.escape(m[0]) for m in markers]
+    pattern = '(' + '|'.join(marker_labels) + ')'
+    parts = re.split(pattern, scenario, flags=re.IGNORECASE)
+
+    # parts = [preamble, MARKER1, content1, MARKER2, content2, ...]
+    i = 1  # skip preamble (usually empty)
+    while i < len(parts) - 1:
+        header = parts[i].strip().rstrip(':').upper() + ':'
+        content = parts[i + 1].strip()
+        for marker_text, key in markers:
+            if marker_text.upper() == header:
+                sections[key] = content
+                break
+        i += 2
+
+    # If no markers found, treat entire text as situation (graceful fallback)
+    if not any(sections[k] for k in ('title', 'situation', 'key_question')):
+        sections['situation'] = scenario
+
+    return sections

@@ -11,11 +11,11 @@ from typing import Dict, List
 
 from core.models import SimulationState
 from core.llm import initialize_llm
-from core.data_manager import load_simulation_data
+from core.data_manager import load_extracted_data
 from core.simulation_engine import (
     generate_scenario, get_board_member_response, get_committee_response,
     evaluate_decision, evaluate_consultation_alignment,
-    apply_metric_impacts, parse_scenario_options,
+    apply_metric_impacts, parse_scenario_options, parse_scenario_sections,
 )
 from core.scoring import (
     calculate_board_effectiveness_score, generate_game_goals,
@@ -279,13 +279,43 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     scenario = st.session_state[scenario_key]
 
     st.markdown("### 📋 Scenario")
-    st.markdown(f"""
-    <div class="scenario-box">
-        {scenario}
-    </div>
-    """, unsafe_allow_html=True)
-
+    sections = parse_scenario_sections(scenario)
     options = parse_scenario_options(scenario)
+
+    if sections['title'] or sections['situation']:
+        # Structured rendering
+        if sections['title']:
+            st.markdown(f'<div class="scenario-title">{sections["title"]}</div>', unsafe_allow_html=True)
+
+        if sections['situation']:
+            st.markdown(f'<div class="scenario-situation">{sections["situation"]}</div>', unsafe_allow_html=True)
+
+        info_parts = []
+        if sections['key_question']:
+            info_parts.append(f"""
+                <div class="scenario-info-item">
+                    <span class="scenario-info-label">Key Question</span>
+                    <p>{sections['key_question']}</p>
+                </div>""")
+        if sections['stakeholders']:
+            info_parts.append(f"""
+                <div class="scenario-info-item">
+                    <span class="scenario-info-label">Stakeholders Affected</span>
+                    <p>{sections['stakeholders']}</p>
+                </div>""")
+        if sections['time_sensitivity']:
+            info_parts.append(f"""
+                <div class="scenario-info-item">
+                    <span class="scenario-info-label">Time Sensitivity</span>
+                    <p>{sections['time_sensitivity']}</p>
+                </div>""")
+
+        if info_parts:
+            st.markdown(f'<div class="scenario-info-grid">{"".join(info_parts)}</div>', unsafe_allow_html=True)
+    else:
+        # Fallback: raw text with whitespace preserved
+        st.markdown(f'<div class="scenario-box" style="white-space: pre-wrap;">{scenario}</div>',
+                    unsafe_allow_html=True)
 
     # Consultation Section
     st.markdown("### 💬 Consultation")
@@ -323,8 +353,11 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                     )
 
                     _board_processing = st.session_state.get(f"_processing_board_{state.current_round}", False)
+                    _question_too_short = len((user_question or "").strip()) < 10
+                    if _question_too_short and user_question:
+                        st.caption("⚠️ Question must be at least 10 characters.")
                     if st.button("Ask Board Member(s)", key=f"ask_members_btn_{state.current_round}",
-                                disabled=len(selected_members) == 0 or not user_question or _board_processing):
+                                disabled=len(selected_members) == 0 or not user_question or _question_too_short or _board_processing):
                         if selected_members and user_question:
                             st.session_state[f"_processing_board_{state.current_round}"] = True
                             selected_member_data = [m for m in available_members if m['name'] in selected_members]
@@ -351,12 +384,12 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                                     st.session_state.conversation_history.append({
                                         'role': 'assistant', 'content': response, 'member': member_label
                                     })
+                                    _save_checkpoint('consultation_done')
+                                    st.rerun()
                                 except Exception as e:
                                     logger.error(f"Board consultation failed: {e}")
+                                    st.session_state.pop(f"_processing_board_{state.current_round}", None)
                                     st.error("Board member is temporarily unavailable. Your consultation was not consumed — please try again.")
-
-                            _save_checkpoint('consultation_done')
-                            st.rerun()
 
         with consult_tab2:
             if committee_consultation_used:
@@ -379,8 +412,11 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                     )
 
                     _comm_processing = st.session_state.get(f"_processing_committee_{state.current_round}", False)
+                    _cq_too_short = len((committee_question or "").strip()) < 10
+                    if _cq_too_short and committee_question:
+                        st.caption("⚠️ Question must be at least 10 characters.")
                     if st.button("Consult Committee", key=f"ask_committee_btn_{state.current_round}",
-                                disabled=not committee_question or _comm_processing):
+                                disabled=not committee_question or _cq_too_short or _comm_processing):
                         if committee_question:
                             st.session_state[f"_processing_committee_{state.current_round}"] = True
                             selected_committee_data = next(c for c in committees if c['name'] == selected_committee)
@@ -406,12 +442,12 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                                     st.session_state.conversation_history.append({
                                         'role': 'assistant', 'content': response, 'member': selected_committee
                                     })
+                                    _save_checkpoint('consultation_done')
+                                    st.rerun()
                                 except Exception as e:
                                     logger.error(f"Committee consultation failed: {e}")
+                                    st.session_state.pop(f"_processing_committee_{state.current_round}", None)
                                     st.error("Committee is temporarily unavailable. Your consultation was not consumed — please try again.")
-
-                            _save_checkpoint('consultation_done')
-                            st.rerun()
                 else:
                     st.info("No committees are available for consultation.")
     else:
@@ -427,42 +463,46 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                     st.markdown(f"**{entry.get('member', 'Board Member')}:** {entry['content']}")
                 st.markdown("---")
 
-    # Decision Phase
+    # Check deliberation state
+    pending_decision_key = f"pending_decision_{state.current_round}"
+    delib_phase_key = f"deliberation_phase_{state.current_round}"
+    pending_exists = pending_decision_key in st.session_state
+
+    # Decision Phase — only show input controls before submission
     st.markdown("### ✅ Your Decision")
 
     decision_key = f"decision_input_{state.current_round}"
     if decision_key not in st.session_state:
         st.session_state[decision_key] = ""
 
-    if options:
-        st.markdown("**Quick Select an Option:**")
-        option_cols = st.columns(2)
-        for idx, opt in enumerate(options):
-            with option_cols[idx % 2]:
-                if st.button(f"Option {opt['letter']}: {opt['text']}",
-                           key=f"option_{opt['letter']}_{state.current_round}",
-                           use_container_width=True):
-                    st.session_state[f"selected_option_{state.current_round}"] = opt
-                    st.session_state[decision_key] = f"Option {opt['letter']}: {opt['text']}"
-                    st.rerun()
+    if not pending_exists:
+        if options:
+            st.markdown("**Quick Select an Option:**")
+            option_cols = st.columns(2)
+            for idx, opt in enumerate(options):
+                with option_cols[idx % 2]:
+                    if st.button(f"Option {opt['letter']}: {opt['text']}",
+                               key=f"option_{opt['letter']}_{state.current_round}",
+                               use_container_width=True):
+                        st.session_state[f"selected_option_{state.current_round}"] = opt
+                        existing = st.session_state.get(decision_key, '').strip()
+                        prefix = f"Option {opt['letter']}: {opt['text']}"
+                        st.session_state[decision_key] = f"{prefix}\n\n{existing}" if existing else prefix
+                        st.rerun()
 
-        st.markdown("---")
-        st.markdown("**Or provide your detailed reasoning:**")
+            st.markdown("---")
+            st.markdown("**Or provide your detailed reasoning:**")
 
     decision = st.text_area(
         "Enter your decision and reasoning:",
         key=decision_key,
         placeholder="Describe your decision, the rationale behind it, and how you would implement it...",
-        height=200
+        height=200,
+        disabled=pending_exists,
     )
-
-    # Check deliberation state
-    pending_decision_key = f"pending_decision_{state.current_round}"
-    delib_phase_key = f"deliberation_phase_{state.current_round}"
 
     logger.debug(f"Round {state.current_round}: delib_phase_key={delib_phase_key}, exists={delib_phase_key in st.session_state}")
 
-    pending_exists = pending_decision_key in st.session_state
     delib_not_exists = delib_phase_key not in st.session_state
     delib_not_resolved = st.session_state.get(delib_phase_key) != 'resolved'
     should_enter_delib = pending_exists and (delib_not_exists or delib_not_resolved)
@@ -537,24 +577,27 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                 logger.error(f"Decision evaluation failed: {e}")
                 st.error("Failed to evaluate your decision. Please click 'Submit Decision' again to retry.")
                 del st.session_state[pending_decision_key]
+                st.session_state.pop(f"_processing_submit_{state.current_round}", None)
                 st.stop()
         st.rerun()
 
-    # Only show submit button if evaluation not yet done
-    if eval_key not in st.session_state:
+    # Only show submit button before submission
+    if not pending_exists and eval_key not in st.session_state:
         col1, col2 = st.columns([1, 4])
         with col1:
             _submit_processing = st.session_state.get(f"_processing_submit_{state.current_round}", False)
             if st.button("Submit Decision", key=f"submit_decision_{state.current_round}", type="primary",
                          disabled=_submit_processing):
-                if decision and decision.strip():
+                if decision and len(decision.strip()) >= 20:
                     st.session_state[f"_processing_submit_{state.current_round}"] = True
                     st.session_state[f"decision_submit_time_{state.current_round}"] = datetime.now()
                     st.session_state[pending_decision_key] = decision.strip()
                     st.session_state[delib_phase_key] = 'inactive'
                     st.rerun()
+                elif decision and decision.strip():
+                    st.warning("Please provide more detail — your decision should be at least 20 characters.")
                 else:
-                    st.warning("Please enter your decision before submitting (at least a few words).")
+                    st.warning("Please enter your decision before submitting.")
 
     # Display evaluation if available
     if eval_key in st.session_state:
@@ -889,7 +932,7 @@ def simulation_page():
         st.warning("⚠️ Please select a simulation.")
         return
 
-    data = load_simulation_data(st.session_state.selected_doc_id)
+    data = load_extracted_data(st.session_state.selected_doc_id)
     if not data:
         st.error("Failed to load simulation data.")
         return

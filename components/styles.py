@@ -39,11 +39,57 @@ def inject_styles():
         margin: 0.5rem 0;
     }
     .scenario-box {
-        background: #fff3cd;
+        background: #f8f9fa;
         padding: 1.5rem;
         border-radius: 10px;
-        border: 1px solid #ffc107;
+        border: 1px solid #dee2e6;
         margin: 1rem 0;
+    }
+    .scenario-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1E3A5F;
+        background: linear-gradient(135deg, #e8f4f8 0%, #d4e9ed 100%);
+        padding: 0.8rem 1.2rem;
+        border-radius: 10px 10px 0 0;
+        border-left: 5px solid #1E3A5F;
+        margin: 0.5rem 0 0 0;
+    }
+    .scenario-situation {
+        background: #ffffff;
+        padding: 1.2rem 1.5rem;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        line-height: 1.7;
+        color: #333;
+        white-space: pre-wrap;
+        margin: 0 0 0.8rem 0;
+    }
+    .scenario-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.6rem;
+        margin: 0 0 1rem 0;
+    }
+    .scenario-info-item {
+        background: #f0f7ff;
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+    }
+    .scenario-info-item p {
+        margin: 0.3rem 0 0 0;
+        color: #333;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+    }
+    .scenario-info-label {
+        font-weight: 600;
+        color: #1E3A5F;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .decision-box {
         background: #d4edda;

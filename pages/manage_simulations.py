@@ -55,10 +55,24 @@ def manage_simulations_page():
                         st.markdown(f"**ID:** `{session['doc_id']}`")
 
                     with col3:
-                        if st.button("🗑️ Delete", key=f"del_{session['doc_id']}"):
-                            if delete_session(session['doc_id']):
-                                st.success("Deleted!")
+                        _del_confirm_key = f"_del_confirm_{session['doc_id']}"
+                        if not st.session_state.get(_del_confirm_key):
+                            if st.button("🗑️ Delete", key=f"del_{session['doc_id']}"):
+                                st.session_state[_del_confirm_key] = True
                                 st.rerun()
+                        else:
+                            st.warning("Delete this simulation?")
+                            c_yes, c_no = st.columns(2)
+                            with c_yes:
+                                if st.button("Yes", key=f"del_yes_{session['doc_id']}", type="primary"):
+                                    if delete_session(session['doc_id']):
+                                        st.session_state.pop(_del_confirm_key, None)
+                                        st.success("Deleted!")
+                                        st.rerun()
+                            with c_no:
+                                if st.button("No", key=f"del_no_{session['doc_id']}"):
+                                    st.session_state.pop(_del_confirm_key, None)
+                                    st.rerun()
 
                         if st.button("📂 Load for Audit", key=f"load_{session['doc_id']}"):
                             data = load_extracted_data(session['doc_id'])
