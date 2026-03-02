@@ -7,6 +7,7 @@ Supports three credential sources (tried in order):
 3. [FIREBASE_SERVICE_ACCOUNT] section in secrets    (Streamlit Cloud — fallback)
 """
 
+import hashlib
 import json
 import logging
 import os
@@ -42,11 +43,12 @@ def get_firestore_client() -> firestore.Client | None:
         if raw_json:
             creds = json.loads(raw_json)
             pk = creds.get("private_key", "")
+            pk_hash = hashlib.md5(pk.encode()).hexdigest()
             logger.info(
                 f"FIREBASE_JSON: pk_len={len(pk)}, "
                 f"lines={len(pk.splitlines())}, "
-                f"starts={repr(pk[:40])}, "
-                f"ends={repr(pk[-30:])}"
+                f"md5={pk_hash}, "
+                f"expected=7a52c00f962722537d62f67d98dfc940"
             )
             # Write to temp file — avoids any in-memory string encoding issues
             tmp = tempfile.NamedTemporaryFile(
