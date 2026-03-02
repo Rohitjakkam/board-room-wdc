@@ -34,14 +34,23 @@ def get_firestore_client() -> firestore.Client | None:
         except Exception as e:
             logger.error(f"Failed to load firebase_key.json: {e}")
 
-    # Option 2: secrets.toml section
+    # Option 2: secrets.toml [FIREBASE_SERVICE_ACCOUNT] section (Streamlit Cloud)
     try:
-        raw = st.secrets.get("FIREBASE_SERVICE_ACCOUNT", "")
+        raw = st.secrets.get("FIREBASE_SERVICE_ACCOUNT")
         if not raw:
             logger.warning("No Firebase credentials found (no key file or secrets entry)")
             return None
 
-        creds = json.loads(raw) if isinstance(raw, str) else dict(raw)
+        # Streamlit returns AttrDict for TOML sections; convert to plain dict
+        if isinstance(raw, str):
+            creds = json.loads(raw)
+        else:
+            creds = dict(raw)
+
+        # Ensure private_key newlines are actual newlines (TOML escaping)
+        if "private_key" in creds and isinstance(creds["private_key"], str):
+            creds["private_key"] = creds["private_key"].replace("\\n", "\n")
+
         client = firestore.Client.from_service_account_info(creds)
         logger.info("Firestore initialized from secrets.toml")
         return client
