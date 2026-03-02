@@ -11,6 +11,7 @@ import logging
 import os
 import streamlit as st
 from google.cloud import firestore
+from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ _KEY_FILE = os.path.join(
 @st.cache_resource
 def get_firestore_client() -> firestore.Client | None:
     """Return a cached Firestore client, or None if credentials are missing."""
-    # Option 1: JSON key file (most reliable, no escaping issues)
+    # Option 1: JSON key file (local dev — most reliable, no escaping issues)
     if os.path.exists(_KEY_FILE):
         try:
             with open(_KEY_FILE, "r", encoding="utf-8") as f:
@@ -41,17 +42,15 @@ def get_firestore_client() -> firestore.Client | None:
             logger.warning("No Firebase credentials found (no key file or secrets entry)")
             return None
 
-        # Streamlit returns AttrDict for TOML sections; convert to plain dict
-        if isinstance(raw, str):
-            creds = json.loads(raw)
-        else:
-            creds = dict(raw)
+        # Round-trip through JSON to strip AttrDict wrappers completely
+        creds = json.loads(json.dumps(dict(raw)))
 
-        # Ensure private_key newlines are actual newlines (TOML escaping)
+        # Fix private_key: handle both literal "\n" and already-decoded newlines
         if "private_key" in creds and isinstance(creds["private_key"], str):
             creds["private_key"] = creds["private_key"].replace("\\n", "\n")
 
-        client = firestore.Client.from_service_account_info(creds)
+        credentials = service_account.Credentials.from_service_account_info(creds)
+        client = firestore.Client(credentials=credentials, project=creds.get("project_id"))
         logger.info("Firestore initialized from secrets.toml")
         return client
     except Exception as e:
