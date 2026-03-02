@@ -92,7 +92,11 @@ def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
 
     goals = []
     for key, metric in metrics.items():
-        current = metric.get('value', 0)
+        raw_val = metric.get('value')
+        try:
+            current = float(raw_val) if raw_val is not None else 0
+        except (TypeError, ValueError):
+            current = 0
         unit = metric.get('unit', '')
         description = metric.get('description', key.replace('_', ' ').title())
         priority = (metric.get('priority') or 'medium').lower()
