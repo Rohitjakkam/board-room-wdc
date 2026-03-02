@@ -488,8 +488,7 @@ def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
                                           scenario, player_decision, player_role)
 
         try:
-            response = llm.generate_content(prompt)
-            content = response.text
+            content = _call_llm(llm, prompt)
             logger.debug(f"Got response for {member['name']}, length: {len(content)}")
         except Exception as e:
             logger.error(f"Error getting stance for {member['name']}: {e}")
