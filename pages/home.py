@@ -25,7 +25,10 @@ def home_page():
     st.markdown(f"### Available Simulations ({len(simulations)})")
     st.markdown("---")
 
-    for idx, sim in enumerate(simulations):
+    sim_pages_dict = st.session_state.get("_sim_pages", {})
+
+    for sim in simulations:
+        doc_id = sim['doc_id']
         with st.container():
             col1, col2 = st.columns([3, 1])
             with col1:
@@ -39,9 +42,9 @@ def home_page():
                 """, unsafe_allow_html=True)
             with col2:
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(f"▶️ Launch Simulation", key=f"launch_{idx}", use_container_width=True):
-                    st.session_state.selected_sim_index = idx
-                    st.switch_page(st.session_state._sim_pages[idx])
+                target_page = sim_pages_dict.get(doc_id)
+                if target_page and st.button("▶️ Launch Simulation", key=f"launch_{doc_id}", use_container_width=True):
+                    st.switch_page(target_page)
 
     st.markdown("---")
     st.caption("Use **Create Simulation** in the sidebar to add new simulations from PDFs.")

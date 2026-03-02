@@ -63,8 +63,9 @@ def load_simulation_data(doc_id: str) -> Optional[Dict]:
         return None
 
 
+@st.cache_data(ttl=30)
 def get_available_simulations() -> List[Dict]:
-    """Return list of available simulations with metadata from Firestore."""
+    """Return list of available simulations with metadata from Firestore (cached 30s)."""
     try:
         col = _get_collection()
         if col is None:
@@ -118,6 +119,7 @@ def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str
             st.error("Database connection unavailable. Cannot save.")
             return doc_id
         col.document(doc_id).set(data)
+        get_available_simulations.clear()
     except Exception as e:
         logger.error(f"Error saving simulation: {e}")
         st.error("Failed to save simulation. Please try again.")
@@ -169,6 +171,7 @@ def delete_session(doc_id: str) -> bool:
             st.error("Database connection unavailable.")
             return False
         col.document(doc_id).delete()
+        get_available_simulations.clear()
         return True
     except Exception as e:
         logger.error(f"Error deleting session: {e}")

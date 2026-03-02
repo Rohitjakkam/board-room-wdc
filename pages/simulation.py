@@ -11,7 +11,7 @@ from typing import Dict, List
 
 from core.models import SimulationState
 from core.llm import initialize_llm
-from core.data_manager import load_simulation_data, get_available_simulations
+from core.data_manager import load_simulation_data
 from core.simulation_engine import (
     generate_scenario, get_board_member_response, get_committee_response,
     evaluate_decision, evaluate_consultation_alignment,
@@ -675,15 +675,10 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
 def simulation_page():
     """Simulation page — runs the board room simulation for the selected JSON."""
 
-    sim_index = st.session_state.get('selected_sim_index', None)
-    simulations = get_available_simulations()
-
-    if sim_index is None or sim_index >= len(simulations):
-        st.warning("No simulation selected. Please go back to the Home page.")
+    # doc_id is set by the make_page closure in main.py before this runs
+    if not st.session_state.get('selected_doc_id'):
+        st.warning("No simulation selected. Please choose one from the sidebar.")
         return
-
-    sim = simulations[sim_index]
-    st.session_state.selected_doc_id = sim['doc_id']
 
     st.markdown('<h1 class="main-header">🏢 Board Room Simulation</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666;">Corporate Governance Training & Decision Making</p>', unsafe_allow_html=True)
@@ -717,7 +712,7 @@ def simulation_page():
         with st.expander("⚙️ Options", expanded=False):
             if st.button("🔄 Restart Simulation", use_container_width=True):
                 preserve_keys = {
-                    'api_key', 'selected_doc_id', 'selected_sim_index', '_sim_pages',
+                    'api_key', 'selected_doc_id', '_sim_pages',
                     'user_role', 'admin_authenticated',
                     'student_name', 'student_id', 'student_identified',
                     'activity_session_id'

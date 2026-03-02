@@ -2,6 +2,8 @@
 Final summary, board effectiveness, and grade display components.
 """
 
+import urllib.parse
+
 import streamlit as st
 from typing import Dict
 
@@ -446,10 +448,9 @@ def display_final_summary(data: Dict):
         f"#BoardRoomSimulation #CorporateGovernance #Leadership"
     )
 
-    import urllib.parse
     _encoded = urllib.parse.quote(_share_text)
 
-    _linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url=&summary={_encoded}"
+    _linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={_encoded}"
     _twitter_url = f"https://twitter.com/intent/tweet?text={_encoded}"
     _whatsapp_url = f"https://wa.me/?text={_encoded}"
 
@@ -493,6 +494,12 @@ def display_final_summary(data: Dict):
     st.markdown("")
 
     if st.button("Start New Simulation"):
+        preserve_keys = {
+            'api_key', 'selected_doc_id', '_sim_pages',
+            'user_role', 'admin_authenticated',
+            'student_name', 'student_id', 'student_identified',
+        }
         for key in list(st.session_state.keys()):
-            del st.session_state[key]
+            if key not in preserve_keys:
+                del st.session_state[key]
         st.rerun()

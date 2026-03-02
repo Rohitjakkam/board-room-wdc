@@ -15,6 +15,7 @@ from pages.create_simulation import create_simulation_page
 from pages.manage_simulations import manage_simulations_page
 from pages.simulation import simulation_page
 from pages.analytics import analytics_page
+from pages.student_home import student_home_page
 
 
 def _slugify(text: str) -> str:
@@ -68,7 +69,10 @@ def _render_sidebar_auth():
                     "Admin Password", type="password", key="admin_pw_input"
                 )
                 if st.button("Login", key="admin_login_btn"):
-                    if password == st.secrets.get("ADMIN_PASSWORD", ""):
+                    admin_pw = st.secrets.get("ADMIN_PASSWORD", "")
+                    if not admin_pw:
+                        st.error("Admin password not configured. Contact system administrator.")
+                    elif password == admin_pw:
                         st.session_state.admin_authenticated = True
                         st.session_state.user_role = "admin"
                         st.rerun()
@@ -107,15 +111,22 @@ def main():
     # Build dynamic simulation pages (always — needed for URL matching)
     simulations = get_available_simulations()
 
-    sim_pages = []
-    for idx, sim in enumerate(simulations):
-        url_slug = _slugify(sim['company_name'])
-        # Ensure unique slugs
-        if any(url_slug == _slugify(s['company_name']) for s in simulations[:idx]):
-            url_slug = f"{url_slug}-{idx}"
+    sim_pages = {}  # {doc_id: st.Page} — stable ID-based mapping
+    seen_slugs = set()
 
-        def make_page(i=idx):
-            st.session_state.selected_sim_index = i
+    for sim in simulations:
+        # Issue #3: Robust slug dedup with counter loop
+        base_slug = _slugify(sim['company_name'])
+        url_slug = base_slug
+        counter = 1
+        while url_slug in seen_slugs:
+            url_slug = f"{base_slug}-{counter}"
+            counter += 1
+        seen_slugs.add(url_slug)
+
+        # Issue #4: Closure captures doc_id (stable) instead of positional index
+        def make_page(doc_id=sim['doc_id']):
+            st.session_state.selected_doc_id = doc_id
             simulation_page()
 
         page = st.Page(
@@ -124,16 +135,16 @@ def main():
             icon="🏢",
             url_path=url_slug
         )
-        sim_pages.append(page)
+        sim_pages[sim['doc_id']] = page
 
-    # Store sim_pages reference for home page launch buttons
+    # Store sim_pages dict for home/student_home launch buttons
     st.session_state._sim_pages = sim_pages
 
     # Build navigation based on role
     is_admin = st.session_state.get("admin_authenticated", False)
+    sim_page_list = list(sim_pages.values())
 
     if is_admin:
-        # Admin sees everything
         nav_sections = {
             "Dashboard": [
                 st.Page(home_page, title="Home", icon="🏠", url_path="home")
@@ -146,27 +157,32 @@ def main():
                 st.Page(analytics_page, title="Student Analytics", icon="📊", url_path="analytics"),
             ],
         }
-        if sim_pages:
-            nav_sections["Simulations"] = sim_pages
+        if sim_page_list:
+            nav_sections["Simulations"] = sim_page_list
         else:
             nav_sections["Simulations"] = [
                 st.Page(_no_sims_page, title="No Simulations", icon="📭", url_path="no-sims")
             ]
     else:
-        # Student sees only simulations
-        if sim_pages:
-            nav_sections = {"Simulations": sim_pages}
+        # Issue #5: Student gets a landing page + visible sidebar to switch sims
+        student_landing = st.Page(
+            student_home_page, title="Choose Simulation", icon="🏠", url_path="student-home"
+        )
+        if sim_page_list:
+            nav_sections = {
+                "Home": [student_landing],
+                "Simulations": sim_page_list,
+            }
         else:
             nav_sections = {
+                "Home": [student_landing],
                 "Simulations": [
                     st.Page(_no_sims_page, title="No Simulations", icon="📭", url_path="no-sims")
-                ]
+                ],
             }
 
-    # Admin: full sidebar navigation visible
-    # Student: hide page list (URLs still work, sidebar stays clean)
-    nav_position = "sidebar" if is_admin else "hidden"
-    nav = st.navigation(nav_sections, position=nav_position)
+    # Both admin and student get sidebar navigation
+    nav = st.navigation(nav_sections, position="sidebar")
     nav.run()
 
 
