@@ -28,6 +28,10 @@ def calculate_board_effectiveness_score(round_number: int,
     initial_approval_score = (initially_approving / max(total_members, 1)) * 25
 
     # 2. Consultation alignment (25 points max)
+    try:
+        consultation_alignment = float(consultation_alignment) if consultation_alignment is not None else 50
+    except (TypeError, ValueError):
+        consultation_alignment = 50
     consultation_score = (consultation_alignment / 100) * 25
 
     # 3. Debate effectiveness (30 points max)

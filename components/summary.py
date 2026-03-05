@@ -249,23 +249,40 @@ def display_final_summary(data: Dict):
     # Metrics Before vs After
     st.markdown("### 📈 Metrics Comparison: Before vs After Simulation")
 
-    metric_categories = {
-        '💰 Financial': ['total_revenue_annual', 'annual_recurring_revenue', 'ebitda',
-                        'net_profit_margin', 'revenue_growth_yoy', 'monthly_burn_rate'],
-        '👥 Customer': ['net_promoter_score', 'customer_churn_rate_annual',
-                       'customer_lifetime_value', 'customer_acquisition_cost'],
-        '⚙️ Operations': ['platform_uptime', 'deployment_frequency',
-                         'average_incident_resolution_time', 'automation_coverage'],
-        '👔 Human Resources': ['employee_count', 'employee_engagement_score',
-                              'annual_attrition_rate', 'avg_training_hours_per_employee'],
-        '🛡️ Risk & Compliance': ['regulatory_compliance_score', 'open_high_severity_risks',
-                                 'data_privacy_incident_count']
+    # Dynamically categorize metrics from actual data (not hardcoded keys)
+    CATEGORY_MAP = {
+        'revenue': '💰 Financial', 'profit': '💰 Financial', 'ebitda': '💰 Financial',
+        'margin': '💰 Financial', 'growth': '💰 Financial', 'debt': '💰 Financial',
+        'burn': '💰 Financial', 'cost': '💰 Financial',
+        'customer': '👥 Customer', 'churn': '👥 Customer', 'promoter': '👥 Customer',
+        'satisfaction': '👥 Customer', 'retention': '👥 Customer', 'lifetime': '👥 Customer',
+        'acquisition': '👥 Customer',
+        'employee': '👔 Human Resources', 'engagement': '👔 Human Resources',
+        'attrition': '👔 Human Resources', 'headcount': '👔 Human Resources',
+        'training': '👔 Human Resources', 'turnover': '👔 Human Resources',
+        'uptime': '⚙️ Operations', 'deployment': '⚙️ Operations',
+        'incident': '⚙️ Operations', 'automation': '⚙️ Operations',
+        'latency': '⚙️ Operations', 'platform': '⚙️ Operations',
+        'risk': '🛡️ Risk & Compliance', 'compliance': '🛡️ Risk & Compliance',
+        'regulatory': '🛡️ Risk & Compliance', 'privacy': '🛡️ Risk & Compliance',
+        'severity': '🛡️ Risk & Compliance',
     }
 
-    inverse_metrics = ['customer_churn_rate_annual', 'annual_attrition_rate',
-                      'open_high_severity_risks', 'monthly_burn_rate',
-                      'data_processing_latency', 'average_incident_resolution_time',
-                      'data_privacy_incident_count', 'customer_acquisition_cost']
+    LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover',
+                                 'cost', 'defect', 'burn', 'incident', 'latency'}
+
+    # Build dynamic categories from actual metric keys
+    metric_categories = {}
+    for key in initial_metrics:
+        if key not in final_metrics:
+            continue
+        key_lower = key.lower()
+        category = '📊 General'
+        for kw, cat in CATEGORY_MAP.items():
+            if kw in key_lower:
+                category = cat
+                break
+        metric_categories.setdefault(category, []).append(key)
 
     for category, metric_keys in metric_categories.items():
         with st.expander(category, expanded=True):
@@ -291,7 +308,7 @@ def display_final_summary(data: Dict):
                     else:
                         pct_change = 0  # 0 → 0 = no change
 
-                    is_inverse = key in inverse_metrics
+                    is_inverse = any(kw in key.lower() for kw in LOWER_IS_BETTER_KEYWORDS)
                     is_improvement = (change < 0 if is_inverse else change > 0)
                     is_decline = (change > 0 if is_inverse else change < 0)
 
@@ -354,7 +371,8 @@ def display_final_summary(data: Dict):
         if eval_key in st.session_state:
             evaluation = st.session_state[eval_key]
             scenario = st.session_state.get(scenario_key, "Scenario not available")
-            round_config = data['simulation_config']['rounds'][round_num]
+            rounds_list = data.get('simulation_config', {}).get('rounds', [])
+            round_config = rounds_list[round_num] if round_num < len(rounds_list) else {}
 
             round_score = evaluation.get('score', 0)
             score_color = "#28a745" if round_score >= 70 else "#ffc107" if round_score >= 50 else "#dc3545"
@@ -376,6 +394,14 @@ def display_final_summary(data: Dict):
                         {scenario}
                     </div>
                     """, unsafe_allow_html=True)
+
+                # Time taken for this round
+                round_start = st.session_state.get(f"round_start_time_{round_num}")
+                decision_time = st.session_state.get(f"decision_submit_time_{round_num}")
+                if round_start and decision_time:
+                    elapsed = (decision_time - round_start).total_seconds()
+                    minutes, seconds = divmod(int(elapsed), 60)
+                    st.caption(f"Time taken: {minutes}m {seconds}s")
 
                 st.markdown("#### 🎯 Your Decision")
                 decision_text = evaluation.get('decision', 'Decision not recorded')
@@ -403,6 +429,13 @@ def display_final_summary(data: Dict):
                     else:
                         st.info("No specific improvements recorded")
 
+                if evaluation.get('critical_feedback'):
+                    st.markdown("#### ⚠️ Critical Feedback")
+                    st.error(evaluation['critical_feedback'])
+                elif evaluation.get('encouragement'):
+                    st.markdown("#### 🌟 Encouragement")
+                    st.success(evaluation['encouragement'])
+
                 st.markdown("#### 💡 Recommended Best Approach")
                 if evaluation.get('best_approach'):
                     st.markdown(f"""
@@ -423,7 +456,65 @@ def display_final_summary(data: Dict):
                     st.markdown("#### 📈 Business Impact from This Decision")
                     st.markdown(impact_summary)
 
+                # Activity stats for this round
+                board_consults = st.session_state.get(f"board_consultations_round_{round_num}", 0)
+                committee_consults = st.session_state.get(f"committee_consultations_round_{round_num}", 0)
+                revisions = st.session_state.get(f"revisions_round_{round_num}", 0)
+                force_submitted = st.session_state.get(f"force_submitted_{round_num}", False)
+                round_effectiveness = st.session_state.get(f"board_effectiveness_{round_num}", {})
+
+                activity_parts = []
+                if board_consults:
+                    activity_parts.append(f"**{board_consults}** board consultation(s)")
+                if committee_consults:
+                    activity_parts.append(f"**{committee_consults}** committee consultation(s)")
+                if revisions:
+                    activity_parts.append(f"**{revisions}** decision revision(s)")
+                if round_effectiveness:
+                    convinced = round_effectiveness.get('members_convinced', 0)
+                    total_d = round_effectiveness.get('members_initially_opposing', 0)
+                    debate_ex = round_effectiveness.get('total_debate_exchanges', 0)
+                    if total_d:
+                        activity_parts.append(f"**{convinced}/{total_d}** dissenters convinced")
+                    if debate_ex:
+                        activity_parts.append(f"**{debate_ex}** debate exchange(s)")
+                if force_submitted:
+                    activity_parts.append("decision was **force-submitted**")
+
+                if activity_parts:
+                    st.markdown("#### 🗣️ Round Activity")
+                    st.markdown(" | ".join(activity_parts))
+
+                # Board member stances summary
+                member_stances = st.session_state.get(f"member_stances_{round_num}", {})
+                if member_stances:
+                    st.markdown("#### 🏛️ Board Member Reactions")
+                    stance_lines = []
+                    for name, info in member_stances.items():
+                        stance = info.get('stance', 'NEUTRAL')
+                        icon = {"APPROVE": "👍", "OPPOSE": "👎", "NEUTRAL": "🤔"}.get(stance, "🤔")
+                        convinced_note = ""
+                        if info.get('convinced_in_round') is not None:
+                            convinced_note = " → ✅ Convinced"
+                        stance_lines.append(f"- {icon} **{name}** ({info.get('member_role', '')}) — {stance}{convinced_note}")
+                    st.markdown("\n".join(stance_lines))
+
                 st.markdown("---")
+
+    # Consultation history summary
+    conversation_history = st.session_state.get('conversation_history', [])
+    if conversation_history:
+        st.markdown("### 💬 Consultation History")
+        st.markdown("*All questions you asked board members and committees during the simulation.*")
+        user_questions = [msg for msg in conversation_history if msg.get('role') == 'user']
+        if user_questions:
+            with st.expander(f"View all {len(user_questions)} consultation(s)", expanded=False):
+                for msg in conversation_history:
+                    if msg.get('role') == 'user':
+                        st.markdown(f"**You asked ({msg.get('member', 'Unknown')}):** {msg.get('content', '')}")
+                    elif msg.get('role') == 'assistant':
+                        st.markdown(f"> {msg.get('content', '')}")
+                        st.markdown("---")
 
     # Key concepts
     module_data = data['module_data']
@@ -447,12 +538,36 @@ def display_final_summary(data: Dict):
     _score = f"{grade_info['final_score']:.0f}"
     _name_tag = f"{_student_name} | " if _student_name else ""
 
+    _rounds_done = rounds_completed
+    _goals_achieved = 0
+    _total_goals = 0
+    if 'game_goals' in st.session_state:
+        _goal_progress = calculate_goal_progress(
+            st.session_state.game_goals, final_metrics
+        )
+        _total_goals = len(_goal_progress)
+        _goals_achieved = sum(1 for g in _goal_progress if g.get('achieved'))
+
     _share_text = (
         f"I just completed a Board Room Simulation on \"{_module}\" "
-        f"for {_company} and scored {_grade} ({_score}/100)! "
-        f"Sharpening my corporate governance & decision-making skills. "
+        f"for {_company} and earned a Grade {_grade} ({_score}/100)!\n\n"
+        f"📊 {_rounds_done} rounds completed"
+    )
+    if _total_goals:
+        _share_text += f" | 🎯 {_goals_achieved}/{_total_goals} goals achieved"
+    if avg_board_effectiveness and avg_board_effectiveness > 0:
+        _share_text += f" | 🏛️ Board effectiveness: {avg_board_effectiveness:.0f}%"
+    _share_text += (
+        f"\n\nSharpening my corporate governance & decision-making skills. "
         f"#BoardRoomSimulation #CorporateGovernance #Leadership"
     )
+
+    # Show preview of the message
+    st.markdown(f"""
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 1rem;">
+        <p style="margin: 0; color: #495057; white-space: pre-line;">{_share_text}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     _encoded = urllib.parse.quote(_share_text)
 
