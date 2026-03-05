@@ -536,7 +536,6 @@ def display_final_summary(data: Dict):
     _module = data['module_data'].get('module_name', 'Corporate Governance')
     _grade = grade_info['grade']
     _score = f"{grade_info['final_score']:.0f}"
-    _name_tag = f"{_student_name} | " if _student_name else ""
 
     _rounds_done = rounds_completed
     _goals_achieved = 0
@@ -548,24 +547,316 @@ def display_final_summary(data: Dict):
         _total_goals = len(_goal_progress)
         _goals_achieved = sum(1 for g in _goal_progress if g.get('achieved'))
 
-    _share_text = (
-        f"I just completed a Board Room Simulation on \"{_module}\" "
-        f"for {_company} and earned a Grade {_grade} ({_score}/100)!\n\n"
-        f"📊 {_rounds_done} rounds completed"
+    # --- Gather detailed stats for both card & text ---
+    _decision_score = f"{avg_score:.0f}"
+    _metric_score = f"{grade_info['normalized_metric_score']:.0f}"
+    _board_eff = f"{avg_board_effectiveness:.0f}" if avg_board_effectiveness else None
+
+    _total_board_consults = sum(
+        st.session_state.get(f"board_consultations_round_{r}", 0) for r in range(_rounds_done)
     )
+    _total_committee_consults = sum(
+        st.session_state.get(f"committee_consultations_round_{r}", 0) for r in range(_rounds_done)
+    )
+    _total_debates = sum(
+        (st.session_state.get(f"board_effectiveness_{r}") or {}).get('total_debate_exchanges', 0)
+        for r in range(_rounds_done)
+    )
+    _total_convinced = sum(
+        (st.session_state.get(f"board_effectiveness_{r}") or {}).get('members_convinced', 0)
+        for r in range(_rounds_done)
+    )
+
+    # Best & worst round
+    _round_scores = []
+    for r in range(_rounds_done):
+        ev = st.session_state.get(f"evaluation_{r}")
+        if ev:
+            _round_scores.append((r + 1, ev.get('score', 0)))
+    _best_round = max(_round_scores, key=lambda x: x[1]) if _round_scores else None
+    _worst_round = min(_round_scores, key=lambda x: x[1]) if _round_scores else None
+
+    # Metrics improved/declined
+    _met_up = grade_info['metrics_improved']
+    _met_down = grade_info['metrics_declined']
+
+    # Score bar widths for the visual card
+    _dec_bar = int(float(_decision_score))
+    _met_bar = int(float(_metric_score))
+    _brd_bar = int(float(_board_eff)) if _board_eff else 0
+
+    # Grade color
+    _grade_color = {
+        'A+': '#28a745', 'A': '#28a745', 'A-': '#5cb85c',
+        'B+': '#8bc34a', 'B': '#9acd32', 'B-': '#cddc39',
+        'C+': '#ffc107', 'C': '#ff9800', 'C-': '#ff5722',
+        'D': '#f44336', 'F': '#d32f2f'
+    }.get(_grade, '#666')
+
+    # --- Build score bars HTML for report card ---
+    _score_bars_html = f"""
+        <div style="margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#ccc; margin-bottom:2px;">
+                <span>Decision Quality</span><span>{_decision_score}%</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.15); border-radius:6px; height:10px; overflow:hidden;">
+                <div style="width:{_dec_bar}%; height:100%; background:linear-gradient(90deg,#4fc3f7,#29b6f6); border-radius:6px;"></div>
+            </div>
+        </div>
+        <div style="margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#ccc; margin-bottom:2px;">
+                <span>Business Impact</span><span>{_metric_score}%</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.15); border-radius:6px; height:10px; overflow:hidden;">
+                <div style="width:{_met_bar}%; height:100%; background:linear-gradient(90deg,#81c784,#66bb6a); border-radius:6px;"></div>
+            </div>
+        </div>
+    """
+    if _board_eff:
+        _score_bars_html += f"""
+        <div style="margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#ccc; margin-bottom:2px;">
+                <span>Board Management</span><span>{_board_eff}%</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.15); border-radius:6px; height:10px; overflow:hidden;">
+                <div style="width:{_brd_bar}%; height:100%; background:linear-gradient(90deg,#ffb74d,#ffa726); border-radius:6px;"></div>
+            </div>
+        </div>
+        """
+
+    # --- Build round scores mini-chart (small dots) ---
+    _round_dots_html = ""
+    if _round_scores:
+        _round_dots_html = '<div style="display:flex; gap:6px; align-items:end; margin-top:6px; justify-content:center;">'
+        for rnum, rscore in _round_scores:
+            dot_h = max(8, int(rscore * 0.4))  # scale height 0-40px
+            dot_color = "#28a745" if rscore >= 70 else "#ffc107" if rscore >= 50 else "#dc3545"
+            _round_dots_html += (
+                f'<div style="text-align:center;">'
+                f'<div style="width:16px; height:{dot_h}px; background:{dot_color}; border-radius:3px; margin:0 auto;"></div>'
+                f'<div style="font-size:8px; color:#aaa; margin-top:2px;">R{rnum}</div>'
+                f'</div>'
+            )
+        _round_dots_html += '</div>'
+
+    # --- Student info line ---
+    _student_line = ""
+    if _student_name:
+        _student_line = f'<div style="font-size:13px; color:#b0bec5; margin-bottom:12px;">{_student_name} ({_student_id})</div>'
+
+    # --- Goals line ---
+    _goals_line = ""
+    if _total_goals:
+        _goals_line = f"""
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:16px;">&#127919;</span>
+            <span style="font-size:13px;"><strong>{_goals_achieved}/{_total_goals}</strong> Goals Achieved</span>
+        </div>
+        """
+
+    # --- Board eff stat ---
+    _board_stat = ""
+    if _board_eff:
+        _board_stat = f"""
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:16px;">&#127963;&#65039;</span>
+            <span style="font-size:13px;">Board Eff: <strong>{_board_eff}%</strong></span>
+        </div>
+        """
+
+    # --- Detailed activity stats ---
+    _activity_stats_html = ""
+    _activity_items = []
+    if _total_board_consults:
+        _activity_items.append(f"{_total_board_consults} board consult(s)")
+    if _total_committee_consults:
+        _activity_items.append(f"{_total_committee_consults} committee consult(s)")
+    if _total_debates:
+        _activity_items.append(f"{_total_debates} debate(s)")
+    if _total_convinced:
+        _activity_items.append(f"{_total_convinced} dissenter(s) convinced")
+    if _activity_items:
+        _activity_stats_html = f'<div style="font-size:11px; color:#90a4ae; margin-top:8px; text-align:center;">{"  |  ".join(_activity_items)}</div>'
+
+    # --- Best/Worst round ---
+    _highlights_html = ""
+    if _best_round and _worst_round and _best_round != _worst_round:
+        _highlights_html = f"""
+        <div style="display:flex; justify-content:space-around; margin-top:8px; font-size:11px; color:#b0bec5;">
+            <span>&#11088; Best: R{_best_round[0]} ({_best_round[1]}/100)</span>
+            <span>&#128200; Lowest: R{_worst_round[0]} ({_worst_round[1]}/100)</span>
+        </div>
+        """
+
+    # ===== VISUAL REPORT CARD (rendered in iframe for html2canvas) =====
+    import streamlit.components.v1 as components
+    import hashlib
+    _card_key = "share_card_" + hashlib.md5(f"{_student_name}{_company}{_score}".encode()).hexdigest()[:8]
+
+    _card_html = f"""
+    <div id="report-card-{_card_key}" style="
+        width: 520px; padding: 28px 32px; margin: 0 auto;
+        background: linear-gradient(145deg, #0d1b2a 0%, #1b2838 40%, #1a237e 100%);
+        border-radius: 16px; color: white; font-family: 'Segoe UI', Arial, sans-serif;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; overflow: hidden;
+    ">
+        <!-- Decorative circles -->
+        <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px;
+                    background:rgba(255,255,255,0.03); border-radius:50%;"></div>
+        <div style="position:absolute; bottom:-40px; left:-20px; width:150px; height:150px;
+                    background:rgba(255,255,255,0.02); border-radius:50%;"></div>
+
+        <!-- Header -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+            <span style="font-size:22px;">&#127970;</span>
+            <span style="font-size:18px; font-weight:700; letter-spacing:0.5px;">Board Room Simulation</span>
+        </div>
+        <div style="font-size:12px; color:#78909c; margin-bottom:14px; padding-left:34px;">
+            {_company} &middot; {_module}
+        </div>
+
+        {_student_line}
+
+        <!-- Grade Circle -->
+        <div style="text-align:center; margin:16px 0 20px 0;">
+            <div style="display:inline-block; width:110px; height:110px; border-radius:50%;
+                        background: radial-gradient(circle, {_grade_color}33 0%, transparent 70%);
+                        border: 3px solid {_grade_color}; display:flex; align-items:center;
+                        justify-content:center; flex-direction:column;
+                        line-height:1; padding-top:22px;">
+                <div style="font-size:42px; font-weight:800; color:{_grade_color};">{_grade}</div>
+                <div style="font-size:14px; color:#b0bec5; margin-top:4px;">{_score}/100</div>
+            </div>
+            <div style="font-size:13px; color:{_grade_color}; margin-top:8px; font-weight:600;">
+                {grade_info['grade_description']}
+            </div>
+        </div>
+
+        <!-- Quick Stats Row -->
+        <div style="display:flex; justify-content:space-around; margin:16px 0; padding:10px 0;
+                    border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:16px;">&#128202;</span>
+                <span style="font-size:13px;"><strong>{_rounds_done}</strong> Rounds</span>
+            </div>
+            {_goals_line}
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:16px;">&#128200;</span>
+                <span style="font-size:13px;"><strong>{_met_up}</strong>&#8593; <strong>{_met_down}</strong>&#8595; Metrics</span>
+            </div>
+            {_board_stat}
+        </div>
+
+        <!-- Score Bars -->
+        <div style="margin:14px 0;">
+            {_score_bars_html}
+        </div>
+
+        <!-- Round Performance Mini Chart -->
+        {_round_dots_html}
+
+        <!-- Best/Worst -->
+        {_highlights_html}
+
+        <!-- Activity stats -->
+        {_activity_stats_html}
+
+        <!-- Footer -->
+        <div style="margin-top:16px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);
+                    display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:10px; color:#546e7a;">#BoardRoomSimulation #CorporateGovernance</span>
+            <span style="font-size:10px; color:#546e7a;">&#127891; Learning by Doing</span>
+        </div>
+    </div>
+
+    <!-- Download button -->
+    <div style="text-align:center; margin-top:14px;">
+        <button id="dl-btn-{_card_key}" style="
+            background: linear-gradient(135deg, #1E3A5F 0%, #2c5282 100%);
+            color: white; border: none; padding: 10px 28px; border-radius: 24px;
+            cursor: pointer; font-size: 14px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2); transition: all 0.2s;
+        " onmouseover="this.style.transform='scale(1.05)'"
+           onmouseout="this.style.transform='scale(1)'">
+            &#128229; Download Report Card
+        </button>
+        <div id="dl-status-{_card_key}" style="font-size:12px; color:#888; margin-top:6px;"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+    (function() {{
+        var btn = document.getElementById('dl-btn-{_card_key}');
+        var status = document.getElementById('dl-status-{_card_key}');
+        var card = document.getElementById('report-card-{_card_key}');
+
+        btn.onclick = function() {{
+            status.textContent = 'Generating image...';
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+
+            html2canvas(card, {{
+                backgroundColor: null,
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }}).then(function(canvas) {{
+                var link = document.createElement('a');
+                link.download = 'BoardRoom_Report_Card.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                status.textContent = 'Downloaded! Share this image on social media.';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }}).catch(function(err) {{
+                status.textContent = 'Error generating image. Try right-clicking the card to save.';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }});
+        }};
+    }})();
+    </script>
+    """
+
+    st.markdown("#### 📸 Your Report Card")
+    st.caption("Download this image and share it alongside your message!")
+    components.html(_card_html, height=620, scrolling=False)
+
+    # --- Enhanced share text message ---
+    _share_text = (
+        f"I just completed a Board Room Simulation!\n\n"
+        f"🏢 Company: {_company}\n"
+        f"📚 Module: {_module}\n"
+    )
+    if _student_name:
+        _share_text += f"👤 Student: {_student_name}\n"
+    _share_text += (
+        f"\n🏆 Grade: {_grade} ({_score}/100)\n"
+        f"   • Decision Quality: {_decision_score}%\n"
+        f"   • Business Impact: {_metric_score}%\n"
+    )
+    if _board_eff:
+        _share_text += f"   • Board Management: {_board_eff}%\n"
+    _share_text += f"\n📊 {_rounds_done} rounds completed"
     if _total_goals:
         _share_text += f" | 🎯 {_goals_achieved}/{_total_goals} goals achieved"
-    if avg_board_effectiveness and avg_board_effectiveness > 0:
-        _share_text += f" | 🏛️ Board effectiveness: {avg_board_effectiveness:.0f}%"
+    _share_text += f"\n📈 {_met_up} metrics improved | 📉 {_met_down} declined"
+    if _best_round and len(_round_scores) > 1:
+        _share_text += f"\n⭐ Best round: R{_best_round[0]} ({_best_round[1]}/100)"
+    if _total_board_consults or _total_committee_consults:
+        _share_text += f"\n💬 {_total_board_consults + _total_committee_consults} consultation(s)"
+    if _total_convinced:
+        _share_text += f" | 🔄 {_total_convinced} dissenter(s) convinced"
     _share_text += (
-        f"\n\nSharpening my corporate governance & decision-making skills. "
+        f"\n\nSharpening my corporate governance & decision-making skills! "
         f"#BoardRoomSimulation #CorporateGovernance #Leadership"
     )
 
-    # Show preview of the message
+    st.markdown("#### 💬 Share Message")
     st.markdown(f"""
     <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 1rem;">
-        <p style="margin: 0; color: #495057; white-space: pre-line;">{_share_text}</p>
+        <p style="margin: 0; color: #495057; white-space: pre-line; font-size: 0.9rem;">{_share_text}</p>
     </div>
     """, unsafe_allow_html=True)
 
