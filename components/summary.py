@@ -688,6 +688,39 @@ def display_final_summary(data: Dict):
         </div>
         """
 
+    # --- Build share text (needed by both the JS share button and the Streamlit UI below) ---
+    _share_text = (
+        f"I just completed a Board Room Simulation!\n\n"
+        f"🏢 Company: {_company}\n"
+        f"📚 Module: {_module}\n"
+    )
+    if _student_name:
+        _share_text += f"👤 Student: {_student_name}\n"
+    _share_text += (
+        f"\n🏆 Grade: {_grade} ({_score}/100)\n"
+        f"   • Decision Quality: {_decision_score}%\n"
+        f"   • Business Impact: {_metric_score}%\n"
+    )
+    if _board_eff:
+        _share_text += f"   • Board Management: {_board_eff}%\n"
+    _share_text += f"\n📊 {_rounds_done} rounds completed"
+    if _total_goals:
+        _share_text += f" | 🎯 {_goals_achieved}/{_total_goals} goals achieved"
+    _share_text += f"\n📈 {_met_up} metrics improved | 📉 {_met_down} declined"
+    if _best_round and len(_round_scores) > 1:
+        _share_text += f"\n⭐ Best round: R{_best_round[0]} ({_best_round[1]}/100)"
+    if _total_board_consults or _total_committee_consults:
+        _share_text += f"\n💬 {_total_board_consults + _total_committee_consults} consultation(s)"
+    if _total_convinced:
+        _share_text += f" | 🔄 {_total_convinced} dissenter(s) convinced"
+    _share_text += (
+        f"\n\nSharpening my corporate governance & decision-making skills! "
+        f"#BoardRoomSimulation #CorporateGovernance #Leadership"
+    )
+
+    import json as _json
+    _share_text_js = _json.dumps(_share_text)  # Safe JS string with proper escaping
+
     # ===== VISUAL REPORT CARD (rendered in iframe for html2canvas) =====
     import streamlit.components.v1 as components
     import hashlib
@@ -769,50 +802,160 @@ def display_final_summary(data: Dict):
         </div>
     </div>
 
-    <!-- Download button -->
-    <div style="text-align:center; margin-top:14px;">
+    <!-- Action buttons -->
+    <div style="text-align:center; margin-top:14px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+        <button id="share-btn-{_card_key}" style="
+            background: linear-gradient(135deg, #6a1b9a 0%, #ab47bc 100%);
+            color: white; border: none; padding: 12px 28px; border-radius: 24px;
+            cursor: pointer; font-size: 14px; font-weight: 700;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(106,27,154,0.4); transition: all 0.2s;
+        " onmouseover="this.style.transform='scale(1.05)'"
+           onmouseout="this.style.transform='scale(1)'">
+            &#128640; Share with Image
+        </button>
         <button id="dl-btn-{_card_key}" style="
             background: linear-gradient(135deg, #1E3A5F 0%, #2c5282 100%);
-            color: white; border: none; padding: 10px 28px; border-radius: 24px;
-            cursor: pointer; font-size: 14px; font-weight: 600;
+            color: white; border: none; padding: 10px 24px; border-radius: 24px;
+            cursor: pointer; font-size: 13px; font-weight: 600;
             display: inline-flex; align-items: center; gap: 8px;
             box-shadow: 0 3px 8px rgba(0,0,0,0.2); transition: all 0.2s;
         " onmouseover="this.style.transform='scale(1.05)'"
            onmouseout="this.style.transform='scale(1)'">
-            &#128229; Download Report Card
+            &#128229; Download Image
         </button>
-        <div id="dl-status-{_card_key}" style="font-size:12px; color:#888; margin-top:6px;"></div>
+        <button id="copy-btn-{_card_key}" style="
+            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+            color: white; border: none; padding: 10px 24px; border-radius: 24px;
+            cursor: pointer; font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2); transition: all 0.2s;
+        " onmouseover="this.style.transform='scale(1.05)'"
+           onmouseout="this.style.transform='scale(1)'">
+            &#128203; Copy to Clipboard
+        </button>
     </div>
+    <div id="dl-status-{_card_key}" style="font-size:12px; color:#888; margin-top:8px; text-align:center;"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
     (function() {{
-        var btn = document.getElementById('dl-btn-{_card_key}');
+        var shareBtn = document.getElementById('share-btn-{_card_key}');
+        var dlBtn = document.getElementById('dl-btn-{_card_key}');
+        var copyBtn = document.getElementById('copy-btn-{_card_key}');
         var status = document.getElementById('dl-status-{_card_key}');
         var card = document.getElementById('report-card-{_card_key}');
 
-        btn.onclick = function() {{
-            status.textContent = 'Generating image...';
-            btn.disabled = true;
-            btn.style.opacity = '0.6';
+        var shareText = {_share_text_js};
 
-            html2canvas(card, {{
+        function renderCard() {{
+            return html2canvas(card, {{
                 backgroundColor: null,
                 scale: 2,
                 useCORS: true,
                 logging: false
-            }}).then(function(canvas) {{
+            }});
+        }}
+
+        function setWorking(btn, label) {{
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            if (label) btn.innerHTML = label;
+        }}
+
+        function setReady(btn, label) {{
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            if (label) btn.innerHTML = label;
+        }}
+
+        /* Check Web Share API file sharing support */
+        var canShareFiles = navigator.canShare && navigator.share;
+
+        if (!canShareFiles) {{
+            shareBtn.style.display = 'none';
+        }}
+
+        /* Share with Image — uses Web Share API to attach image directly */
+        shareBtn.onclick = function() {{
+            status.textContent = 'Preparing image for sharing...';
+            setWorking(shareBtn, '&#9203; Preparing...');
+            renderCard().then(function(canvas) {{
+                canvas.toBlob(function(blob) {{
+                    var file = new File([blob], 'BoardRoom_Report_Card.png', {{ type: 'image/png' }});
+                    var shareData = {{
+                        title: 'Board Room Simulation Report Card',
+                        text: shareText,
+                        files: [file]
+                    }};
+                    if (navigator.canShare && navigator.canShare(shareData)) {{
+                        navigator.share(shareData).then(function() {{
+                            status.textContent = 'Shared successfully!';
+                            setReady(shareBtn, '&#128640; Share with Image');
+                        }}).catch(function(err) {{
+                            if (err.name !== 'AbortError') {{
+                                status.textContent = 'Share cancelled or failed. Try Download + manual attach.';
+                            }} else {{
+                                status.textContent = '';
+                            }}
+                            setReady(shareBtn, '&#128640; Share with Image');
+                        }});
+                    }} else {{
+                        /* Browser supports share API but not file sharing — fallback to text only */
+                        navigator.share({{
+                            title: 'Board Room Simulation Report Card',
+                            text: shareText
+                        }}).catch(function() {{}});
+                        status.textContent = 'Your browser shared text only. Download the image and attach manually.';
+                        setReady(shareBtn, '&#128640; Share with Image');
+                    }}
+                }}, 'image/png');
+            }}).catch(function() {{
+                status.textContent = 'Error generating image.';
+                setReady(shareBtn, '&#128640; Share with Image');
+            }});
+        }};
+
+        /* Download as PNG */
+        dlBtn.onclick = function() {{
+            status.textContent = 'Generating image...';
+            setWorking(dlBtn, null);
+            renderCard().then(function(canvas) {{
                 var link = document.createElement('a');
                 link.download = 'BoardRoom_Report_Card.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                status.textContent = 'Downloaded! Share this image on social media.';
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }}).catch(function(err) {{
-                status.textContent = 'Error generating image. Try right-clicking the card to save.';
-                btn.disabled = false;
-                btn.style.opacity = '1';
+                status.textContent = 'Downloaded! Attach this image when sharing on LinkedIn/Twitter.';
+                setReady(dlBtn, null);
+            }}).catch(function() {{
+                status.textContent = 'Error generating image. Try right-clicking the card above to save.';
+                setReady(dlBtn, null);
+            }});
+        }};
+
+        /* Copy image to clipboard */
+        copyBtn.onclick = function() {{
+            if (!navigator.clipboard || !window.ClipboardItem) {{
+                status.textContent = 'Clipboard API not supported in this browser. Use Download instead.';
+                return;
+            }}
+            status.textContent = 'Copying to clipboard...';
+            setWorking(copyBtn, null);
+            renderCard().then(function(canvas) {{
+                canvas.toBlob(function(blob) {{
+                    navigator.clipboard.write([
+                        new ClipboardItem({{ 'image/png': blob }})
+                    ]).then(function() {{
+                        status.textContent = 'Copied! Now paste (Ctrl+V) directly into your LinkedIn/Twitter post.';
+                        setReady(copyBtn, null);
+                    }}).catch(function() {{
+                        status.textContent = 'Could not copy. Use Download instead.';
+                        setReady(copyBtn, null);
+                    }});
+                }}, 'image/png');
+            }}).catch(function() {{
+                status.textContent = 'Error generating image.';
+                setReady(copyBtn, null);
             }});
         }};
     }})();
@@ -820,38 +963,23 @@ def display_final_summary(data: Dict):
     """
 
     st.markdown("#### 📸 Your Report Card")
-    st.caption("Download this image and share it alongside your message!")
-    components.html(_card_html, height=620, scrolling=False)
+    components.html(_card_html, height=680, scrolling=False)
 
-    # --- Enhanced share text message ---
-    _share_text = (
-        f"I just completed a Board Room Simulation!\n\n"
-        f"🏢 Company: {_company}\n"
-        f"📚 Module: {_module}\n"
-    )
-    if _student_name:
-        _share_text += f"👤 Student: {_student_name}\n"
-    _share_text += (
-        f"\n🏆 Grade: {_grade} ({_score}/100)\n"
-        f"   • Decision Quality: {_decision_score}%\n"
-        f"   • Business Impact: {_metric_score}%\n"
-    )
-    if _board_eff:
-        _share_text += f"   • Board Management: {_board_eff}%\n"
-    _share_text += f"\n📊 {_rounds_done} rounds completed"
-    if _total_goals:
-        _share_text += f" | 🎯 {_goals_achieved}/{_total_goals} goals achieved"
-    _share_text += f"\n📈 {_met_up} metrics improved | 📉 {_met_down} declined"
-    if _best_round and len(_round_scores) > 1:
-        _share_text += f"\n⭐ Best round: R{_best_round[0]} ({_best_round[1]}/100)"
-    if _total_board_consults or _total_committee_consults:
-        _share_text += f"\n💬 {_total_board_consults + _total_committee_consults} consultation(s)"
-    if _total_convinced:
-        _share_text += f" | 🔄 {_total_convinced} dissenter(s) convinced"
-    _share_text += (
-        f"\n\nSharpening my corporate governance & decision-making skills! "
-        f"#BoardRoomSimulation #CorporateGovernance #Leadership"
-    )
+    # --- How to share steps ---
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%); padding: 1rem 1.2rem;
+                border-radius: 10px; margin-bottom: 1rem; border-left: 4px solid #1976d2;">
+        <strong style="font-size: 0.95rem;">📲 Share your achievement:</strong>
+        <ul style="margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.85rem; color: #333; list-style: none;">
+            <li>🟣 <strong>Share with Image</strong> (recommended) — opens your device's share menu with the report card image attached directly</li>
+            <li>🔵 <strong>Download Image</strong> — saves the report card, then attach it manually on any platform</li>
+            <li>🟢 <strong>Copy to Clipboard</strong> — copies the image so you can paste (Ctrl+V) into any post editor</li>
+        </ul>
+        <p style="font-size:0.8rem; color:#666; margin:0.5rem 0 0 0;">
+            <em>Note: "Share with Image" works on mobile browsers and Chrome/Edge desktop. On unsupported browsers, use Download + manual attach.</em>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("#### 💬 Share Message")
     st.markdown(f"""
