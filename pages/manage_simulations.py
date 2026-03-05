@@ -316,7 +316,7 @@ def _render_metrics_audit(company_data):
                 st.error("Please enter a metric name")
 
     # Edit/Remove existing metrics
-    with st.expander(f"📝 Edit Metrics ({len(metrics)} total)", expanded=True):
+    with st.expander(f"📝 Edit Metrics ({len(metrics)} total)", expanded=False):
         metrics_to_remove = []
         for metric_key, metric_info in metrics.items():
             st.markdown(f"**{metric_key}**")
@@ -429,7 +429,7 @@ def _render_board_members_audit(company_data):
 
     # Edit/Remove board members
     current_board_members = st.session_state.audit_data.get('company_data', {}).get('board_members', [])
-    with st.expander(f"📝 Edit Board Members ({len(current_board_members)} total)", expanded=True):
+    with st.expander(f"📝 Edit Board Members ({len(current_board_members)} total)", expanded=False):
         members_to_remove = []
         for i, member in enumerate(current_board_members):
             st.markdown(f"**👤 {member.get('name', f'Member {i+1}')}**")
@@ -554,7 +554,7 @@ def _render_committees_audit(company_data):
 
     # Edit existing committees
     if committees:
-        with st.expander(f"📝 Manage Committees ({len(committees)} total)", expanded=True):
+        with st.expander(f"📝 Manage Committees ({len(committees)} total)", expanded=False):
             committees_to_remove = []
             for i, committee in enumerate(committees):
                 st.markdown(f"### 🏛️ {committee.get('name', 'Unnamed Committee')}")
@@ -663,7 +663,7 @@ def _render_problems_audit(company_data):
             else:
                 st.error("Please enter a problem description")
 
-    with st.expander(f"📝 Edit Problems ({len(problems)} total)", expanded=True):
+    with st.expander(f"📝 Edit Problems ({len(problems)} total)", expanded=False):
         problems_to_remove = []
         for i, problem in enumerate(problems):
             col1, col2 = st.columns([10, 1])
@@ -749,7 +749,7 @@ def _render_objectives_audit(module_data):
                 st.success("Added objective!")
                 st.rerun()
 
-    with st.expander(f"📝 Edit Objectives ({len(objectives)} total)", expanded=True):
+    with st.expander(f"📝 Edit Objectives ({len(objectives)} total)", expanded=False):
         obj_to_remove = []
         for i, obj in enumerate(objectives):
             col1, col2 = st.columns([10, 1])
@@ -796,7 +796,7 @@ def _render_topics_audit(module_data):
                 st.success(f"Added topic: {new_topic_name}")
                 st.rerun()
 
-    with st.expander(f"📝 Edit Topics ({len(topics)} total)", expanded=True):
+    with st.expander(f"📝 Edit Topics ({len(topics)} total)", expanded=False):
         topics_to_remove = []
         for i, topic in enumerate(topics):
             st.markdown(f"**Topic {i+1}: {topic.get('name', 'Unnamed')}**")
@@ -850,7 +850,7 @@ def _render_terms_audit(module_data):
             elif new_term in terms:
                 st.error("Term already exists!")
 
-    with st.expander(f"📝 Edit Terms ({len(terms)} total)", expanded=True):
+    with st.expander(f"📝 Edit Terms ({len(terms)} total)", expanded=False):
         terms_to_remove = []
         for term, definition in terms.items():
             col1, col2 = st.columns([10, 1])
@@ -901,7 +901,7 @@ def _render_frameworks_audit(module_data):
                 st.success(f"Added framework: {new_fw_name}")
                 st.rerun()
 
-    with st.expander(f"📝 Edit Frameworks ({len(frameworks)} total)", expanded=True):
+    with st.expander(f"📝 Edit Frameworks ({len(frameworks)} total)", expanded=False):
         fw_to_remove = []
         for i, fw in enumerate(frameworks):
             st.markdown(f"**Framework {i+1}: {fw.get('name', 'Unnamed')}**")
@@ -952,7 +952,7 @@ def _render_criteria_audit(module_data):
                 st.success("Added criterion!")
                 st.rerun()
 
-    with st.expander(f"📝 Edit Criteria ({len(criteria)} total)", expanded=True):
+    with st.expander(f"📝 Edit Criteria ({len(criteria)} total)", expanded=False):
         criteria_to_remove = []
         for i, criterion in enumerate(criteria):
             col1, col2 = st.columns([10, 1])
