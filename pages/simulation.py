@@ -25,7 +25,7 @@ from components.dashboard import display_company_dashboard, display_current_prob
 from components.board_members import display_board_members_for_selection, display_board_members
 from components.deliberation import display_deliberation_phase
 from components.summary import display_final_summary
-from components.tts import speak_button
+from components.tts import speak_button, mic_button
 from core.activity_tracker import start_session, log_round, save_progress, find_resumable_session, clear_progress
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ def _save_checkpoint(checkpoint_name: str):
             'revisions': st.session_state.get(f'revisions_round_{cr}', 0),
             'deliberation_phase': st.session_state.get(f'deliberation_phase_{cr}'),
             'force_submitted': st.session_state.get(f'force_submitted_{cr}', False),
+            'selected_option': st.session_state.get(f'selected_option_{cr}'),
         },
     }
     try:
@@ -103,6 +104,8 @@ def _restore_from_progress(session_data: dict, company_data: dict):
     st.session_state[f'revisions_round_{cr}'] = rs.get('revisions', 0)
     if rs.get('deliberation_phase'):
         st.session_state[f'deliberation_phase_{cr}'] = rs['deliberation_phase']
+    if rs.get('selected_option'):
+        st.session_state[f'selected_option_{cr}'] = rs['selected_option']
     st.session_state[f'force_submitted_{cr}'] = rs.get('force_submitted', False)
 
 
@@ -350,11 +353,13 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                         help="You can select multiple members for a group discussion (1 consultation per round)"
                     )
 
+                    _board_q_label = "Your question or topic for discussion:"
                     user_question = st.text_input(
-                        "Your question or topic for discussion:",
+                        _board_q_label,
                         key=f"member_question_{state.current_round}",
                         placeholder="e.g., What are your thoughts on the compliance implications?"
                     )
+                    mic_button(target_label=_board_q_label, key=f"mic_board_{state.current_round}")
 
                     _board_processing = st.session_state.get(f"_processing_board_{state.current_round}", False)
                     _question_too_short = len((user_question or "").strip()) < 10
@@ -409,11 +414,13 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                         key=f"committee_select_{state.current_round}"
                     )
 
+                    _comm_q_label = "Your question for the committee:"
                     committee_question = st.text_input(
-                        "Your question for the committee:",
+                        _comm_q_label,
                         key=f"committee_question_{state.current_round}",
                         placeholder="e.g., What is the committee's recommendation on this matter?"
                     )
+                    mic_button(target_label=_comm_q_label, key=f"mic_comm_{state.current_round}")
 
                     _comm_processing = st.session_state.get(f"_processing_committee_{state.current_round}", False)
                     _cq_too_short = len((committee_question or "").strip()) < 10
@@ -480,34 +487,53 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     if decision_key not in st.session_state:
         st.session_state[decision_key] = ""
 
+    has_selected_option = f"selected_option_{state.current_round}" in st.session_state
+
     if not pending_exists:
         if options:
-            st.markdown("**Quick Select an Option:**")
+            st.markdown("**Select an option or write your own decision below:**")
             # Audio: read all options aloud
             options_text = ". ".join(f"Option {o['letter']}: {o['text']}" for o in options)
             speak_button(options_text, label="Listen to Options", key=f"options_{state.current_round}")
             option_cols = st.columns(2)
             for idx, opt in enumerate(options):
                 with option_cols[idx % 2]:
-                    if st.button(f"Option {opt['letter']}: {opt['text']}",
-                               key=f"option_{opt['letter']}_{state.current_round}",
-                               use_container_width=True):
+                    _is_selected = has_selected_option and st.session_state[f"selected_option_{state.current_round}"].get('letter') == opt['letter']
+                    if st.button(
+                        f"{'✅ ' if _is_selected else ''}Option {opt['letter']}: {opt['text']}",
+                        key=f"option_{opt['letter']}_{state.current_round}",
+                        use_container_width=True,
+                        type="primary" if _is_selected else "secondary",
+                    ):
                         st.session_state[f"selected_option_{state.current_round}"] = opt
-                        existing = st.session_state.get(decision_key, '').strip()
-                        prefix = f"Option {opt['letter']}: {opt['text']}"
-                        st.session_state[decision_key] = f"{prefix}\n\n{existing}" if existing else prefix
                         st.rerun()
 
             st.markdown("---")
-            st.markdown("**Or provide your detailed reasoning:**")
+
+    if has_selected_option and not pending_exists:
+        _selected = st.session_state[f"selected_option_{state.current_round}"]
+        _sel_col1, _sel_col2 = st.columns([5, 1])
+        with _sel_col1:
+            st.success(f"**Your Decision:** Option {_selected['letter']} — {_selected['text']}")
+        with _sel_col2:
+            if st.button("Clear", key=f"clear_option_{state.current_round}"):
+                del st.session_state[f"selected_option_{state.current_round}"]
+                st.rerun()
+        _decision_label = "Add reasoning (optional — earns bonus points):"
+        _decision_placeholder = "Why did you choose this? What are the risks? How would you implement it? (Leave blank to submit with just your option selection)"
+    else:
+        _decision_label = "Write your own decision:"
+        _decision_placeholder = "State your decision clearly, then explain your rationale — why is this the best course of action? How would you implement it?"
 
     decision = st.text_area(
-        "Enter your decision and reasoning:",
+        _decision_label,
         key=decision_key,
-        placeholder="Describe your decision, the rationale behind it, and how you would implement it...",
-        height=200,
+        placeholder=_decision_placeholder,
+        height=150,
         disabled=pending_exists,
     )
+    if not pending_exists:
+        mic_button(target_label=_decision_label, key=f"mic_{state.current_round}")
 
     logger.debug(f"Round {state.current_round}: delib_phase_key={delib_phase_key}, exists={delib_phase_key in st.session_state}")
 
@@ -590,22 +616,39 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
         st.rerun()
 
     # Only show submit button before submission
+    _min_chars = 20
+    _reasoning_text = (decision or "").strip()
     if not pending_exists and eval_key not in st.session_state:
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            _submit_processing = st.session_state.get(f"_processing_submit_{state.current_round}", False)
-            if st.button("Submit Decision", key=f"submit_decision_{state.current_round}", type="primary",
-                         disabled=_submit_processing):
-                if decision and len(decision.strip()) >= 20:
-                    st.session_state[f"_processing_submit_{state.current_round}"] = True
-                    st.session_state[f"decision_submit_time_{state.current_round}"] = datetime.now()
-                    st.session_state[pending_decision_key] = decision.strip()
-                    st.session_state[delib_phase_key] = 'inactive'
-                    st.rerun()
-                elif decision and decision.strip():
-                    st.warning("Please provide more detail — your decision should be at least 20 characters.")
-                else:
-                    st.warning("Please enter your decision before submitting.")
+        _submit_processing = st.session_state.get(f"_processing_submit_{state.current_round}", False)
+
+        # If no option selected and text is too short, show progress
+        if not has_selected_option and 0 < len(_reasoning_text) < _min_chars:
+            st.caption(f"⚠️ {len(_reasoning_text)}/{_min_chars} characters — add more detail to submit.")
+
+        if st.button("Submit Decision", key=f"submit_decision_{state.current_round}", type="primary",
+                     disabled=_submit_processing, use_container_width=True):
+            if has_selected_option:
+                # Option selected — build final decision text
+                _opt = st.session_state[f"selected_option_{state.current_round}"]
+                _final_decision = f"Option {_opt['letter']}: {_opt['text']}"
+                if _reasoning_text:
+                    _final_decision += f"\n\nReasoning: {_reasoning_text}"
+                st.session_state[f"_processing_submit_{state.current_round}"] = True
+                st.session_state[f"decision_submit_time_{state.current_round}"] = datetime.now()
+                st.session_state[pending_decision_key] = _final_decision
+                st.session_state[delib_phase_key] = 'inactive'
+                st.rerun()
+            elif len(_reasoning_text) >= _min_chars:
+                # Free-form decision with enough detail
+                st.session_state[f"_processing_submit_{state.current_round}"] = True
+                st.session_state[f"decision_submit_time_{state.current_round}"] = datetime.now()
+                st.session_state[pending_decision_key] = _reasoning_text
+                st.session_state[delib_phase_key] = 'inactive'
+                st.rerun()
+            elif len(_reasoning_text) > 0:
+                st.warning(f"Please provide more detail — your decision needs at least {_min_chars} characters.")
+            else:
+                st.warning("Please select an option above or write your own decision.")
 
     # Display evaluation if available
     if eval_key in st.session_state:
