@@ -25,6 +25,7 @@ from components.dashboard import display_company_dashboard, display_current_prob
 from components.board_members import display_board_members_for_selection, display_board_members
 from components.deliberation import display_deliberation_phase
 from components.summary import display_final_summary
+from components.tts import speak_button
 from core.activity_tracker import start_session, log_round, save_progress, find_resumable_session, clear_progress
 
 logger = logging.getLogger(__name__)
@@ -317,6 +318,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
         st.markdown(f'<div class="scenario-box" style="white-space: pre-wrap;">{scenario}</div>',
                     unsafe_allow_html=True)
 
+    # Audio: read scenario aloud
+    speak_button(scenario, label="Listen to Scenario", key=f"scenario_{state.current_round}")
+
     # Consultation Section
     st.markdown("### 💬 Consultation")
 
@@ -456,11 +460,12 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     # Display conversation history
     if 'conversation_history' in st.session_state and st.session_state.conversation_history:
         with st.expander("📝 Discussion History", expanded=True):
-            for entry in st.session_state.conversation_history:
+            for ci, entry in enumerate(st.session_state.conversation_history):
                 if entry['role'] == 'user':
                     st.markdown(f"**You asked {entry.get('member', 'Board')}:** {entry['content']}")
                 else:
                     st.markdown(f"**{entry.get('member', 'Board Member')}:** {entry['content']}")
+                    speak_button(entry['content'], label="Listen", key=f"consult_{state.current_round}_{ci}")
                 st.markdown("---")
 
     # Check deliberation state
@@ -478,6 +483,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     if not pending_exists:
         if options:
             st.markdown("**Quick Select an Option:**")
+            # Audio: read all options aloud
+            options_text = ". ".join(f"Option {o['letter']}: {o['text']}" for o in options)
+            speak_button(options_text, label="Listen to Options", key=f"options_{state.current_round}")
             option_cols = st.columns(2)
             for idx, opt in enumerate(options):
                 with option_cols[idx % 2]:
@@ -604,6 +612,18 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
         evaluation = st.session_state[eval_key]
 
         st.markdown("### 📊 Evaluation & Feedback")
+
+        # Build full feedback text for audio
+        _feedback_parts = [f"Your score is {evaluation.get('score', 0)} out of 100."]
+        if evaluation.get('score_reasoning'):
+            _feedback_parts.append(evaluation['score_reasoning'])
+        if evaluation.get('strengths'):
+            _feedback_parts.append(f"Strengths: {evaluation['strengths']}")
+        if evaluation.get('improvements'):
+            _feedback_parts.append(f"Areas for improvement: {evaluation['improvements']}")
+        if evaluation.get('learning_points'):
+            _feedback_parts.append(f"Key learning points: {evaluation['learning_points']}")
+        speak_button(" ".join(_feedback_parts), label="Listen to Feedback", key=f"feedback_{state.current_round}")
 
         score = evaluation['score']
         score_color = "#28a745" if score >= 70 else "#ffc107" if score >= 50 else "#dc3545"
@@ -1068,11 +1088,13 @@ def simulation_page():
 
         # Initial Scenario
         st.markdown("### 📋 Initial Scenario")
+        _initial_scenario = company_data.get('initial_scenario', 'Scenario not available')
         st.markdown(f"""
         <div style="background: #fff3cd; padding: 1rem; border-radius: 10px; border-left: 4px solid #ffc107;">
-            {company_data.get('initial_scenario', 'Scenario not available')}
+            {_initial_scenario}
         </div>
         """, unsafe_allow_html=True)
+        speak_button(_initial_scenario, label="Listen to Scenario", key="initial_scenario")
 
         st.markdown("---")
 
@@ -1178,6 +1200,7 @@ def simulation_page():
             display_current_problems(company_data['current_problems'])
             st.markdown("### 📋 Initial Scenario")
             st.markdown(f'<div class="scenario-box">{company_data["initial_scenario"]}</div>', unsafe_allow_html=True)
+            speak_button(company_data["initial_scenario"], label="Listen to Scenario", key="initial_scenario_tab")
 
         with tab2:
             display_board_members(company_data['board_members'], player_role)
