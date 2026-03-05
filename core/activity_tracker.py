@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timezone
 
 from google.cloud.firestore_v1 import ArrayUnion, Increment
+from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import firestore
 
 from core.firebase_client import get_firestore_client
@@ -47,9 +48,9 @@ def start_session(
         col = _get_collection()
         if col:
             prior = (
-                col.where("student_name", "==", student_name)
-                   .where("student_id", "==", student_id)
-                   .where("simulation_name", "==", simulation_name)
+                col.where(filter=FieldFilter("student_name", "==", student_name))
+                   .where(filter=FieldFilter("student_id", "==", student_id))
+                   .where(filter=FieldFilter("simulation_name", "==", simulation_name))
             )
             attempt_number = sum(1 for _ in prior.stream()) + 1
     except Exception:
@@ -182,7 +183,7 @@ def get_records_by_simulation(simulation_name: str) -> list[dict]:
         col = _get_collection()
         if col is None:
             return []
-        query = col.where("simulation_name", "==", simulation_name)
+        query = col.where(filter=FieldFilter("simulation_name", "==", simulation_name))
         return [doc.to_dict() for doc in query.stream()]
     except Exception as e:
         logger.error(f"Failed to query by simulation: {e}")
@@ -195,7 +196,7 @@ def get_records_by_student(student_id: str) -> list[dict]:
         col = _get_collection()
         if col is None:
             return []
-        query = col.where("student_id", "==", student_id)
+        query = col.where(filter=FieldFilter("student_id", "==", student_id))
         return [doc.to_dict() for doc in query.stream()]
     except Exception as e:
         logger.error(f"Failed to query by student: {e}")
@@ -225,10 +226,10 @@ def find_resumable_session(student_name: str, student_id: str, simulation_name: 
         if col is None:
             return None
         query = (
-            col.where("student_name", "==", student_name)
-               .where("student_id", "==", student_id)
-               .where("simulation_name", "==", simulation_name)
-               .where("status", "==", "in_progress")
+            col.where(filter=FieldFilter("student_name", "==", student_name))
+               .where(filter=FieldFilter("student_id", "==", student_id))
+               .where(filter=FieldFilter("simulation_name", "==", simulation_name))
+               .where(filter=FieldFilter("status", "==", "in_progress"))
         )
         best = None
         for doc in query.stream():
