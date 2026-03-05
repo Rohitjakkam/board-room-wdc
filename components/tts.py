@@ -221,7 +221,7 @@ def mic_button(target_label: str, key: str = "mic"):
             return null;
         }}
 
-        function setInputValue(el, text) {{
+        function setInputValue(el, text, isFinal) {{
             /* Use React's internal setter so Streamlit picks up the change */
             var proto = el.tagName === 'TEXTAREA'
                 ? window.parent.HTMLTextAreaElement.prototype
@@ -229,6 +229,11 @@ def mic_button(target_label: str, key: str = "mic"):
             var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
             setter.call(el, text);
             el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+            if (isFinal) {{
+                /* Dispatch change + blur so Streamlit commits the value to session_state */
+                el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                el.dispatchEvent(new Event('blur', {{ bubbles: true }}));
+            }}
         }}
 
         btn.onclick = function() {{
@@ -274,10 +279,10 @@ def mic_button(target_label: str, key: str = "mic"):
                     interimTranscript += transcript;
                 }}
             }}
-            var textarea = findInput();
-            if (textarea) {{
+            var el = findInput();
+            if (el) {{
                 var display = finalTranscript + interimTranscript;
-                setInputValue(textarea, display);
+                setInputValue(el, display, false);
             }}
             status.textContent = interimTranscript ? 'Hearing: ' + interimTranscript.substring(0, 40) + '...' : 'Listening...';
         }};
@@ -289,10 +294,10 @@ def mic_button(target_label: str, key: str = "mic"):
             btn.style.background = 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)';
             btn.style.animation = 'none';
             status.textContent = finalTranscript ? 'Done' : '';
-            /* Ensure final value is committed */
-            var textarea = findInput();
-            if (textarea && finalTranscript) {{
-                setInputValue(textarea, finalTranscript);
+            /* Commit final value to Streamlit */
+            var el = findInput();
+            if (el && finalTranscript) {{
+                setInputValue(el, finalTranscript, true);
             }}
         }};
 
