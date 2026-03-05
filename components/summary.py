@@ -981,14 +981,16 @@ def display_final_summary(data: Dict):
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("#### 💬 Share Message")
-    st.markdown(f"""
-    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 1rem;">
-        <p style="margin: 0; color: #495057; white-space: pre-line; font-size: 0.9rem;">{_share_text}</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("#### 💬 Share Message (editable)")
+    _edited_share_text = st.text_area(
+        "Edit your share message before posting:",
+        value=_share_text,
+        height=200,
+        key="share_text_editor",
+        label_visibility="collapsed",
+    )
 
-    _encoded = urllib.parse.quote(_share_text)
+    _encoded = urllib.parse.quote(_edited_share_text)
 
     _linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={_encoded}"
     _twitter_url = f"https://twitter.com/intent/tweet?text={_encoded}"
@@ -1028,7 +1030,7 @@ def display_final_summary(data: Dict):
 
     with col4:
         if st.button("📋 Copy Text", use_container_width=True):
-            st.code(_share_text, language=None)
+            st.code(_edited_share_text, language=None)
             st.success("Copy the text above!")
 
     st.markdown("")
