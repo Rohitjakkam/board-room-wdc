@@ -33,6 +33,20 @@ def _make_doc_id(session_name: str) -> str:
     return f"{safe[:80]}_{timestamp}"
 
 
+def _infer_unit(metric_key: str) -> str:
+    """Infer a sensible unit for a metric based on its key name."""
+    key = metric_key.lower()
+    if any(kw in key for kw in ('nps', 'net_promoter', 'promoter_score', 'satisfaction_score',
+                                  'sentiment_score', 'happiness_score')):
+        return 'score'
+    if any(kw in key for kw in ('employees', 'employee_count', 'headcount', 'workforce', 'staff_count')):
+        return 'employees'
+    if any(kw in key for kw in ('_count', 'count_', 'incident', '_incidents', 'violations',
+                                  'defects', '_risks', 'risks_', 'tickets', 'cases')):
+        return 'count'
+    return ''
+
+
 def _normalize_metrics(data: Dict) -> Dict:
     """Normalize metrics structure: ensure all metrics have valid value, unit, description, priority."""
     if 'company_data' in data and 'metrics' in data['company_data']:
@@ -40,7 +54,7 @@ def _normalize_metrics(data: Dict) -> Dict:
         for metric_key, metric_info in list(metrics.items()):
             if not isinstance(metric_info, dict):
                 metrics[metric_key] = {
-                    'value': 0, 'unit': '', 'priority': None,
+                    'value': 0, 'unit': _infer_unit(metric_key), 'priority': None,
                     'description': metric_key.replace('_', ' ').title(),
                 }
                 continue
@@ -50,8 +64,8 @@ def _normalize_metrics(data: Dict) -> Dict:
                 metric_info['value'] = float(raw_val) if raw_val is not None else 0
             except (TypeError, ValueError):
                 metric_info['value'] = 0
-            # Ensure unit and description are strings
-            metric_info['unit'] = metric_info.get('unit') or ''
+            # Ensure unit and description are strings; infer unit if empty
+            metric_info['unit'] = metric_info.get('unit') or _infer_unit(metric_key)
             metric_info['description'] = (
                 metric_info.get('description')
                 or metric_key.replace('_', ' ').title()
@@ -108,10 +122,29 @@ def get_available_simulations() -> List[Dict]:
         return []
 
 
+def _assign_round_focus_areas(simulation_config: Dict, module_data: Dict) -> None:
+    """Populate empty focus_area fields using module topics or learning objectives."""
+    topics = [t.get('name', '') for t in module_data.get('topics', []) if t.get('name')]
+    objectives = module_data.get('learning_objectives', [])
+    fallback = topics + objectives  # prefer topic names, then objectives
+    rounds = simulation_config.get('rounds', [])
+    fallback_idx = 0
+    for round_cfg in rounds:
+        if not round_cfg.get('focus_area'):
+            if fallback_idx < len(fallback):
+                round_cfg['focus_area'] = fallback[fallback_idx][:80]
+                fallback_idx += 1
+            else:
+                round_cfg['focus_area'] = 'Advanced Application'
+
+
 def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str, simulation_config: Dict = None) -> str:
     """Save extracted data to Firestore. Returns document ID."""
     if simulation_config is None:
         simulation_config = get_default_simulation_config()
+
+    # Auto-populate focus_area from module topics for any rounds that lack one
+    _assign_round_focus_areas(simulation_config, module_data)
 
     # Issue #15: Auto-rename if duplicate simulation name exists
     existing = [s for s in get_available_simulations() if s.get('session_name') == session_name]

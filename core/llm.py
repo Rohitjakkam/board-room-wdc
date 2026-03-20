@@ -215,10 +215,13 @@ LEARNING OBJECTIVES:
 PLAYER'S ROLE: {player_role['name']} - {player_role['role']}
 Player's Expertise: {player_role['expertise']}
 
+BOARD MEMBERS (use ONLY these names in your scenario — do not invent names):
+{chr(10).join(f"- {m['name']} | {m['role']}" for m in company_data.get('board_members', []))}
+
 ROUND CONFIGURATION:
 - Round Number: {round_config['round_number']}
 - Difficulty: {round_config['difficulty']}
-- Focus Area: {round_config.get('focus_area', 'General')}
+- Focus Area: {round_config.get('focus_area') or 'General'}
 - Round Type: {round_config['round_type']}
 
 Generate a realistic boardroom scenario that:

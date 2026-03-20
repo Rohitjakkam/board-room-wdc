@@ -253,13 +253,18 @@ Focus on the logical consequences of the decision, not on whether it seems "good
 
 def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
     """Apply calculated impacts to metrics and return updated metrics."""
+    import datetime
+    CURRENT_YEAR = datetime.datetime.now().year
+
     # Per-round change caps to prevent unrealistic single-round swings
     MAX_CHANGE = {
-        '%': 5.0,           # percentage metrics: max 5pp per round
+        '%': 3.0,           # percentage metrics: max 3pp per round (tightened from 5)
         'count': 3,         # count metrics (risks, etc.): max 3 per round
         'employees': 50,    # headcount: max 50 per round
+        'units': 50,        # unit-count metrics (e.g. property sales): max 50 per round
+        'year': 2,          # year metrics (e.g. IPO date): max 2 years shift per round
     }
-    MAX_REVENUE_PCT = 0.10  # revenue/currency metrics: max 10% of current value
+    MAX_REVENUE_PCT = 0.05  # revenue/currency metrics: max 5% of current value per round
 
     updated_metrics = {}
 
@@ -275,14 +280,14 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
                 old_value = float(raw_old) if raw_old is not None else 0
             except (TypeError, ValueError):
                 old_value = 0
-            unit = metric.get('unit', '')
+            unit = (metric.get('unit') or '').strip()
 
             # Clamp change to per-round caps
             if unit in MAX_CHANGE:
                 cap = MAX_CHANGE[unit]
                 change = max(-cap, min(cap, change))
             elif old_value != 0:
-                # Currency/large-number metrics: cap at 10% of current value
+                # Currency/large-number metrics: cap at 5% of current value
                 cap = abs(old_value) * MAX_REVENUE_PCT
                 change = max(-cap, min(cap, change))
 
@@ -290,8 +295,13 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
 
             # Type-based bounds
             if unit == '%':
-                new_value = max(0, min(100, new_value))
-            elif unit in ('count', 'employees'):
+                # Also prevent dropping below 30% of starting value in one round
+                floor = max(0, old_value * 0.5)
+                new_value = max(floor, min(100, new_value))
+            elif unit == 'year':
+                # Year metrics (e.g. IPO date) cannot go into the past
+                new_value = max(CURRENT_YEAR, round(new_value))
+            elif unit in ('count', 'employees', 'units'):
                 new_value = max(0, int(new_value))
             elif isinstance(new_value, float):
                 new_value = max(0, round(new_value, 1))
@@ -624,6 +634,10 @@ def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
 def evaluate_consultation_alignment(llm: genai.GenerativeModel, consultations: List[Dict],
                                      player_decision: str, member_stances: Dict) -> Dict:
     """Evaluate how well player's consultations aligned with their decision."""
+    user_consultations = [c for c in consultations if c.get('role') == 'user']
+    if not user_consultations:
+        return {'alignment_score': 50, 'reasoning': 'No consultations were made this round.'}
+
     prompt = get_consultation_alignment_prompt(consultations, player_decision, member_stances)
 
     content = _call_llm(llm, prompt)
@@ -634,7 +648,8 @@ def evaluate_consultation_alignment(llm: genai.GenerativeModel, consultations: L
     if "ALIGNMENT_SCORE:" in content:
         try:
             score_str = content.split("ALIGNMENT_SCORE:")[1].split("\n")[0].strip()
-            alignment_score = int(''.join(filter(str.isdigit, score_str[:3])))
+            digits = ''.join(filter(str.isdigit, score_str))
+            alignment_score = int(digits[:3]) if digits else 50
             alignment_score = max(0, min(100, alignment_score))
         except Exception:
             alignment_score = 50

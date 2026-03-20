@@ -34,7 +34,7 @@ def student_home_page():
             )
             if submitted:
                 if name.strip() and student_id.strip():
-                    st.session_state.student_name = name.strip()
+                    st.session_state.student_name = name.strip().title()
                     st.session_state.student_id = student_id.strip()
                     st.session_state.student_identified = True
                     st.rerun()

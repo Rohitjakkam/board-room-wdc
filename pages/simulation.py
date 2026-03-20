@@ -152,7 +152,7 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
         <div class="round-indicator">
             Round {state.current_round + 1} of {state.total_rounds} |
             Difficulty: {round_config['difficulty'].title()} |
-            Focus: {round_config.get('focus_area', 'General') or 'General'}
+            Focus: {(round_config.get('focus_area', 'General') or 'General')[:30]}
         </div>
         """, unsafe_allow_html=True)
 
@@ -495,12 +495,15 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
             # Audio: read all options aloud
             options_text = ". ".join(f"Option {o['letter']}: {o['text']}" for o in options)
             speak_button(options_text, label="Listen to Options", key=f"options_{state.current_round}")
+            # Blur autofocus so no option appears pre-selected on page load
+            st.components.v1.html("<script>document.activeElement&&document.activeElement.blur()</script>", height=0)
             option_cols = st.columns(2)
             for idx, opt in enumerate(options):
                 with option_cols[idx % 2]:
                     _is_selected = has_selected_option and st.session_state[f"selected_option_{state.current_round}"].get('letter') == opt['letter']
+                    _prefix = '✅' if _is_selected else '○'
                     if st.button(
-                        f"{'✅ ' if _is_selected else ''}Option {opt['letter']}: {opt['text']}",
+                        f"{_prefix} Option {opt['letter']}: {opt['text']}",
                         key=f"option_{opt['letter']}_{state.current_round}",
                         use_container_width=True,
                         type="primary" if _is_selected else "secondary",
@@ -741,17 +744,29 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
 
             if changed_metrics:
                 st.markdown("### 📊 Metric Changes from Your Decision")
-                positive_impacts = {k: v for k, v in changed_metrics.items() if v > 0}
-                negative_impacts = {k: v for k, v in changed_metrics.items() if v < 0}
+                LOWER_IS_BETTER = {'churn', 'attrition', 'risk', 'debt', 'turnover',
+                                   'cost', 'defect', 'burn', 'incident', 'latency',
+                                   'vacancy', 'audit', 'pending'}
+                positive_impacts = {}
+                negative_impacts = {}
+                for k, v in changed_metrics.items():
+                    is_lower_better = any(kw in k.lower() for kw in LOWER_IS_BETTER)
+                    is_positive = (v < 0 if is_lower_better else v > 0)
+                    if is_positive:
+                        positive_impacts[k] = v
+                    else:
+                        negative_impacts[k] = v
 
+                current_metrics = st.session_state.get('current_metrics', company_data.get('metrics', {}))
                 col1, col2 = st.columns(2)
                 with col1:
                     if positive_impacts:
                         st.markdown("**✅ Positive Impacts:**")
                         for key, change in positive_impacts.items():
                             metric_name = key.replace('_', ' ').title()
+                            unit = (current_metrics.get(key) or {}).get('unit') or ''
                             reason = reasons.get(key, '')
-                            st.success(f"**{metric_name}**: +{change}")
+                            st.success(f"**{metric_name}**: {change:+.1f}{unit}")
                             if reason:
                                 st.caption(f"↳ {reason}")
                 with col2:
@@ -759,8 +774,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                         st.markdown("**⚠️ Negative Impacts:**")
                         for key, change in negative_impacts.items():
                             metric_name = key.replace('_', ' ').title()
+                            unit = (current_metrics.get(key) or {}).get('unit') or ''
                             reason = reasons.get(key, '')
-                            st.error(f"**{metric_name}**: {change}")
+                            st.error(f"**{metric_name}**: {change:+.1f}{unit}")
                             if reason:
                                 st.caption(f"↳ {reason}")
 
@@ -890,8 +906,8 @@ def simulation_page():
                     else:
                         color, status_icon = "#dc3545", "⏳"
 
-                    current_val = goal.get('current_value', goal['current'])
-                    target_val = goal['target']
+                    current_val = round(goal.get('current_value', goal['current']), 1)
+                    target_val = round(goal['target'], 1)
                     unit = goal['unit']
 
                     st.markdown(f"""
@@ -901,7 +917,7 @@ def simulation_page():
                             <span>{current_val}{unit} / {target_val}{unit}</span>
                         </div>
                         <div style="background: #e9ecef; border-radius: 4px; height: 8px; margin-top: 4px;">
-                            <div style="background: {color}; width: {min(progress, 100)}%; height: 100%; border-radius: 4px;"></div>
+                            <div style="background: {color}; width: {min(progress, 100):.1f}%; height: 100%; border-radius: 4px;"></div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1072,7 +1088,7 @@ def simulation_page():
                 if not student_name.strip() or not student_id.strip():
                     st.error("Please enter both your name and student ID.")
                 else:
-                    st.session_state.student_name = student_name.strip()
+                    st.session_state.student_name = student_name.strip().title()
                     st.session_state.student_id = student_id.strip()
                     st.session_state.student_identified = True
                     st.rerun()
@@ -1401,7 +1417,9 @@ def simulation_page():
             total_rounds=simulation_config['total_rounds']
         )
 
-        progress = (state.current_round) / state.total_rounds
-        st.progress(progress, text=f"Progress: {state.current_round}/{state.total_rounds} rounds")
+        eval_done = f"evaluation_{state.current_round}" in st.session_state
+        rounds_done = state.current_round + 1 if eval_done else state.current_round
+        progress = rounds_done / state.total_rounds
+        st.progress(progress, text=f"Progress: {rounds_done}/{state.total_rounds} rounds completed")
 
         run_simulation_round(llm, data, state)

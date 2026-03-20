@@ -90,8 +90,8 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
 
     # Categorize members by stance
     approving = [(n, s) for n, s in member_stances.items() if s['stance'] == 'APPROVE']
-    opposing = [(n, s) for n, s in member_stances.items()
-                if s['stance'] == 'OPPOSE' and s.get('convinced_in_round') is None]
+    all_oppose = [(n, s) for n, s in member_stances.items() if s['stance'] == 'OPPOSE']
+    opposing = [(n, s) for n, s in all_oppose if s.get('convinced_in_round') is None]
     neutral = [(n, s) for n, s in member_stances.items() if s['stance'] == 'NEUTRAL']
     convinced = [(n, s) for n, s in member_stances.items() if s.get('convinced_in_round') is not None]
 
@@ -138,7 +138,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
 
         current_idx = st.session_state.get(current_dissenter_key, 0)
 
-        for idx, (name, stance) in enumerate(opposing):
+        for idx, (name, stance) in enumerate(all_oppose):
             conviction_pct = stance['conviction_level'] * 10
             is_current = (idx == current_idx)
 
@@ -238,6 +238,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                                     if result['stance_changed']:
                                         st.session_state[stances_key][name]['original_counter_opinion'] = stance['counter_opinion']
                                         st.session_state[stances_key][name]['convinced_in_round'] = exchanges + 1
+                                        st.session_state[current_dissenter_key] = current_idx + 1
                                     else:
                                         st.session_state[stances_key][name]['counter_opinion'] = result['follow_up']
 
@@ -253,13 +254,13 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                     if st.button(f"Move to Next Dissenter", key=f"move_next_{round_num}_{name}"):
                         st.session_state[current_dissenter_key] = current_idx + 1
                         st.rerun()
-            else:
+            elif stance.get('convinced_in_round') is None:
                 with st.expander(f"⚠️ {name} ({stance['member_role']}) - OPPOSES (waiting)"):
                     st.markdown(f"*\"{stance['initial_reaction']}\"*")
                     st.caption(f"Conviction: {stance['conviction_level']}/10")
 
-    # Check if all dissenters have been addressed
-    all_addressed = (st.session_state.get(current_dissenter_key, 0) >= len(opposing))
+    # Check if all dissenters have been addressed (use all_oppose so convinced members don't shrink the target)
+    all_addressed = (st.session_state.get(current_dissenter_key, 0) >= len(all_oppose))
 
     st.markdown("---")
 
@@ -315,7 +316,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
                         st.session_state[delib_phase_key] = 'resolved'
                         st.rerun()
         else:
-            remaining = len(opposing) - st.session_state.get(current_dissenter_key, 0)
+            remaining = len(all_oppose) - st.session_state.get(current_dissenter_key, 0)
             st.info(f"📋 {remaining} dissenter(s) remaining to address.")
 
         remaining_opposed_check = sum(1 for n, s in member_stances.items()

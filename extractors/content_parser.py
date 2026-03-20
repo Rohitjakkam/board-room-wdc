@@ -48,6 +48,20 @@ def _ensure_dict(data: Dict, key: str) -> Dict:
     return data[key]
 
 
+def _infer_unit(metric_key: str) -> str:
+    """Infer a sensible unit for a metric based on its key name."""
+    key = metric_key.lower()
+    if any(kw in key for kw in ('nps', 'net_promoter', 'promoter_score', 'satisfaction_score',
+                                  'sentiment_score', 'happiness_score')):
+        return 'score'
+    if any(kw in key for kw in ('employees', 'employee_count', 'headcount', 'workforce', 'staff_count')):
+        return 'employees'
+    if any(kw in key for kw in ('_count', 'count_', 'incident', '_incidents', 'violations',
+                                  'defects', '_risks', 'risks_', 'tickets', 'cases')):
+        return 'count'
+    return ''
+
+
 def _validate_company_data(data: Dict) -> Dict:
     """Validate and fill defaults for parsed company data."""
     # Top-level strings
@@ -65,7 +79,7 @@ def _validate_company_data(data: Dict) -> Dict:
                 val = float(info) if info is not None else 0
             except (TypeError, ValueError):
                 val = 0
-            metrics[key] = {'value': val, 'unit': '', 'description': key.replace('_', ' ').title()}
+            metrics[key] = {'value': val, 'unit': _infer_unit(key), 'description': key.replace('_', ' ').title()}
         else:
             # Ensure value is numeric (not None or string)
             raw_val = info.get('value')
@@ -73,7 +87,7 @@ def _validate_company_data(data: Dict) -> Dict:
                 info['value'] = float(raw_val) if raw_val is not None else 0
             except (TypeError, ValueError):
                 info['value'] = 0
-            info['unit'] = info.get('unit') or ''
+            info['unit'] = info.get('unit') or _infer_unit(key)
             info['description'] = info.get('description') or key.replace('_', ' ').title()
 
     # Board members — ensure list, each member has all required fields

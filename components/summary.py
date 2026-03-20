@@ -227,6 +227,19 @@ def display_final_summary(data: Dict):
 
     # Score composition
     st.markdown("### 📊 Score Composition")
+
+    # Explanatory callout when decision score is notably higher than overall grade
+    _score_gap = avg_score - grade_info['final_score']
+    if _score_gap >= 10:
+        st.info(
+            f"**Why is your overall score lower than your decision score?**\n\n"
+            f"Your decision quality ({avg_score:.0f}/100) reflects how well you reasoned through each scenario. "
+            f"However, the overall grade also weighs **business impact** — whether the company's key metrics actually "
+            f"improved during the simulation. Even excellent decisions can't prevent all metric declines in a single session, "
+            f"especially in complex multi-stakeholder environments. "
+            f"Think of it as the difference between making the right call and the market agreeing with you."
+        )
+
     if avg_board_effectiveness is not None:
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -269,7 +282,8 @@ def display_final_summary(data: Dict):
     }
 
     LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover',
-                                 'cost', 'defect', 'burn', 'incident', 'latency'}
+                                 'cost', 'defect', 'burn', 'incident', 'latency',
+                                 'vacancy', 'audit', 'pending'}
 
     # Build dynamic categories from actual metric keys
     metric_categories = {}

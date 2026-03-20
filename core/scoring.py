@@ -6,6 +6,12 @@ from typing import Dict, List
 
 from core.models import TIME_PRESSURE_MINUTES
 
+# Metrics where a lower value represents improvement (e.g. reducing turnover is good)
+LOWER_IS_BETTER_KEYWORDS = {
+    'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect',
+    'burn', 'incident', 'latency', 'vacancy', 'audit', 'pending',
+}
+
 
 def calculate_board_effectiveness_score(round_number: int,
                                           member_stances: Dict,
@@ -72,8 +78,6 @@ def calculate_board_effectiveness_score(round_number: int,
 
 def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
     """Generate goals dynamically from whatever metrics the company has, scaled by round count."""
-    # Metrics where lower values are better
-    LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect'}
 
     # Category detection from metric key/description
     CATEGORY_MAP = {
@@ -208,8 +212,6 @@ def get_time_pressure_minutes(time_pressure: str) -> int:
 def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_decision_score: float,
                             avg_board_effectiveness: float = None) -> Dict:
     """Calculate overall simulation grade based on metric changes, decision scores, and board effectiveness."""
-    # Metrics where lower values are better
-    LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect'}
 
     # Priority-based weights for grading
     PRIORITY_WEIGHTS = {'high': 1.5, 'medium': 1.0, 'low': 0.6}
