@@ -4,7 +4,6 @@ Board deliberation phase UI — debate exchanges, stance tracking, force submit,
 
 import logging
 import streamlit as st
-import google.generativeai as genai
 from typing import Dict, List
 
 from core.models import SimulationState
@@ -13,7 +12,7 @@ from core.simulation_engine import generate_member_stances, evaluate_debate_resp
 logger = logging.getLogger(__name__)
 
 
-def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
+def display_deliberation_phase(llm: object, data: Dict,
                                 state: SimulationState, player_decision: str) -> bool:
     """
     Display and manage the board deliberation phase.

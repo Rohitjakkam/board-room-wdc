@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 import json
 import PyPDF2
 import os
@@ -8,7 +8,7 @@ from typing import Dict, Optional, List
 import hashlib
 
 # Configure Gemini
-genai.configure(api_key=st.secrets.get("GEMINI_API_KEY", ""))
+_genai_client = genai.Client(api_key=st.secrets.get("GEMINI_API_KEY", ""))
 
 # Data storage directory
 DATA_DIR = "extracted_data"
@@ -126,15 +126,15 @@ def extract_pdf_with_gemini(pdf_file) -> str:
     """Use Gemini's native PDF processing"""
     try:
         pdf_file.seek(0)
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
         pdf_file.seek(0)
-        uploaded_file = genai.upload_file(pdf_file, mime_type='application/pdf')
+        uploaded_file = _genai_client.files.upload(file=pdf_file, config={"mime_type": "application/pdf"})
 
         prompt = """Extract ALL text content from this PDF document.
         Include everything: headers, body text, tables, numbers, charts, footnotes.
         Be extremely thorough."""
 
-        response = model.generate_content([uploaded_file, prompt])
+        response = _genai_client.models.generate_content(
+            model='gemini-2.5-flash-lite', contents=[uploaded_file, prompt])
         return response.text
     except Exception as e:
         st.error(f"Gemini extraction error: {e}")
@@ -160,7 +160,7 @@ def parse_module_content(pdf_text: str) -> Dict:
     if not pdf_text or len(pdf_text.strip()) < 100:
         raise ValueError("Module PDF text is empty or too short")
 
-    model = genai.GenerativeModel('gemini-2.5-flash-lite')
+    model = _genai_client
 
     prompt = f"""Analyze this course/module document thoroughly.
 
@@ -207,7 +207,7 @@ Return ONLY valid JSON:
 Extract minimum 10 topics, 20 terms. Return ONLY JSON, no markdown."""
 
     try:
-        response = model.generate_content(prompt)
+        response = model.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt)
         result_text = response.text.strip().replace('```json', '').replace('```', '').strip()
 
         if not result_text.startswith('{'):
@@ -226,7 +226,7 @@ def parse_company_data(pdf_text: str) -> Dict:
     if not pdf_text or len(pdf_text.strip()) < 100:
         raise ValueError("Company PDF text is empty or too short")
 
-    model = genai.GenerativeModel('gemini-2.5-flash-lite')
+    model = _genai_client
 
     prompt = f"""Analyze this company document thoroughly.
 
@@ -262,7 +262,7 @@ Return ONLY valid JSON:
 Extract 20-50 metrics, 5-15 board members, 5-10 problems. Return ONLY JSON."""
 
     try:
-        response = model.generate_content(prompt)
+        response = model.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt)
         result_text = response.text.strip().replace('```json', '').replace('```', '').strip()
 
         if not result_text.startswith('{'):

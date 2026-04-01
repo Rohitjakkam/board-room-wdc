@@ -58,11 +58,14 @@ def _normalize_metrics(data: Dict) -> Dict:
                     'description': metric_key.replace('_', ' ').title(),
                 }
                 continue
-            # Ensure value is numeric
+            # Ensure value is numeric; flag categorical values
             raw_val = metric_info.get('value')
             try:
                 metric_info['value'] = float(raw_val) if raw_val is not None else 0
+                metric_info.pop('categorical', None)
             except (TypeError, ValueError):
+                # Store original categorical value for reference, set numeric to 0
+                metric_info['categorical_value'] = str(raw_val)
                 metric_info['value'] = 0
             # Ensure unit and description are strings; infer unit if empty
             metric_info['unit'] = metric_info.get('unit') or _infer_unit(metric_key)

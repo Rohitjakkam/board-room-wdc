@@ -5,7 +5,6 @@ Contains simulation_page() and run_simulation_round().
 
 import logging
 import streamlit as st
-import google.generativeai as genai
 from datetime import datetime, timedelta
 from typing import Dict, List
 
@@ -123,7 +122,7 @@ def _restore_from_progress(session_data: dict, company_data: dict):
     st.session_state[f'force_submitted_{cr}'] = rs.get('force_submitted', False)
 
 
-def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
+def run_simulation_round(llm: object, data: Dict,
                          state: SimulationState) -> None:
     """Run a single simulation round."""
 

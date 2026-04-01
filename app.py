@@ -13,8 +13,9 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
 
-# Google Generative AI direct import
-import google.generativeai as genai
+# Google Generative AI
+from google import genai as _genai_mod
+from google.genai import types as _genai_types
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -261,16 +262,24 @@ def load_simulation_data(file_path: str) -> Optional[Dict]:
         return None
 
 
-def initialize_llm(api_key: str) -> genai.GenerativeModel:
+class _AppGeminiModel:
+    """Wrapper around google.genai Client for backward-compat .generate_content(prompt) calls."""
+    def __init__(self, client, model_name, config):
+        self._client = client
+        self._model = model_name
+        self._config = config
+    def generate_content(self, prompt):
+        return self._client.models.generate_content(
+            model=self._model, contents=prompt, config=self._config)
+
+def initialize_llm(api_key: str) -> _AppGeminiModel:
     """Initialize Gemini 2.0 Flash Lite model"""
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(
-        model_name="gemini-2.0-flash-lite",
-        generation_config={
-            "temperature": 0.7,
-            "max_output_tokens": 2048,
-        }
+    client = _genai_mod.Client(api_key=api_key)
+    config = _genai_types.GenerateContentConfig(
+        temperature=0.7,
+        max_output_tokens=2048,
     )
+    return _AppGeminiModel(client, "gemini-2.0-flash-lite", config)
 
 
 def get_board_member_prompt(member: Dict, company_data: Dict, module_data: Dict) -> str:
@@ -505,7 +514,7 @@ D) [Fourth option - brief description]
 Make sure each option is distinct and represents a different strategic approach."""
 
 
-def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
+def generate_scenario(llm: object, company_data: Dict,
                       module_data: Dict, round_config: Dict, player_role: Dict) -> str:
     """Generate a new scenario for the current round"""
     prompt = get_scenario_generator_prompt(company_data, module_data, round_config, player_role)
@@ -518,7 +527,7 @@ def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
     return response.text
 
 
-def get_board_member_response(llm: genai.GenerativeModel, members: List[Dict],
+def get_board_member_response(llm: object, members: List[Dict],
                                company_data: Dict, module_data: Dict,
                                scenario: str, user_input: str,
                                conversation_history: List[Dict],
@@ -594,7 +603,7 @@ Address {player_role['name']} directly."""
     return response.text
 
 
-def get_committee_response(llm: genai.GenerativeModel, committee: Dict,
+def get_committee_response(llm: object, committee: Dict,
                            company_data: Dict, module_data: Dict,
                            scenario: str, user_input: str,
                            conversation_history: List[Dict],
@@ -632,7 +641,7 @@ Address {player_role['name']} directly."""
     return response.text
 
 
-def calculate_metric_impacts(llm: genai.GenerativeModel, company_data: Dict,
+def calculate_metric_impacts(llm: object, company_data: Dict,
                               scenario: str, decision: str, score: int) -> Dict:
     """Calculate the impact of a decision on company metrics"""
 
@@ -761,7 +770,7 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
     return updated_metrics
 
 
-def evaluate_decision(llm: genai.GenerativeModel, company_data: Dict,
+def evaluate_decision(llm: object, company_data: Dict,
                       module_data: Dict, scenario: str,
                       decision: str, round_config: Dict,
                       player_role: Dict) -> Dict:
@@ -952,7 +961,7 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
     }
 
 
-def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
+def generate_member_stances(llm: object, company_data: Dict,
                              module_data: Dict, scenario: str,
                              player_decision: str, player_role: Dict) -> Dict[str, Dict]:
     """Generate each board member's stance on the player's decision"""
@@ -1039,7 +1048,7 @@ def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
     return stances
 
 
-def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
+def evaluate_debate_response(llm: object, member: Dict,
                               company_data: Dict, original_counter: str,
                               player_response: str, debate_history: List[Dict],
                               player_role: Dict) -> Dict:
@@ -1088,7 +1097,7 @@ def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
     }
 
 
-def evaluate_consultation_alignment(llm: genai.GenerativeModel, consultations: List[Dict],
+def evaluate_consultation_alignment(llm: object, consultations: List[Dict],
                                      player_decision: str, member_stances: Dict) -> Dict:
     """Evaluate how well player's consultations aligned with their decision"""
 
@@ -1486,7 +1495,7 @@ def get_time_pressure_minutes(time_pressure: str) -> int:
     return TIME_PRESSURE_MINUTES.get(time_pressure, 10)
 
 
-def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
+def display_deliberation_phase(llm: object, data: Dict,
                                 state: SimulationState, player_decision: str) -> bool:
     """
     Display and manage the board deliberation phase.
@@ -1862,7 +1871,7 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
     return is_resolved
 
 
-def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
+def run_simulation_round(llm: object, data: Dict,
                          state: SimulationState) -> None:
     """Run a single simulation round"""
 

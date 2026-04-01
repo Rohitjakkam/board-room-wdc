@@ -4,10 +4,14 @@ PDF extraction using PyPDF2 (primary) and Gemini (fallback for scanned/complex P
 
 import logging
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 import PyPDF2
 
 logger = logging.getLogger(__name__)
+
+def _get_genai_client() -> genai.Client:
+    """Return a google.genai Client configured with the API key from secrets."""
+    return genai.Client(api_key=st.secrets.get("GEMINI_API_KEY", ""))
 
 # Minimum chars for PyPDF2 to be considered successful
 _MIN_EXTRACTION_CHARS = 200
@@ -53,15 +57,18 @@ def _extract_with_gemini(pdf_file) -> str:
     """Fallback PDF extraction using Gemini (for scanned/image-based PDFs)."""
     try:
         pdf_file.seek(0)
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        client = _get_genai_client()
         pdf_file.seek(0)
-        uploaded_file = genai.upload_file(pdf_file, mime_type='application/pdf')
+        uploaded_file = client.files.upload(file=pdf_file, config={"mime_type": "application/pdf"})
 
         prompt = """Extract ALL text content from this PDF document.
         Include everything: headers, body text, tables, numbers, charts, footnotes.
         Be extremely thorough."""
 
-        response = model.generate_content([uploaded_file, prompt])
+        response = client.models.generate_content(
+            model='gemini-2.5-flash-lite',
+            contents=[uploaded_file, prompt],
+        )
         return response.text
     except Exception as e:
         logger.error(f"Gemini extraction error: {e}")

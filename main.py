@@ -6,7 +6,7 @@ Single Streamlit app with sidebar navigation and dynamic simulation pages.
 import logging
 import re
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 
 from core.data_manager import get_available_simulations
 from components.styles import inject_styles
@@ -94,8 +94,7 @@ def main():
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
-    # Configure Gemini API globally (needed by extractors + simulation engine)
-    genai.configure(api_key=st.secrets.get("GEMINI_API_KEY", ""))
+    # Gemini API is now client-based (google.genai) — no global configure needed
 
     inject_styles()
 

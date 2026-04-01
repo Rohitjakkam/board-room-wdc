@@ -2,20 +2,36 @@
 LLM initialization and prompt generators for the Board Room Simulation.
 """
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Dict, List
 
 
-def initialize_llm(api_key: str) -> genai.GenerativeModel:
+class _GeminiModel:
+    """Thin wrapper around the new google.genai client that provides a
+    .generate_content(prompt) interface compatible with the rest of the codebase."""
+
+    def __init__(self, client: genai.Client, model_name: str, config: types.GenerateContentConfig):
+        self._client = client
+        self._model = model_name
+        self._config = config
+
+    def generate_content(self, prompt: str):
+        return self._client.models.generate_content(
+            model=self._model,
+            contents=prompt,
+            config=self._config,
+        )
+
+
+def initialize_llm(api_key: str) -> _GeminiModel:
     """Initialize Gemini 2.0 Flash Lite model."""
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(
-        model_name="gemini-2.0-flash-lite",
-        generation_config={
-            "temperature": 0.7,
-            "max_output_tokens": 2048,
-        }
+    client = genai.Client(api_key=api_key)
+    config = types.GenerateContentConfig(
+        temperature=0.7,
+        max_output_tokens=2048,
     )
+    return _GeminiModel(client, "gemini-2.0-flash-lite", config)
 
 
 def get_board_member_prompt(member: Dict, company_data: Dict, module_data: Dict) -> str:

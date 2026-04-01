@@ -100,35 +100,62 @@ def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
     # Scale factor: 5 rounds is the baseline
     round_scale = total_rounds / 5.0
 
+    # Keywords indicating a metric is categorical/status-based (not numeric performance)
+    CATEGORICAL_KEYWORDS = {
+        'status', 'classification', 'rating', 'tier', 'level', 'phase',
+        'stage', 'category', 'type', 'mode', 'state',
+    }
+
+    # Keywords indicating a metric is a headcount / discrete person count
+    HEADCOUNT_KEYWORDS = {
+        'member', 'director', 'headcount', 'staff', 'employee', 'workforce',
+        'board_size', 'committee_size', 'seat',
+    }
+
     goals = []
     for key, metric in metrics.items():
         raw_val = metric.get('value')
+        # Skip metrics flagged as categorical during normalization
+        if metric.get('categorical_value'):
+            continue
         try:
             current = float(raw_val) if raw_val is not None else 0
         except (TypeError, ValueError):
-            current = 0
+            # Non-numeric value (categorical data like "Medium", "Active") — skip
+            continue
         unit = metric.get('unit', '')
         description = metric.get('description', key.replace('_', ' ').title())
         priority = (metric.get('priority') or 'medium').lower()
 
-        # Detect direction
         key_lower = key.lower()
+        desc_lower = description.lower()
+
+        # Skip categorical/status metrics that were forced to 0.0 during normalization
+        if any(kw in key_lower or kw in desc_lower for kw in CATEGORICAL_KEYWORDS):
+            if current == 0:
+                continue  # Likely a categorical value that was coerced to 0
+
+        # Detect direction
         lower_is_better = any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
 
         # Detect category
         category = 'General'
         for kw, cat in CATEGORY_MAP.items():
-            if kw in key_lower or kw in description.lower():
+            if kw in key_lower or kw in desc_lower:
                 category = cat
                 break
+
+        # Skip headcount/person-count metrics — not performance goals
+        is_headcount = (unit == 'employees' or
+                        any(kw in key_lower for kw in HEADCOUNT_KEYWORDS))
+        if is_headcount:
+            continue
 
         # Calculate target delta based on unit type, scaled by rounds
         if unit == '%':
             base_delta = 3.0
         elif unit in ('count', 'score'):
             base_delta = max(2, abs(current) * 0.05) if current != 0 else 2
-        elif unit == 'employees':
-            continue  # Skip headcount — not a performance goal
         else:
             # Currency or other large-number metrics
             base_delta = abs(current) * 0.05 if current != 0 else 5
@@ -143,7 +170,11 @@ def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
             else:
                 target = current + delta
 
-        target = round(target, 2) if isinstance(target, float) else target
+        # Round targets appropriately — count metrics must be integers
+        if unit in ('count', 'score'):
+            target = round(target)
+        else:
+            target = round(target, 2) if isinstance(target, float) else target
 
         goals.append({
             'category': category,

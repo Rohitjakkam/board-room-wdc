@@ -5,7 +5,6 @@ decision evaluation, stance generation, debate evaluation.
 
 import logging
 import time
-import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
 from typing import Dict, List
 
@@ -44,7 +43,7 @@ def _call_llm(llm, prompt, max_retries=3):
             raise
 
 
-def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
+def generate_scenario(llm: object, company_data: Dict,
                       module_data: Dict, round_config: Dict, player_role: Dict,
                       previous_rounds: List[Dict] = None) -> str:
     """Generate a new scenario for the current round."""
@@ -56,7 +55,7 @@ def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
     return _call_llm(llm, full_prompt)
 
 
-def get_board_member_response(llm: genai.GenerativeModel, members: List[Dict],
+def get_board_member_response(llm: object, members: List[Dict],
                                company_data: Dict, module_data: Dict,
                                scenario: str, user_input: str,
                                conversation_history: List[Dict],
@@ -128,7 +127,7 @@ Address {player_role['name']} directly."""
     return _call_llm(llm, full_prompt)
 
 
-def get_committee_response(llm: genai.GenerativeModel, committee: Dict,
+def get_committee_response(llm: object, committee: Dict,
                            company_data: Dict, module_data: Dict,
                            scenario: str, user_input: str,
                            conversation_history: List[Dict],
@@ -165,7 +164,7 @@ Address {player_role['name']} directly."""
     return _call_llm(llm, full_prompt)
 
 
-def calculate_metric_impacts(llm: genai.GenerativeModel, company_data: Dict,
+def calculate_metric_impacts(llm: object, company_data: Dict,
                               scenario: str, decision: str, score: int) -> Dict:
     """Calculate the impact of a decision on company metrics."""
     metrics = company_data['metrics']
@@ -315,7 +314,7 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
     return updated_metrics
 
 
-def evaluate_decision(llm: genai.GenerativeModel, company_data: Dict,
+def evaluate_decision(llm: object, company_data: Dict,
                       module_data: Dict, scenario: str,
                       decision: str, round_config: Dict,
                       player_role: Dict) -> Dict:
@@ -500,7 +499,7 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
     }
 
 
-def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
+def generate_member_stances(llm: object, company_data: Dict,
                              module_data: Dict, scenario: str,
                              player_decision: str, player_role: Dict,
                              all_member_histories: Dict = None) -> Dict[str, Dict]:
@@ -589,7 +588,7 @@ def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
     return stances
 
 
-def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
+def evaluate_debate_response(llm: object, member: Dict,
                               company_data: Dict, original_counter: str,
                               player_response: str, debate_history: List[Dict],
                               player_role: Dict) -> Dict:
@@ -650,7 +649,7 @@ def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
     }
 
 
-def evaluate_consultation_alignment(llm: genai.GenerativeModel, consultations: List[Dict],
+def evaluate_consultation_alignment(llm: object, consultations: List[Dict],
                                      player_decision: str, member_stances: Dict) -> Dict:
     """Evaluate how well player's consultations aligned with their decision."""
     user_consultations = [c for c in consultations if c.get('role') == 'user']

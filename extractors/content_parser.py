@@ -5,7 +5,7 @@ AI-powered content parsing for company data and module content.
 import json
 import logging
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ def parse_module_content(pdf_text: str) -> Dict:
     if not pdf_text or len(pdf_text.strip()) < 100:
         raise ValueError("Module PDF text is empty or too short")
 
-    model = genai.GenerativeModel('gemini-2.5-flash-lite')
+    client = genai.Client(api_key=st.secrets.get("GEMINI_API_KEY", ""))
 
     prompt = f"""Analyze this course/module document thoroughly.
 
@@ -216,7 +216,7 @@ Return ONLY valid JSON:
 Extract minimum 10 topics, 20 terms. Return ONLY JSON, no markdown."""
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt)
         result_text = _extract_json(response.text)
         data = json.loads(result_text)
         return _validate_module_data(data)
@@ -235,7 +235,7 @@ def parse_company_data(pdf_text: str) -> Dict:
     if not pdf_text or len(pdf_text.strip()) < 100:
         raise ValueError("Company PDF text is empty or too short")
 
-    model = genai.GenerativeModel('gemini-2.5-flash-lite')
+    client = genai.Client(api_key=st.secrets.get("GEMINI_API_KEY", ""))
 
     prompt = f"""Analyze this company document thoroughly.
 
@@ -299,7 +299,7 @@ Return ONLY valid JSON:
 Extract 20-50 metrics (use snake_case keys), 5-15 board members, 2-6 committees, 5-10 problems. Return ONLY JSON."""
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt)
         result_text = _extract_json(response.text)
         data = json.loads(result_text)
         return _validate_company_data(data)
