@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 from core.models import SimulationState
-from core.llm import initialize_llm
+from core.llm import initialize_llm, initialize_scenario_llm
 from core.data_manager import load_extracted_data
 from core.simulation_engine import (
     generate_scenario, get_board_member_response, get_committee_response,
@@ -286,8 +286,9 @@ def run_simulation_round(llm: object, data: Dict,
         previous_rounds = st.session_state.get('round_summaries', [])
         with st.spinner("Generating scenario..."):
             try:
+                _s_llm = st.session_state.get('_scenario_llm', llm)
                 st.session_state[scenario_key] = generate_scenario(
-                    llm, company_data, module_data, round_config, player_role,
+                    _s_llm, company_data, module_data, round_config, player_role,
                     previous_rounds=previous_rounds if previous_rounds else None
                 )
             except Exception as e:
@@ -1098,6 +1099,7 @@ def simulation_page():
 
     try:
         llm = initialize_llm(st.session_state.api_key)
+        st.session_state._scenario_llm = initialize_scenario_llm(st.session_state.api_key)
     except Exception as e:
         logger.error(f"Failed to initialize AI model: {e}")
         st.error("Failed to initialize AI model. Please check your API key configuration.")
@@ -1172,6 +1174,14 @@ def simulation_page():
                         st.session_state._resume_declined = True
                         st.rerun()
                 return  # Block further rendering until choice is made
+
+    # Validate player_role belongs to this simulation's board (guard against stale state)
+    _stored_role = st.session_state.get('player_role')
+    if _stored_role and not st.session_state.get('simulation_started'):
+        _valid_names = [m['name'] for m in company_data.get('board_members', [])]
+        if _stored_role.get('name') not in _valid_names:
+            logger.warning(f"Stale player_role '{_stored_role.get('name')}' not in board. Clearing.")
+            st.session_state.pop('player_role', None)
 
     # Main content area
     if not st.session_state.get('player_role'):
@@ -1297,6 +1307,28 @@ def simulation_page():
         st.markdown("Select which board member you want to play as during this simulation:")
         selected_role = display_board_members_for_selection(company_data['board_members'])
         if selected_role:
+            # Clear any stale simulation state from previous sessions/roles
+            _stale_keys = [k for k in st.session_state.keys()
+                           if k.startswith(('scenario_round_', 'evaluation_', 'member_stances_',
+                                            'pending_decision_', 'deliberation_phase_',
+                                            'debate_history_', 'current_dissenter_',
+                                            'round_start_time_', 'timer_expired_',
+                                            'force_submitted_', 'selected_option_',
+                                            'board_consultations_round_', 'committee_consultations_round_',
+                                            'revisions_round_', 'impact_summary_',
+                                            'board_effectiveness_'))]
+            for k in _stale_keys:
+                del st.session_state[k]
+            st.session_state.pop('simulation_started', None)
+            st.session_state.pop('current_round', None)
+            st.session_state.pop('total_score', None)
+            st.session_state.pop('round_summaries', None)
+            st.session_state.pop('member_stance_histories', None)
+            st.session_state.pop('board_effectiveness_history', None)
+            st.session_state.pop('conversation_history', None)
+            st.session_state.pop('current_metrics', None)
+            st.session_state.pop('initial_metrics', None)
+            st.session_state.pop('round_complete', None)
             st.session_state.player_role = selected_role
             st.rerun()
 

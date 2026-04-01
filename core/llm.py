@@ -25,13 +25,27 @@ class _GeminiModel:
 
 
 def initialize_llm(api_key: str) -> _GeminiModel:
-    """Initialize Gemini 2.0 Flash Lite model."""
+    """Initialize Gemini 2.0 Flash Lite model (used for most LLM calls)."""
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
         temperature=0.7,
         max_output_tokens=2048,
     )
     return _GeminiModel(client, "gemini-2.0-flash-lite", config)
+
+
+def initialize_scenario_llm(api_key: str) -> _GeminiModel:
+    """Initialize Gemini 2.5 Flash model for scenario generation only.
+
+    Uses a stronger model for better instruction following on scenarios
+    (correct character perspective, accurate option-to-character mapping).
+    """
+    client = genai.Client(api_key=api_key)
+    config = types.GenerateContentConfig(
+        temperature=0.7,
+        max_output_tokens=4096,
+    )
+    return _GeminiModel(client, "gemini-2.5-flash", config)
 
 
 def get_board_member_prompt(member: Dict, company_data: Dict, module_data: Dict) -> str:
@@ -304,12 +318,15 @@ KEY QUESTION: [The main decision or question the player must address]
 
 STAKEHOLDERS AFFECTED: [List of affected parties]
 
-TIME SENSITIVITY: [How urgent is this decision]
+TIME SENSITIVITY: [How urgent is this decision — if previous rounds had High urgency and the crisis is ongoing or escalating, do NOT downgrade to Moderate or Low]
 
 OPTIONS TO CONSIDER:
-A) [First option - brief description]
+A) [First option - brief description, naming the CORRECT board member responsible for the relevant domain]
 B) [Second option - brief description]
 C) [Third option - brief description]
 D) [Fourth option - brief description]
 
-Make sure each option is distinct and represents a different strategic approach."""
+IMPORTANT RULES FOR OPTIONS:
+- Each option must name only board members from the BOARD MEMBERS list above
+- Direct questions/actions to the board member whose ROLE matches the subject matter (e.g., Risk matters → CRO, Financial matters → CFO)
+- Make sure each option is distinct and represents a different strategic approach."""
