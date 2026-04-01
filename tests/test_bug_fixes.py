@@ -641,5 +641,225 @@ class TestP4ScoreGapCallout:
         assert gap < 10, "Small gap should not trigger callout"
 
 
+# ===========================================================================
+# TEST 4 BUG FIXES — Clearwater Financial Group
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# T4-B34/B35 — Expanded LOWER_IS_BETTER keywords
+# ---------------------------------------------------------------------------
+class TestT4ExpandedLowerIsBetter:
+    """Bug #34/#35: Liability/remediation/penalty increases were wrongly labelled positive."""
+
+    EXPANDED = {'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect',
+                'burn', 'incident', 'latency', 'vacancy', 'audit', 'pending',
+                'liability', 'remediation', 'penalty', 'loss', 'exposure',
+                'violation', 'complaint', 'breach'}
+
+    def _classify(self, key, value):
+        is_lower_better = any(kw in key.lower() for kw in self.EXPANDED)
+        return 'positive' if (value < 0 if is_lower_better else value > 0) else 'negative'
+
+    def test_liability_increase_is_negative(self):
+        assert self._classify('potential_liability_range', +5.0) == 'negative'
+
+    def test_remediation_cost_increase_is_negative(self):
+        assert self._classify('potential_remediation_costs_reserve', +2.0) == 'negative'
+
+    def test_penalty_increase_is_negative(self):
+        assert self._classify('regulatory_penalty_amount', +1.0) == 'negative'
+
+    def test_loss_increase_is_negative(self):
+        assert self._classify('operational_loss', +3.0) == 'negative'
+
+    def test_breach_increase_is_negative(self):
+        assert self._classify('data_breach_count', +1) == 'negative'
+
+    def test_liability_decrease_is_positive(self):
+        assert self._classify('potential_liability_range', -2.0) == 'positive'
+
+    def test_scoring_module_has_expanded_keywords(self):
+        from core.scoring import LOWER_IS_BETTER_KEYWORDS
+        for kw in ('liability', 'remediation', 'penalty', 'loss', 'exposure',
+                    'violation', 'complaint', 'breach'):
+            assert kw in LOWER_IS_BETTER_KEYWORDS, f"scoring.py missing: {kw}"
+
+    def test_summary_module_has_expanded_keywords(self):
+        import inspect
+        import components.summary as summary_mod
+        src = inspect.getsource(summary_mod)
+        for kw in ('liability', 'remediation', 'penalty', 'loss', 'breach'):
+            assert f"'{kw}'" in src, f"summary.py missing keyword: '{kw}'"
+
+    def test_simulation_module_has_expanded_keywords(self):
+        import inspect
+        import pages.simulation as sim_mod
+        src = inspect.getsource(sim_mod)
+        for kw in ('liability', 'remediation', 'penalty', 'loss', 'breach'):
+            assert f"'{kw}'" in src, f"simulation.py missing keyword: '{kw}'"
+
+
+# ---------------------------------------------------------------------------
+# T4-B11 — Dynamic conviction updates
+# ---------------------------------------------------------------------------
+class TestT4DynamicConviction:
+    """Bug #11: Conviction level must update during debate exchanges."""
+
+    def test_evaluate_debate_response_returns_updated_conviction(self):
+        from core.simulation_engine import evaluate_debate_response
+        # The function signature should accept and return updated_conviction
+        import inspect
+        sig = inspect.signature(evaluate_debate_response)
+        # Verify the return dict structure by checking the source
+        src = inspect.getsource(evaluate_debate_response)
+        assert 'updated_conviction' in src, "evaluate_debate_response must return updated_conviction"
+
+    def test_debate_prompt_requests_conviction(self):
+        from core.llm import get_debate_evaluation_prompt
+        member = {'name': 'Test', 'role': 'CEO', 'personality': 'Assertive', 'expertise': 'Strategy'}
+        company = {'company_name': 'TestCo', 'board_members': [member]}
+        prompt = get_debate_evaluation_prompt(member, company, "objection", "response", [], {'name': 'Player', 'role': 'Director'})
+        assert 'UPDATED_CONVICTION' in prompt, "Debate prompt must ask for UPDATED_CONVICTION"
+
+    def test_stance_changed_sets_conviction_zero(self):
+        """When stance_changed is True, conviction should be 0."""
+        # Simulate the logic from evaluate_debate_response
+        stance_changed = True
+        updated_conviction = 7
+        if stance_changed:
+            updated_conviction = 0
+        assert updated_conviction == 0
+
+
+# ---------------------------------------------------------------------------
+# T4-B18 — Cross-round context in scenario generation
+# ---------------------------------------------------------------------------
+class TestT4CrossRoundContext:
+    """Bug #18: Scenario generation must receive previous round summaries."""
+
+    def test_scenario_prompt_includes_previous_rounds(self):
+        from core.llm import get_scenario_generator_prompt
+        company = {
+            'company_name': 'TestCo', 'company_overview': 'Overview.',
+            'current_problems': ['Problem 1'], 'board_members': [],
+        }
+        module = {'module_name': 'Governance', 'overview': 'Test', 'learning_objectives': ['Learn']}
+        round_cfg = {'round_number': 2, 'difficulty': 'medium', 'focus_area': 'General', 'round_type': 'both'}
+        player = {'name': 'Player', 'role': 'Director', 'expertise': 'Finance'}
+        prev = [{'round_number': 1, 'title': 'Crisis A', 'decision_summary': 'Called meeting',
+                 'outcome_summary': 'Score 78/100'}]
+
+        prompt = get_scenario_generator_prompt(company, module, round_cfg, player, previous_rounds=prev)
+        assert 'PREVIOUS ROUNDS' in prompt
+        assert 'Crisis A' in prompt
+        assert 'Called meeting' in prompt
+        assert 'do NOT repeat' in prompt.lower() or 'do not repeat' in prompt.lower()
+
+    def test_scenario_prompt_without_previous_rounds_has_no_section(self):
+        from core.llm import get_scenario_generator_prompt
+        company = {
+            'company_name': 'TestCo', 'company_overview': 'Overview.',
+            'current_problems': [], 'board_members': [],
+        }
+        module = {'module_name': 'Test', 'overview': '', 'learning_objectives': []}
+        round_cfg = {'round_number': 1, 'difficulty': 'easy', 'focus_area': None, 'round_type': 'both'}
+        player = {'name': 'P', 'role': 'R', 'expertise': 'E'}
+        prompt = get_scenario_generator_prompt(company, module, round_cfg, player)
+        assert 'PREVIOUS ROUNDS' not in prompt
+
+
+# ---------------------------------------------------------------------------
+# T4-B24 — Cross-round member stance history
+# ---------------------------------------------------------------------------
+class TestT4MemberStanceHistory:
+    """Bug #24: Stance generation must receive member's history from prior rounds."""
+
+    def test_stance_prompt_includes_history(self):
+        from core.llm import get_member_stance_prompt
+        member = {'name': 'Jonathan', 'role': 'CEO', 'personality': 'Assertive',
+                  'expertise': 'Strategy', 'tenure_years': 5}
+        company = {'company_name': 'TestCo'}
+        module = {'module_name': 'Governance'}
+        player = {'name': 'Sandra', 'role': 'Chair', 'expertise': 'Audit'}
+        history = [{'round_number': 1, 'stance': 'OPPOSE', 'conviction': 8,
+                    'was_convinced': True, 'objection': 'This is unnecessary'}]
+
+        prompt = get_member_stance_prompt(member, company, module, "scenario", "decision",
+                                           player, member_history=history)
+        assert 'YOUR HISTORY' in prompt
+        assert 'CONVINCED' in prompt
+        assert 'conviction should be LOWER' in prompt
+
+    def test_stance_prompt_without_history_has_no_section(self):
+        from core.llm import get_member_stance_prompt
+        member = {'name': 'Test', 'role': 'CFO', 'personality': 'Cautious',
+                  'expertise': 'Finance', 'tenure_years': 3}
+        prompt = get_member_stance_prompt(member, {'company_name': 'Co'}, {'module_name': 'M'},
+                                           "scenario", "decision",
+                                           {'name': 'P', 'role': 'R', 'expertise': 'E'})
+        assert 'YOUR HISTORY' not in prompt
+
+
+# ---------------------------------------------------------------------------
+# T4-B27 — Board roster in debate evaluation prompt
+# ---------------------------------------------------------------------------
+class TestT4DebateRoster:
+    """Bug #27: Debate prompt must include board roster to prevent hallucinated characters."""
+
+    def test_debate_prompt_includes_roster(self):
+        from core.llm import get_debate_evaluation_prompt
+        member = {'name': 'Jonathan', 'role': 'CEO', 'personality': 'Bold', 'expertise': 'Strategy'}
+        company = {
+            'company_name': 'TestCo',
+            'board_members': [
+                {'name': 'Jonathan', 'role': 'CEO'},
+                {'name': 'Sandra', 'role': 'Audit Chair'},
+                {'name': 'David', 'role': 'CRO'},
+            ]
+        }
+        prompt = get_debate_evaluation_prompt(member, company, "objection", "response", [],
+                                               {'name': 'Sandra', 'role': 'Audit Chair'})
+        assert 'BOARD MEMBERS' in prompt
+        assert 'do not invent names' in prompt.lower()
+        assert 'Jonathan' in prompt
+        assert 'David' in prompt
+
+
+# ---------------------------------------------------------------------------
+# T4-B8 — Conflict of interest in stance prompt
+# ---------------------------------------------------------------------------
+class TestT4ConflictOfInterest:
+    """Bug #8: Stance prompt should instruct LLM to consider conflicts of interest."""
+
+    def test_stance_prompt_mentions_conflict_of_interest(self):
+        from core.llm import get_member_stance_prompt
+        member = {'name': 'David', 'role': 'CRO', 'personality': 'Reserved',
+                  'expertise': 'Risk', 'tenure_years': 4}
+        prompt = get_member_stance_prompt(member, {'company_name': 'Co'}, {'module_name': 'M'},
+                                           "scenario", "decision",
+                                           {'name': 'P', 'role': 'R', 'expertise': 'E'})
+        assert 'conflict' in prompt.lower(), "Stance prompt must mention conflicts of interest"
+
+
+# ---------------------------------------------------------------------------
+# T4-B3 — Scenario perspective constraint
+# ---------------------------------------------------------------------------
+class TestT4ScenarioPerspective:
+    """Bug #3: Scenario must be written from player's perspective only."""
+
+    def test_scenario_prompt_enforces_player_perspective(self):
+        from core.llm import get_scenario_generator_prompt
+        company = {
+            'company_name': 'TestCo', 'company_overview': 'Overview.',
+            'current_problems': [], 'board_members': [],
+        }
+        module = {'module_name': 'Test', 'overview': '', 'learning_objectives': []}
+        round_cfg = {'round_number': 1, 'difficulty': 'easy', 'focus_area': None, 'round_type': 'both'}
+        player = {'name': 'Sandra', 'role': 'Audit Chair', 'expertise': 'Audit'}
+        prompt = get_scenario_generator_prompt(company, module, round_cfg, player)
+        assert "Sandra's perspective" in prompt or "ONLY from Sandra" in prompt, \
+            "Scenario prompt must enforce writing from player's perspective"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])

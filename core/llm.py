@@ -85,8 +85,28 @@ Respond as a unified committee voice, acknowledging different member perspective
 
 
 def get_member_stance_prompt(member: Dict, company_data: Dict, module_data: Dict,
-                              scenario: str, player_decision: str, player_role: Dict) -> str:
+                              scenario: str, player_decision: str, player_role: Dict,
+                              member_history: Dict = None) -> str:
     """Generate prompt for a board member to evaluate the player's decision."""
+
+    # Build cross-round history for this member
+    history_context = ""
+    if member_history:
+        history_parts = []
+        for rh in member_history:
+            history_parts.append(
+                f"- Round {rh['round_number']}: You {rh['stance']} the decision. "
+                f"Conviction: {rh['conviction']}/10. "
+                f"{'You were CONVINCED during debate.' if rh.get('was_convinced') else ''}"
+                f"{('Your objection: ' + rh['objection'][:100]) if rh.get('objection') else ''}"
+            )
+        history_context = f"""
+YOUR HISTORY IN THIS SIMULATION (remember your previous positions — be consistent):
+{chr(10).join(history_parts)}
+If you were convinced in a previous round, your starting conviction should be LOWER (3-5/10) unless the new decision is drastically different.
+If you opposed before and were NOT convinced, you may remain opposed but should acknowledge prior discussions.
+"""
+
     return f"""You are {member['name']}, {member['role']} at {company_data['company_name']}.
 
 PERSONALITY & BACKGROUND:
@@ -94,8 +114,9 @@ PERSONALITY & BACKGROUND:
 
 EXPERTISE: {member['expertise']}
 TENURE: {member['tenure_years']} years on the board
-
+{history_context}
 YOUR TASK: Evaluate a fellow board member's decision and determine your stance.
+Consider any conflicts of interest — if the decision scrutinises your own department's work, you should NOT enthusiastically support it without caveats.
 
 SCENARIO PRESENTED:
 {scenario}
@@ -129,7 +150,12 @@ def get_debate_evaluation_prompt(member: Dict, company_data: Dict,
         history_text += f"\n{member['name']}'s argument: {exchange.get('dissenter_argument', '')}"
         history_text += f"\n{player_role['name']}'s response: {exchange.get('player_response', '')}\n"
 
+    board_roster = chr(10).join(f"- {m['name']} | {m['role']}" for m in company_data.get('board_members', []))
+
     return f"""You are {member['name']}, {member['role']} at {company_data['company_name']}.
+
+BOARD MEMBERS (reference ONLY these people — do not invent names or roles):
+{board_roster}
 
 PERSONALITY & BACKGROUND:
 {member['personality']}
@@ -154,7 +180,8 @@ Evaluate this response considering:
 Respond in this EXACT format:
 EVALUATION: [2-3 sentences assessing the response quality]
 RESPONSE_SCORE: [0-100, how effective the response was]
-STANCE_CHANGED: [YES/NO - has this response convinced you?]
+UPDATED_CONVICTION: [1-10, your conviction level NOW after hearing this response. It should decrease if the argument was partially persuasive, even if you are not fully convinced yet]
+STANCE_CHANGED: [YES/NO - has this response fully convinced you to change your stance?]
 FOLLOW_UP: [If STANCE_CHANGED is NO: Your follow-up challenge or continued objection. If YES: Your acknowledgment of their point and why you now support the decision]
 
 Remember to stay in character as {member['name']}."""
@@ -196,8 +223,28 @@ ALIGNMENT_SCORE: [0-100]
 REASONING: [2-3 sentences explaining the score]"""
 
 
-def get_scenario_generator_prompt(company_data: Dict, module_data: Dict, round_config: Dict, player_role: Dict) -> str:
+def get_scenario_generator_prompt(company_data: Dict, module_data: Dict, round_config: Dict,
+                                   player_role: Dict, previous_rounds: List[Dict] = None) -> str:
     """Generate prompt for creating simulation scenarios."""
+
+    # Build previous rounds context
+    prev_context = ""
+    if previous_rounds:
+        prev_parts = []
+        for pr in previous_rounds:
+            prev_parts.append(
+                f"- Round {pr['round_number']}: \"{pr['title']}\" — "
+                f"Decision: {pr['decision_summary']} — "
+                f"Outcome: {pr['outcome_summary']}"
+            )
+        prev_context = f"""
+PREVIOUS ROUNDS (the scenario MUST escalate from these — do NOT repeat the same situation):
+{chr(10).join(prev_parts)}
+
+IMPORTANT: Round {round_config['round_number']} must build on what happened in previous rounds.
+Show consequences of earlier decisions. Escalate the complexity. Do NOT re-ask the same question.
+"""
+
     return f"""You are a corporate governance simulation scenario generator.
 
 COMPANY: {company_data['company_name']}
@@ -223,13 +270,14 @@ ROUND CONFIGURATION:
 - Difficulty: {round_config['difficulty']}
 - Focus Area: {round_config.get('focus_area') or 'General'}
 - Round Type: {round_config['round_type']}
-
+{prev_context}
 Generate a realistic boardroom scenario that:
 1. Presents a specific challenge or decision point relevant to the player's role
 2. Requires application of concepts from the module
 3. Has multiple valid approaches with trade-offs
 4. Creates tension between different board member perspectives
 5. Is appropriate for the specified difficulty level
+6. Writes the scenario ONLY from {player_role['name']}'s perspective
 
 Format your response as:
 SCENARIO TITLE: [Title]

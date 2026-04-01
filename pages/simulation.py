@@ -47,6 +47,8 @@ def _save_checkpoint(checkpoint_name: str):
         'board_effectiveness_history': st.session_state.get('board_effectiveness_history', []),
         'player_role': st.session_state.get('player_role'),
         'game_goals': st.session_state.get('game_goals'),
+        'round_summaries': st.session_state.get('round_summaries', []),
+        'member_stance_histories': st.session_state.get('member_stance_histories', {}),
         'saved_at': datetime.now().isoformat(),
         'round_state': {
             'scenario': st.session_state.get(f'scenario_round_{cr}'),
@@ -89,6 +91,18 @@ def _restore_from_progress(session_data: dict, company_data: dict):
     # Game goals
     if progress.get('game_goals'):
         st.session_state.game_goals = progress['game_goals']
+
+    # Cross-round context
+    if progress.get('round_summaries'):
+        st.session_state.round_summaries = progress['round_summaries']
+    if progress.get('member_stance_histories'):
+        st.session_state.member_stance_histories = progress['member_stance_histories']
+
+    # Reset timer for current round so it starts fresh on restore
+    timer_key = f"round_start_time_{cr}"
+    st.session_state[timer_key] = datetime.now()
+    # Clear any stale timer expiry flag
+    st.session_state.pop(f"timer_expired_{cr}", None)
 
     # Per-round state
     rs = progress.get('round_state', {})
@@ -269,10 +283,13 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     # Generate or retrieve scenario
     scenario_key = f"scenario_round_{state.current_round}"
     if scenario_key not in st.session_state:
+        # Build cross-round context from previous rounds
+        previous_rounds = st.session_state.get('round_summaries', [])
         with st.spinner("Generating scenario..."):
             try:
                 st.session_state[scenario_key] = generate_scenario(
-                    llm, company_data, module_data, round_config, player_role
+                    llm, company_data, module_data, round_config, player_role,
+                    previous_rounds=previous_rounds if previous_rounds else None
                 )
             except Exception as e:
                 logger.error(f"Scenario generation failed: {e}")
@@ -321,8 +338,13 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
         st.markdown(f'<div class="scenario-box" style="white-space: pre-wrap;">{scenario}</div>',
                     unsafe_allow_html=True)
 
-    # Audio: read scenario aloud
-    speak_button(scenario, label="Listen to Scenario", key=f"scenario_{state.current_round}")
+    # Audio: read scenario aloud (includes options if present)
+    _scenario_audio = scenario
+    _parsed_opts = parse_scenario_options(scenario)
+    if _parsed_opts:
+        _opts_text = ". ".join(f"Option {o['letter']}: {o['text']}" for o in _parsed_opts)
+        _scenario_audio = scenario + " Options: " + _opts_text
+    speak_button(_scenario_audio, label="Listen to Scenario", key=f"scenario_{state.current_round}")
 
     # Consultation Section
     st.markdown("### 💬 Consultation")
@@ -330,9 +352,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     board_consultation_used = st.session_state[board_consult_key] >= 1
     committee_consultation_used = st.session_state[committee_consult_key] >= 1
 
-    if timer_expired:
+    if timer_expired and not decision_submitted:
         st.warning("⏱️ Time has expired — consultations are locked. Please submit your decision.")
-    elif not board_consultation_used or not committee_consultation_used:
+    elif not decision_submitted and (not board_consultation_used or not committee_consultation_used):
         consult_tab1, consult_tab2 = st.tabs(["👥 Consult Board Members", "🏛️ Consult Committee"])
 
         with consult_tab1:
@@ -461,7 +483,7 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                                     st.error("Committee is temporarily unavailable. Your consultation was not consumed — please try again.")
                 else:
                     st.info("No committees are available for consultation.")
-    else:
+    elif not decision_submitted:
         st.warning("⚠️ You have used all consultations for this round. Please make your decision.")
 
     # Display conversation history
@@ -492,11 +514,14 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
     if not pending_exists:
         if options:
             st.markdown("**Select an option or write your own decision below:**")
-            # Audio: read all options aloud
-            options_text = ". ".join(f"Option {o['letter']}: {o['text']}" for o in options)
-            speak_button(options_text, label="Listen to Options", key=f"options_{state.current_round}")
-            # Blur autofocus so no option appears pre-selected on page load
-            st.components.v1.html("<script>document.activeElement&&document.activeElement.blur()</script>", height=0)
+            # Blur autofocus and remove focus styling so no option appears pre-selected
+            st.components.v1.html("""<script>
+                document.activeElement&&document.activeElement.blur();
+                // Remove :focus and :focus-visible outlines from option buttons on load
+                setTimeout(function(){
+                    document.querySelectorAll('button[kind="secondary"]').forEach(function(b){b.blur();});
+                }, 100);
+            </script>""", height=0)
             option_cols = st.columns(2)
             for idx, opt in enumerate(options):
                 with option_cols[idx % 2]:
@@ -746,7 +771,9 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                 st.markdown("### 📊 Metric Changes from Your Decision")
                 LOWER_IS_BETTER = {'churn', 'attrition', 'risk', 'debt', 'turnover',
                                    'cost', 'defect', 'burn', 'incident', 'latency',
-                                   'vacancy', 'audit', 'pending'}
+                                   'vacancy', 'audit', 'pending',
+                                   'liability', 'remediation', 'penalty', 'loss',
+                                   'exposure', 'violation', 'complaint', 'breach'}
                 positive_impacts = {}
                 negative_impacts = {}
                 for k, v in changed_metrics.items():
@@ -806,6 +833,34 @@ def run_simulation_round(llm: genai.GenerativeModel, data: Dict,
                     )
             except Exception:
                 logger.warning("Failed to log round activity")
+
+            # Save round summary for cross-round context
+            _scenario_text = st.session_state.get(f"scenario_round_{state.current_round}", "")
+            _sections = parse_scenario_sections(_scenario_text)
+            _round_summary = {
+                'round_number': state.current_round + 1,
+                'title': _sections.get('title', f'Round {state.current_round + 1}'),
+                'decision_summary': st.session_state.get(f"pending_decision_{state.current_round}", "")[:200],
+                'outcome_summary': f"Score: {score}/100. " + (evaluation.get('score_reasoning', '') or '')[:150],
+            }
+            if 'round_summaries' not in st.session_state:
+                st.session_state.round_summaries = []
+            st.session_state.round_summaries.append(_round_summary)
+
+            # Save per-member stance history for cross-round conviction tracking
+            _stances = st.session_state.get(f"member_stances_{state.current_round}", {})
+            if 'member_stance_histories' not in st.session_state:
+                st.session_state.member_stance_histories = {}
+            for _mname, _mstance in _stances.items():
+                if _mname not in st.session_state.member_stance_histories:
+                    st.session_state.member_stance_histories[_mname] = []
+                st.session_state.member_stance_histories[_mname].append({
+                    'round_number': state.current_round + 1,
+                    'stance': _mstance.get('stance', 'NEUTRAL'),
+                    'conviction': _mstance.get('conviction_level', 5),
+                    'was_convinced': _mstance.get('convinced_in_round') is not None,
+                    'objection': _mstance.get('counter_opinion', ''),
+                })
 
             st.session_state.current_round += 1
             st.session_state.conversation_history = []

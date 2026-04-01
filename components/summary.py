@@ -283,7 +283,9 @@ def display_final_summary(data: Dict):
 
     LOWER_IS_BETTER_KEYWORDS = {'churn', 'attrition', 'risk', 'debt', 'turnover',
                                  'cost', 'defect', 'burn', 'incident', 'latency',
-                                 'vacancy', 'audit', 'pending'}
+                                 'vacancy', 'audit', 'pending',
+                                 'liability', 'remediation', 'penalty', 'loss',
+                                 'exposure', 'violation', 'complaint', 'breach'}
 
     # Build dynamic categories from actual metric keys
     metric_categories = {}

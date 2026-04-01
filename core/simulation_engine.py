@@ -45,9 +45,11 @@ def _call_llm(llm, prompt, max_retries=3):
 
 
 def generate_scenario(llm: genai.GenerativeModel, company_data: Dict,
-                      module_data: Dict, round_config: Dict, player_role: Dict) -> str:
+                      module_data: Dict, round_config: Dict, player_role: Dict,
+                      previous_rounds: List[Dict] = None) -> str:
     """Generate a new scenario for the current round."""
-    prompt = get_scenario_generator_prompt(company_data, module_data, round_config, player_role)
+    prompt = get_scenario_generator_prompt(company_data, module_data, round_config, player_role,
+                                           previous_rounds=previous_rounds)
     full_prompt = f"""You are an expert corporate governance simulation designer.
 
 {prompt}"""
@@ -500,7 +502,8 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
 
 def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
                              module_data: Dict, scenario: str,
-                             player_decision: str, player_role: Dict) -> Dict[str, Dict]:
+                             player_decision: str, player_role: Dict,
+                             all_member_histories: Dict = None) -> Dict[str, Dict]:
     """Generate each board member's stance on the player's decision."""
     logger.debug(f"generate_member_stances called with {len(company_data.get('board_members', []))} board members")
 
@@ -512,8 +515,10 @@ def generate_member_stances(llm: genai.GenerativeModel, company_data: Dict,
 
     for member in available_members:
         logger.debug(f"Generating stance for {member['name']}")
+        member_history = (all_member_histories or {}).get(member['name'])
         prompt = get_member_stance_prompt(member, company_data, module_data,
-                                          scenario, player_decision, player_role)
+                                          scenario, player_decision, player_role,
+                                          member_history=member_history)
 
         try:
             content = _call_llm(llm, prompt)
@@ -613,6 +618,15 @@ def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
         except Exception:
             score = 50
 
+    updated_conviction = None
+    if "UPDATED_CONVICTION:" in content:
+        try:
+            conv_str = content.split("UPDATED_CONVICTION:")[1].split("\n")[0].strip()
+            updated_conviction = int(''.join(filter(str.isdigit, conv_str[:3])))
+            updated_conviction = max(1, min(10, updated_conviction))
+        except Exception:
+            updated_conviction = None
+
     if "STANCE_CHANGED:" in content:
         stance_line = content.split("STANCE_CHANGED:")[1].split("\n")[0].strip().upper()
         stance_changed = "YES" in stance_line
@@ -623,11 +637,16 @@ def evaluate_debate_response(llm: genai.GenerativeModel, member: Dict,
         except Exception:
             pass
 
+    # If stance changed, conviction should drop to 0
+    if stance_changed:
+        updated_conviction = 0
+
     return {
         'evaluation': evaluation,
         'score': score,
         'stance_changed': stance_changed,
-        'follow_up': follow_up
+        'follow_up': follow_up,
+        'updated_conviction': updated_conviction,
     }
 
 

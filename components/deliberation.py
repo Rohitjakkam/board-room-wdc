@@ -61,10 +61,12 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
 
         with st.spinner("Board members are reviewing your decision..."):
             scenario = st.session_state.get(f"scenario_round_{round_num}", "")
+            all_member_histories = st.session_state.get('member_stance_histories', {})
             logger.debug(f"Generating stances for scenario length: {len(scenario)}, decision length: {len(player_decision)}")
             try:
                 stances = generate_member_stances(llm, company_data, module_data,
-                                                  scenario, player_decision, player_role)
+                                                  scenario, player_decision, player_role,
+                                                  all_member_histories=all_member_histories if all_member_histories else None)
                 st.session_state[stances_key] = stances
                 logger.debug(f"Generated {len(stances)} member stances")
             except Exception as e:
@@ -235,9 +237,14 @@ def display_deliberation_phase(llm: genai.GenerativeModel, data: Dict,
 
                                     st.session_state[stances_key][name]['debate_exchanges'] = exchanges + 1
 
+                                    # Update conviction level dynamically
+                                    if result.get('updated_conviction') is not None:
+                                        st.session_state[stances_key][name]['conviction_level'] = result['updated_conviction']
+
                                     if result['stance_changed']:
                                         st.session_state[stances_key][name]['original_counter_opinion'] = stance['counter_opinion']
                                         st.session_state[stances_key][name]['convinced_in_round'] = exchanges + 1
+                                        st.session_state[stances_key][name]['conviction_level'] = 0
                                         st.session_state[current_dissenter_key] = current_idx + 1
                                     else:
                                         st.session_state[stances_key][name]['counter_opinion'] = result['follow_up']

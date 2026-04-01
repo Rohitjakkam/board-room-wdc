@@ -10,6 +10,8 @@ from core.models import TIME_PRESSURE_MINUTES
 LOWER_IS_BETTER_KEYWORDS = {
     'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect',
     'burn', 'incident', 'latency', 'vacancy', 'audit', 'pending',
+    'liability', 'remediation', 'penalty', 'loss', 'exposure',
+    'violation', 'complaint', 'breach',
 }
 
 
