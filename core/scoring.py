@@ -12,7 +12,20 @@ LOWER_IS_BETTER_KEYWORDS = {
     'burn', 'incident', 'latency', 'vacancy', 'audit', 'pending',
     'liability', 'remediation', 'penalty', 'loss', 'exposure',
     'violation', 'complaint', 'breach',
+    'gap', 'delay', 'overdue',
 }
+
+# Metrics containing these keywords should NOT be classified as lower-is-better,
+# even if they also contain a LOWER_IS_BETTER keyword (e.g. "remediation_costs_reserve")
+LOWER_IS_BETTER_EXCLUSIONS = {'reserve', 'budget', 'fund', 'allocation'}
+
+
+def _is_lower_better(metric_key: str) -> bool:
+    """Determine if a lower value is better for this metric, with exclusion overrides."""
+    key_lower = metric_key.lower()
+    if any(exc in key_lower for exc in LOWER_IS_BETTER_EXCLUSIONS):
+        return False
+    return any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
 
 
 def calculate_board_effectiveness_score(round_number: int,
@@ -127,6 +140,10 @@ def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
         description = metric.get('description', key.replace('_', ' ').title())
         priority = (metric.get('priority') or 'medium').lower()
 
+        # Skip zero-value metrics with meaningless units (placeholder/empty data)
+        if current == 0.0 and unit in ('', 'N/A', 'n/a'):
+            continue
+
         key_lower = key.lower()
         desc_lower = description.lower()
 
@@ -136,7 +153,7 @@ def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:
                 continue  # Likely a categorical value that was coerced to 0
 
         # Detect direction
-        lower_is_better = any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
+        lower_is_better = _is_lower_better(key)
 
         # Detect category
         category = 'General'
@@ -271,8 +288,7 @@ def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_deci
             weight = PRIORITY_WEIGHTS.get(priority, 1.0)
 
             # Detect direction from metric key
-            key_lower = metric_key.lower()
-            higher_better = not any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
+            higher_better = not _is_lower_better(metric_key)
 
             if initial_val != 0:
                 pct_change = ((final_val - initial_val) / abs(initial_val)) * 100

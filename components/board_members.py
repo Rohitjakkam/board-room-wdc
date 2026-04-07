@@ -16,16 +16,18 @@ def display_board_members_for_selection(board_members: List[Dict]) -> Optional[D
     for idx, member in enumerate(board_members):
         with cols[idx % 2]:
             with st.container():
+                tenure = f"{member['tenure_years']} years" if member.get('tenure_years') is not None else "Not specified"
                 st.markdown(f"""
                 <div class="board-member-card">
                     <h4>{member['name']}</h4>
                     <p><strong>{member['role']}</strong></p>
-                    <p><em>Expertise: {member['expertise']} | Tenure: {member['tenure_years']} years</em></p>
+                    <p><em>Expertise: {member['expertise']} | Tenure: {tenure}</em></p>
                     <p style="font-size: 0.9rem;">{member['personality']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
-                if st.button(f"Play as {member['name']}", key=f"select_role_{idx}", use_container_width=True):
+                safe_key = member['name'].replace(' ', '_').replace("'", "").lower()
+                if st.button(f"Play as {member['name']}", key=f"select_role_{safe_key}", use_container_width=True):
                     return member
 
     return None
@@ -44,11 +46,12 @@ def display_board_members(board_members: List[Dict], player_role: Optional[Dict]
             player_badge = " (YOU)" if is_player else ""
 
             with st.container():
+                tenure = f"{member['tenure_years']} years" if member.get('tenure_years') is not None else "Not specified"
                 st.markdown(f"""
                 <div class="{card_class}">
                     <h4>{member['name']}{player_badge}</h4>
                     <p><strong>{member['role']}</strong></p>
-                    <p><em>Expertise: {member['expertise']} | Tenure: {member['tenure_years']} years</em></p>
+                    <p><em>Expertise: {member['expertise']} | Tenure: {tenure}</em></p>
                     <p style="font-size: 0.9rem;">{member['personality']}</p>
                 </div>
                 """, unsafe_allow_html=True)

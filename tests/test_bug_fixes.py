@@ -464,7 +464,7 @@ class TestPipelineInferUnit:
             ('environmental_incident_count', 'count'),
             ('employee_count',               'employees'),
             ('total_revenue_annual',         ''),
-            ('net_profit_margin',            ''),
+            ('net_profit_margin',            '%'),
             ('employee_engagement_score',    ''),
         ]
         for key, expected in cases:
@@ -570,9 +570,12 @@ class TestFirestoreSimulations:
         return None
 
     def test_no_empty_unit_metrics_in_any_simulation(self, firestore_docs):
+        from core.data_manager import _normalize_metrics
         issues = []
         for doc_id, data in firestore_docs.items():
-            metrics = data.get('company_data', {}).get('metrics', {})
+            # Normalize metrics (as the app does on load) before checking
+            normalized = _normalize_metrics(dict(data))
+            metrics = normalized.get('company_data', {}).get('metrics', {})
             for k, v in metrics.items():
                 if isinstance(v, dict) and not v.get('unit'):
                     issues.append(f"{doc_id}: metric '{k}' has empty unit")

@@ -59,6 +59,13 @@ def _infer_unit(metric_key: str) -> str:
     if any(kw in key for kw in ('_count', 'count_', 'incident', '_incidents', 'violations',
                                   'defects', '_risks', 'risks_', 'tickets', 'cases')):
         return 'count'
+    if any(kw in key for kw in ('status', 'classification', 'tier', 'level', 'phase',
+                                  'environment', 'challenges')):
+        return 'status'
+    if any(kw in key for kw in ('_rate', 'rate_', 'ratio', 'margin', 'percentage', 'pct')):
+        return '%'
+    if any(kw in key for kw in ('_size', 'size_', 'portfolio_size', 'volume', 'loan_portfolio')):
+        return 'count'
     return ''
 
 
@@ -70,6 +77,9 @@ def _validate_company_data(data: Dict) -> Dict:
     data.setdefault('initial_scenario', '')
     data.setdefault('industry', 'Unknown')
     data.setdefault('founded', '')
+    # Normalize placeholder values for founded
+    if str(data.get('founded', '')).strip().lower() in ('n/a', 'na', 'none', 'null', 'unknown', ''):
+        data['founded'] = 'Not specified'
 
     # Metrics — ensure dict, each metric has numeric value/unit/description
     metrics = _ensure_dict(data, 'metrics')
@@ -251,7 +261,7 @@ Extract ALL company information:
    revenue_growth_yoy, net_promoter_score, customer_churn_rate_annual, employee_engagement_score,
    annual_attrition_rate, regulatory_compliance_score, employee_count, customer_acquisition_cost,
    customer_lifetime_value, platform_uptime, deployment_frequency, etc.
-4. Leadership/board team (5-15 people) with: name, role, expertise area, tenure years, personality
+4. Leadership/board team (5-15 people) with: name, role, expertise area, tenure years, personality (2-3 sentences describing communication style, decision-making tendencies, biases, and traits that affect boardroom dynamics)
 5. Committees (e.g., Audit, Risk, Compensation) with: name, type, purpose, chairperson, member names
 6. Current problems/challenges (5-10)
 7. Initial business situation
@@ -260,7 +270,7 @@ Return ONLY valid JSON:
 {{
     "company_name": "Exact company name",
     "industry": "Industry sector",
-    "founded": "Year founded or N/A",
+    "founded": "Year founded (number only, e.g. 2005)",
     "company_overview": "Detailed 4-5 sentence overview",
     "metrics": {{
         "total_revenue_annual": {{"value": 500, "unit": "$M", "description": "Total annual revenue"}},
@@ -280,7 +290,7 @@ Return ONLY valid JSON:
             "role": "Complete Title (e.g. CEO, CFO, COO)",
             "expertise": "Area of expertise (e.g. Finance, Operations, Technology)",
             "tenure_years": 5,
-            "personality": "Detailed personality description"
+            "personality": "2-3 sentences: communication style, decision-making approach, biases, and key traits that affect boardroom dynamics (e.g. defensive when challenged, defers to authority, detail-oriented and persistent)"
         }}
     ],
     "committees": [

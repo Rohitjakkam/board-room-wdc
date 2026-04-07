@@ -44,6 +44,13 @@ def _infer_unit(metric_key: str) -> str:
     if any(kw in key for kw in ('_count', 'count_', 'incident', '_incidents', 'violations',
                                   'defects', '_risks', 'risks_', 'tickets', 'cases')):
         return 'count'
+    if any(kw in key for kw in ('status', 'classification', 'tier', 'level', 'phase',
+                                  'environment', 'challenges')):
+        return 'status'
+    if any(kw in key for kw in ('_rate', 'rate_', 'ratio', 'margin', 'percentage', 'pct')):
+        return '%'
+    if any(kw in key for kw in ('_size', 'size_', 'portfolio_size', 'volume', 'loan_portfolio')):
+        return 'count'
     return ''
 
 
