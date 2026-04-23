@@ -12,6 +12,7 @@ from core.data_manager import (
     list_saved_sessions, load_extracted_data, delete_session,
     save_extracted_data, get_default_simulation_config, update_simulation
 )
+from core.admin_agents import run_audit_agent, run_planning_agent
 
 
 def manage_simulations_page():
@@ -173,6 +174,9 @@ def manage_simulations_page():
             # ============ MODULE DATA AUDIT ============
             with audit_tab2:
                 _render_module_audit()
+
+            # Agent 2: Audit Data AI Panel
+            _render_agent2_panel()
 
             # Save Changes Section
             st.divider()
@@ -1399,6 +1403,9 @@ def _render_simulation_planning():
 
     st.divider()
 
+    # Agent 3: Simulation Planning AI panel
+    _render_agent3_panel()
+
     # ============ SAVE CONFIGURATION ============
     st.subheader("💾 Save Configuration")
 
@@ -1429,3 +1436,439 @@ def _render_simulation_planning():
 
     with st.expander("👁️ View Configuration JSON"):
         st.code(json.dumps(st.session_state.simulation_config, indent=2), language="json")
+
+
+# ---------------------------------------------------------------------------
+# Agent 2 UI helpers
+# ---------------------------------------------------------------------------
+
+_AGENT2_SOURCE_ICONS = {"generated": "⚡", "enriched": "✏️", "pdf": "✅", "manual": "⛔"}
+_AGENT2_SEVERITY_COLORS = {"error": "🔴", "warning": "🟡"}
+
+
+def _render_agent2_panel():
+    """Agent 2: Audit Data AI panel — readiness scoring + gap generation."""
+    if not st.session_state.get("audit_data"):
+        return
+
+    st.divider()
+    with st.expander("🤖 Agent 2: Audit Data — Gap Analysis & Readiness Score", expanded=False):
+        st.markdown(
+            "Scans company + module data for missing metrics, board expertise, committees, "
+            "and problem themes required by the module. Generates missing items and scores "
+            "simulation readiness."
+        )
+
+        company_data = st.session_state.audit_data.get("company_data", {})
+        module_data  = st.session_state.audit_data.get("module_data", {})
+
+        col_run, col_clear = st.columns([1, 1])
+        with col_run:
+            run_clicked = st.button(
+                "▶ Run Audit Agent", type="primary", key="agent2_run_btn",
+                use_container_width=True,
+            )
+        with col_clear:
+            clear_clicked = st.button(
+                "✖ Clear", key="agent2_clear_btn", use_container_width=True,
+            )
+
+        if clear_clicked:
+            for k in ("agent2_result",):
+                st.session_state.pop(k, None)
+            st.rerun()
+
+        if run_clicked:
+            with st.spinner("Running audit analysis…"):
+                try:
+                    result = run_audit_agent(company_data, module_data)
+                    st.session_state.agent2_result = result
+                except Exception as exc:
+                    st.error(f"Agent 2 error: {exc}")
+                    return
+
+        # Show persistent apply banner (survives the rerun that clears agent2_result)
+        if st.session_state.get("agent2_apply_banner"):
+            banner_msg = st.session_state.pop("agent2_apply_banner")
+            st.success(
+                f"✅ {banner_msg} — click **💾 Save Changes** below to persist to the database."
+            )
+
+        if "agent2_result" not in st.session_state:
+            return
+
+        result = st.session_state.agent2_result
+        _render_agent2_readiness(result)
+        _render_agent2_flags(result)
+        _render_agent2_gaps(result)
+        _render_agent2_items(result)
+        if result["items"]:
+            _render_agent2_apply_buttons(result, company_data, module_data)
+
+
+def _render_agent2_readiness(result: dict):
+    """4-column readiness score display."""
+    rs = result.get("readiness_score", {})
+    overall = rs.get("overall", 0)
+    color = "🟢" if overall >= 75 else ("🟡" if overall >= 50 else "🔴")
+
+    st.markdown(f"### {color} Simulation Readiness: {overall}/100")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Metric Coverage",    f"{rs.get('metric_coverage', 0)}/100")
+    c2.metric("Board Coverage",     f"{rs.get('board_coverage', 0)}/100")
+    c3.metric("Structural Health",  f"{rs.get('structural_health', 0)}/100")
+    if rs.get("reasoning"):
+        st.caption(rs["reasoning"])
+
+
+def _render_agent2_flags(result: dict):
+    """Show structural error/warning flags."""
+    flags = result.get("flags", [])
+    if not flags:
+        return
+    errors   = [f for f in flags if f["severity"] == "error"]
+    warnings = [f for f in flags if f["severity"] == "warning"]
+    with st.expander(f"⚠️ Structural Issues ({len(flags)} total — {len(errors)} errors, {len(warnings)} warnings)"):
+        for f in flags:
+            icon = _AGENT2_SEVERITY_COLORS.get(f["severity"], "⚪")
+            st.markdown(f"{icon} **[{f['type']}]** {f['message']}  \n`{f['field']}`")
+
+
+def _render_agent2_gaps(result: dict):
+    """Show detected gaps from cross-document analysis."""
+    gaps = result.get("gaps", {})
+    gap_lines = []
+    labels = {
+        "missing_metric_categories": "Missing metric categories",
+        "missing_expertise_roles":   "Missing board expertise",
+        "missing_committee_types":   "Missing committees",
+        "missing_problem_themes":    "Missing problem themes (sample)",
+        "zero_value_metrics":        "Zero-value metrics",
+    }
+    for key, label in labels.items():
+        vals = gaps.get(key, [])
+        if vals:
+            sample = vals[:4]
+            more   = len(vals) - 4
+            text   = ", ".join(sample) + (f" +{more} more" if more > 0 else "")
+            gap_lines.append(f"- **{label}:** {text}")
+
+    if not gap_lines:
+        st.success("No gaps detected — all required fields present!")
+        return
+
+    with st.expander(f"🔍 Detected Gaps ({sum(len(v) for v in gaps.values() if isinstance(v, list))} total)"):
+        for line in gap_lines:
+            st.markdown(line)
+
+
+def _render_agent2_items(result: dict):
+    """Show generated items grouped by type."""
+    items = result.get("items", [])
+    if not items:
+        return
+    with st.expander(f"⚡ Generated Items ({len(items)} total)"):
+        for item in items:
+            icon  = _AGENT2_SOURCE_ICONS.get(item.get("source", "generated"), "⚡")
+            label = item.get("label", item.get("field", "?"))
+            reason = item.get("reason", "")
+            after  = item.get("after")
+            st.markdown(f"{icon} **{label}**")
+            if reason:
+                st.caption(reason)
+            if isinstance(after, dict):
+                st.json(after, expanded=False)
+            elif after is not None:
+                st.code(str(after), language=None)
+
+
+def _render_agent2_apply_buttons(result: dict, company_data: dict, module_data: dict):
+    """Apply / Discard buttons for Agent 2 patch."""
+    patch = result.get("patch", {})
+
+    st.markdown("---")
+    col_apply, col_discard = st.columns([1, 1])
+
+    with col_apply:
+        if st.button("✅ Apply All Changes", type="primary", key="agent2_apply_all", use_container_width=True):
+            if _apply_agent2_patch(patch, audit_context=result):
+                st.session_state.audit_modified = True
+                n = len(result.get("items", []))
+                st.session_state.pop("agent2_result", None)
+                st.session_state["agent2_apply_banner"] = f"Applied {n} generated items to session data"
+                st.rerun()
+
+    with col_discard:
+        if st.button("✖ Discard", key="agent2_discard", use_container_width=True):
+            st.session_state.pop("agent2_result", None)
+            st.rerun()
+
+
+def _apply_agent2_patch(patch: dict, audit_context: dict = None) -> bool:
+    """Write Agent 2 patch back into st.session_state.audit_data. Returns True on success.
+
+    If `audit_context` (the full Agent 2 result dict) is provided, also persist
+    readiness_score, gaps, flags, and summary so future views can see the audit
+    history without re-running Agent 2.
+    """
+    if not st.session_state.get("audit_data"):
+        st.error("Cannot apply — audit data not loaded. Load a session first.")
+        return False
+
+    company_patch = patch.get("company", {}) if isinstance(patch, dict) else {}
+    module_patch  = patch.get("module", {})  if isinstance(patch, dict) else {}
+
+    cd = st.session_state.audit_data.setdefault("company_data", {})
+    md = st.session_state.audit_data.setdefault("module_data", {})
+
+    # Merge generated metrics
+    for key, info in company_patch.get("metrics_generated", {}).items():
+        cd.setdefault("metrics", {})[key] = info
+
+    # Fix zero-value metrics
+    for key, val in company_patch.get("metrics_fixed_values", {}).items():
+        if key in cd.get("metrics", {}):
+            cd["metrics"][key]["value"] = val
+
+    # Append generated board members
+    for m in company_patch.get("board_members_generated", []):
+        if isinstance(m, dict):
+            cd.setdefault("board_members", []).append(m)
+
+    # Append generated committees
+    for c in company_patch.get("committees_generated", []):
+        if isinstance(c, dict):
+            cd.setdefault("committees", []).append(c)
+
+    # Append generated problems
+    for p in company_patch.get("problems_generated", []):
+        if isinstance(p, str):
+            cd.setdefault("current_problems", []).append(p)
+
+    # Explicit write-back (safety — ensures Streamlit detects state change)
+    st.session_state.audit_data["company_data"] = cd
+    st.session_state.audit_data["module_data"]  = md
+
+    # Persist audit context as a time-stamped snapshot
+    if audit_context:
+        st.session_state.audit_data["_audit_snapshot"] = {
+            "timestamp":        datetime.now().isoformat(),
+            "readiness_score":  audit_context.get("readiness_score", {}),
+            "gaps":             audit_context.get("gaps", {}),
+            "flags":            audit_context.get("flags", []),
+            "summary":          audit_context.get("summary", {}),
+            "items_applied":    len(audit_context.get("items", [])),
+        }
+
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Agent 3 UI helpers
+# ---------------------------------------------------------------------------
+
+def _render_agent3_panel():
+    """Agent 3: Simulation Planning AI panel — narrative arc design + focus_area enrichment."""
+    if "planning_session_data" not in st.session_state or not st.session_state.planning_session_data:
+        return
+
+    st.divider()
+    with st.expander("🤖 Agent 3: Simulation Planner — Narrative Arc & Focus Areas", expanded=False):
+        st.markdown(
+            "Designs a 3-act narrative arc with Bloom-sequenced topics, board tension pairs, "
+            "and rich `focus_area` text for every round. Apply to overwrite the round configurations above."
+        )
+
+        session_data = st.session_state.planning_session_data
+        company_data = session_data.get("company_data", {}) or {}
+        module_data  = session_data.get("module_data", {}) or {}
+        sim_config   = st.session_state.simulation_config
+
+        # Require minimum content before Agent 3 can run — prevents empty-input crashes
+        _blocked_reasons = []
+        if not company_data.get("board_members"):
+            _blocked_reasons.append("company has no board members")
+        if not module_data.get("learning_objectives"):
+            _blocked_reasons.append("module has no learning objectives")
+        if not sim_config or not sim_config.get("rounds"):
+            _blocked_reasons.append("simulation config has no rounds")
+
+        if _blocked_reasons:
+            st.warning(
+                "Agent 3 cannot run: " + "; ".join(_blocked_reasons) +
+                ". Load a complete session first."
+            )
+            return
+
+        col_run, col_clear = st.columns([1, 1])
+        with col_run:
+            run_clicked = st.button(
+                "▶ Run Planning Agent", type="primary", key="agent3_run_btn",
+                use_container_width=True,
+            )
+        with col_clear:
+            clear_clicked = st.button(
+                "✖ Clear", key="agent3_clear_btn", use_container_width=True,
+            )
+
+        if clear_clicked:
+            st.session_state.pop("agent3_result", None)
+            st.rerun()
+
+        if run_clicked:
+            with st.spinner("Designing narrative arc…"):
+                try:
+                    result = run_planning_agent(company_data, module_data, sim_config)
+                    st.session_state.agent3_result = result
+                except Exception as exc:
+                    st.error(f"Agent 3 error: {exc}")
+                    return
+
+        # Show persistent apply banner (survives the rerun that clears agent3_result)
+        if st.session_state.get("agent3_apply_banner"):
+            banner_msg = st.session_state.pop("agent3_apply_banner")
+            st.success(
+                f"✅ {banner_msg} — review the round table above, then click "
+                "**💾 Save to Current Session** to persist."
+            )
+
+        if "agent3_result" not in st.session_state:
+            return
+
+        result = st.session_state.agent3_result
+        _render_agent3_arc(result)
+        _render_agent3_rounds(result)
+        _render_agent3_coverage(result)
+        if result.get("flags"):
+            st.warning("**Planning flags:**\n" + "\n".join(f"- {f}" for f in result["flags"]))
+        _render_agent3_apply_buttons(result)
+
+
+def _render_agent3_arc(result: dict):
+    """Show narrative arc title and act labels."""
+    st.markdown(f"### {result.get('narrative_arc_title', 'Simulation Arc')}")
+    acts = result.get("act_labels", {})
+    c1, c2, c3 = st.columns(3)
+    c1.info(f"**Act 1:** {acts.get('1', 'Orientation')}")
+    c2.warning(f"**Act 2:** {acts.get('2', 'Complication')}")
+    c3.error(f"**Act 3:** {acts.get('3', 'Resolution')}")
+
+    summary = result.get("summary", {})
+    s1, s2, s3, s4 = st.columns(4)
+    s1.metric("Rounds", summary.get("total_rounds", 0))
+    s2.metric("Tension Pairs", summary.get("tension_pairs_used", 0))
+    s3.metric("Topics Covered", summary.get("topics_covered", 0))
+    s4.metric("Flags", summary.get("flags", 0))
+
+
+def _render_agent3_rounds(result: dict):
+    """Show each round's narrative design."""
+    rounds = result.get("rounds", [])
+    if not rounds:
+        return
+    with st.expander(f"📋 Round Plans ({len(rounds)} rounds)", expanded=True):
+        for r in rounds:
+            act_label = r.get("act_label", "")
+            difficulty = r.get("difficulty", "medium")
+            diff_icon = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}.get(difficulty, "⚪")
+            tension = r.get("tension_pair") or "—"
+
+            st.markdown(
+                f"**Round {r['round_number']}** — {act_label} {diff_icon} {difficulty.capitalize()}"
+            )
+            st.markdown(f"*{r.get('title', '')}*")
+            st.markdown(f"> {r.get('focus_area', '')}")
+            if tension != "—":
+                st.caption(f"Board tension: {tension}")
+            if r.get("cascade_seed"):
+                st.caption(f"Cascade: {r['cascade_seed']}")
+            st.divider()
+
+
+def _render_agent3_coverage(result: dict):
+    """Show topic coverage map."""
+    coverage = result.get("coverage", {})
+    covered   = coverage.get("covered", {})
+    uncovered = coverage.get("uncovered", [])
+
+    with st.expander(f"📚 Topic Coverage ({len(covered)} covered, {len(uncovered)} uncovered)"):
+        for topic, rnum in covered.items():
+            st.markdown(f"✅ Round {rnum}: {topic}")
+        for topic in uncovered:
+            st.markdown(f"❌ Not covered: {topic}")
+
+
+def _render_agent3_apply_buttons(result: dict):
+    """Apply / Discard buttons for Agent 3 plan."""
+    st.markdown("---")
+    col_apply, col_discard = st.columns([1, 1])
+
+    with col_apply:
+        if st.button(
+            "✅ Apply Plan to Simulation Config",
+            type="primary", key="agent3_apply_btn", use_container_width=True,
+        ):
+            _apply_agent3_plan(result)
+            n = len(result.get("rounds", []))
+            st.session_state.pop("agent3_result", None)
+            st.session_state["config_export_needs_update"] = True
+            st.session_state["agent3_apply_banner"] = f"Narrative plan applied — {n} rounds enriched with focus areas"
+            st.rerun()
+
+    with col_discard:
+        if st.button("✖ Discard", key="agent3_discard_btn", use_container_width=True):
+            st.session_state.pop("agent3_result", None)
+            st.rerun()
+
+
+def _apply_agent3_plan(result: dict):
+    """Write Agent 3 enriched rounds back into st.session_state.simulation_config.
+
+    Preserves ALL narrative metadata (per-round act info, topics_covered) plus
+    top-level plan artifacts (coverage, flags, summary, tension_pairs).
+    """
+    enriched_rounds = result.get("rounds", [])
+    if not enriched_rounds:
+        return
+
+    cfg = st.session_state.simulation_config
+    existing_map = {r["round_number"]: r for r in cfg.get("rounds", [])}
+
+    new_rounds = []
+    for er in enriched_rounds:
+        rnum = er.get("round_number")
+        base = existing_map.get(rnum, {"round_number": rnum})
+        # Overwrite planning fields; preserve any manually-set fields not in the plan
+        base["focus_area"]    = er.get("focus_area") or base.get("focus_area")
+        base["difficulty"]    = er.get("difficulty") or base.get("difficulty", "medium")
+        base["round_type"]    = er.get("round_type") or base.get("round_type", "both")
+        # time_pressure: preserve existing OR derive from difficulty
+        base["time_pressure"] = base.get("time_pressure") or (
+            "tight" if base["difficulty"] == "hard" else "normal"
+        )
+        # Store FULL narrative metadata as non-breaking underscore-prefixed extras
+        base["_title"]          = er.get("title", "")
+        base["_tension_pair"]   = er.get("tension_pair") or ""
+        base["_cascade_seed"]   = er.get("cascade_seed") or ""
+        base["_act"]            = er.get("act")
+        base["_act_label"]      = er.get("act_label", "")
+        base["_topics_covered"] = er.get("topics_covered", []) or []
+        new_rounds.append(base)
+
+    # Sort and re-index — force contiguous round_numbers starting at 1
+    new_rounds.sort(key=lambda r: r.get("round_number", 0))
+    for i, r in enumerate(new_rounds, start=1):
+        r["round_number"] = i
+
+    cfg["rounds"] = new_rounds
+    cfg["total_rounds"] = len(new_rounds)
+    # Top-level narrative metadata — previously only arc_title + act_labels
+    cfg["_narrative_arc_title"] = result.get("narrative_arc_title", "")
+    cfg["_act_labels"]          = result.get("act_labels", {})
+    cfg["_coverage"]            = result.get("coverage", {})
+    cfg["_tension_pairs"]       = result.get("tension_pairs", [])
+    cfg["_planning_flags"]      = result.get("flags", [])
+    cfg["_planning_summary"]    = result.get("summary", {})
+
+    # Explicit write-back (ensures Streamlit detects state change)
+    st.session_state.simulation_config = cfg

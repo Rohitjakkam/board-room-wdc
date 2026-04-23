@@ -277,6 +277,40 @@ IMPORTANT: Round {round_config['round_number']} must build on what happened in p
 Show consequences of earlier decisions. Escalate the complexity. Do NOT re-ask the same question.
 """
 
+    # Narrative metadata from Agent 3 (simulation planner) — optional but enriching
+    narrative_title = round_config.get("_title", "")
+    tension_pair    = round_config.get("_tension_pair", "")
+    cascade_seed    = round_config.get("_cascade_seed", "")
+    act_label       = round_config.get("_act_label", "")
+    topics_covered  = round_config.get("_topics_covered", []) or []
+
+    narrative_context = ""
+    if narrative_title or tension_pair or cascade_seed or act_label or topics_covered:
+        narrative_parts = []
+        if act_label:
+            narrative_parts.append(f"- Narrative act: {act_label}")
+        if narrative_title:
+            narrative_parts.append(f"- Planned round title: {narrative_title}")
+        if tension_pair:
+            narrative_parts.append(
+                f"- Board tension to dramatise: {tension_pair} "
+                "(ensure at least two options reflect the opposing sides of this tension)"
+            )
+        if cascade_seed:
+            narrative_parts.append(
+                f"- Cascade / seed for consequences in future rounds: {cascade_seed}"
+            )
+        if topics_covered:
+            topic_list = ", ".join(topics_covered[:6])
+            narrative_parts.append(
+                f"- Module topics this round must exercise: {topic_list} "
+                "(scenario should clearly test understanding of these)"
+            )
+        narrative_context = (
+            "\nNARRATIVE DESIGN (from simulation planner — weave these in):\n"
+            + "\n".join(narrative_parts) + "\n"
+        )
+
     return f"""You are a corporate governance simulation scenario generator.
 
 COMPANY: {company_data['company_name']}
@@ -302,7 +336,7 @@ ROUND CONFIGURATION:
 - Difficulty: {round_config['difficulty']}
 - Focus Area: {round_config.get('focus_area') or 'General'}
 - Round Type: {round_config['round_type']}
-{prev_context}
+{narrative_context}{prev_context}
 Generate a realistic boardroom scenario that:
 1. Presents a specific challenge or decision point relevant to the player's role
 2. Requires application of concepts from the module
@@ -310,6 +344,7 @@ Generate a realistic boardroom scenario that:
 4. Creates tension between different board member perspectives
 5. Is appropriate for the specified difficulty level
 6. Writes the scenario ONLY from {player_role['name']}'s perspective
+7. If a board tension pair is specified above, dramatise it in the options
 
 Format your response as:
 SCENARIO TITLE: [Title]

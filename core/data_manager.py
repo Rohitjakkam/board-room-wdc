@@ -163,6 +163,39 @@ def _assign_round_focus_areas(simulation_config: Dict, module_data: Dict) -> Non
                 round_cfg['focus_area'] = 'Advanced Application'
 
 
+def validate_simulation_data(company_data: Dict, module_data: Dict, simulation_config: Dict = None) -> List[str]:
+    """Return a list of validation error messages; empty list = valid."""
+    errors: List[str] = []
+    cd = company_data or {}
+    md = module_data or {}
+
+    if not cd.get("company_name"):
+        errors.append("Company name is required")
+    if len(cd.get("board_members", []) or []) < 1:
+        errors.append("At least 1 board member is required")
+    if len(cd.get("metrics", {}) or {}) < 3:
+        errors.append("At least 3 metrics are required")
+    if len(cd.get("current_problems", []) or []) < 1:
+        errors.append("At least 1 current problem is required")
+
+    if not md.get("module_name"):
+        errors.append("Module name is required")
+    if len(md.get("learning_objectives", []) or []) < 1:
+        errors.append("At least 1 learning objective is required")
+    if len(md.get("topics", []) or []) < 1:
+        errors.append("At least 1 topic is required")
+
+    if simulation_config:
+        rounds = simulation_config.get("rounds", [])
+        total  = simulation_config.get("total_rounds")
+        if total is not None and len(rounds) != total:
+            errors.append(
+                f"simulation_config: total_rounds={total} but rounds list has {len(rounds)} entries"
+            )
+
+    return errors
+
+
 def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str, simulation_config: Dict = None) -> str:
     """Save extracted data to Firestore. Returns document ID."""
     if simulation_config is None:
@@ -170,6 +203,13 @@ def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str
 
     # Auto-populate focus_area from module topics for any rounds that lack one
     _assign_round_focus_areas(simulation_config, module_data)
+
+    # Reject empty / under-populated data before writing to Firestore
+    errors = validate_simulation_data(company_data, module_data, simulation_config)
+    if errors:
+        msg = "Cannot save — fix these issues first:\n" + "\n".join(f"- {e}" for e in errors)
+        st.error(msg)
+        return None
 
     # Issue #15: Auto-rename if duplicate simulation name exists
     existing = [s for s in get_available_simulations() if s.get('session_name') == session_name]
@@ -194,8 +234,8 @@ def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str
             st.error("Database connection unavailable. Cannot save.")
             return None
         col.document(doc_id).set(data)
-        get_available_simulations.clear()
-        list_saved_sessions.clear()
+        _safe_cache_clear(get_available_simulations)
+        _safe_cache_clear(list_saved_sessions)
         return doc_id
     except Exception as e:
         logger.error(f"Error saving simulation: {e}")
@@ -203,11 +243,35 @@ def save_extracted_data(company_data: Dict, module_data: Dict, session_name: str
         return None
 
 
+def _reconcile_round_count(data: Dict) -> None:
+    """Ensure simulation_config.total_rounds matches len(rounds). Auto-repair on mismatch."""
+    cfg = data.get("simulation_config") or {}
+    rounds = cfg.get("rounds", []) or []
+    total  = cfg.get("total_rounds")
+
+    if total is None:
+        cfg["total_rounds"] = len(rounds)
+        return
+
+    if total != len(rounds):
+        logger.warning(
+            f"Round count mismatch: total_rounds={total} but rounds list has {len(rounds)}. "
+            f"Repairing to len(rounds)."
+        )
+        cfg["total_rounds"] = len(rounds)
+
+    # Re-index round_numbers to be contiguous 1..N
+    for i, r in enumerate(rounds, start=1):
+        if isinstance(r, dict):
+            r["round_number"] = i
+
+
 def load_extracted_data(doc_id: str) -> Optional[Dict]:
-    """Load simulation data and normalize metrics structure."""
+    """Load simulation data and normalize metrics + round count."""
     data = load_simulation_data(doc_id)
     if data:
         _normalize_metrics(data)
+        _reconcile_round_count(data)
     return data
 
 
@@ -248,8 +312,8 @@ def delete_session(doc_id: str) -> bool:
             st.error("Database connection unavailable.")
             return False
         col.document(doc_id).delete()
-        get_available_simulations.clear()
-        list_saved_sessions.clear()
+        _safe_cache_clear(get_available_simulations)
+        _safe_cache_clear(list_saved_sessions)
         return True
     except Exception as e:
         logger.error(f"Error deleting session: {e}")
@@ -258,26 +322,48 @@ def delete_session(doc_id: str) -> bool:
 
 
 def update_simulation(doc_id: str, data: Dict) -> bool:
-    """Update an existing simulation document in Firestore."""
+    """Update an existing simulation document in Firestore.
+
+    Uses full overwrite (not merge) to prevent stale keys from old schema versions
+    accumulating. `created_at` is preserved from the existing doc.
+    """
     try:
         col = _get_collection()
         if col is None:
             st.error("Database connection unavailable.")
             return False
-        # Issue #16: Check doc still exists before overwriting
-        doc = col.document(doc_id).get()
-        if not doc.exists:
+        doc_ref = col.document(doc_id)
+        existing = doc_ref.get()
+        if not existing.exists:
             st.warning("This simulation was deleted by another admin. Save cancelled.")
             return False
-        data['modified_at'] = datetime.now().isoformat()
-        col.document(doc_id).set(data, merge=True)
-        get_available_simulations.clear()
-        list_saved_sessions.clear()
+
+        # Preserve created_at from the original document; update modified_at
+        existing_data = existing.to_dict() or {}
+        data = dict(data)  # don't mutate caller's dict
+        if existing_data.get("created_at") and not data.get("created_at"):
+            data["created_at"] = existing_data["created_at"]
+        data["modified_at"] = datetime.now().isoformat()
+
+        # Full overwrite — stale top-level keys from old schemas get cleared
+        doc_ref.set(data)
+        _safe_cache_clear(get_available_simulations)
+        _safe_cache_clear(list_saved_sessions)
         return True
     except Exception as e:
         logger.error(f"Error updating simulation: {e}")
         st.error("Failed to update simulation. Please try again.")
         return False
+
+
+def _safe_cache_clear(func) -> None:
+    """Call .clear() on a streamlit-cached func; tolerate missing attribute (test context)."""
+    try:
+        clear = getattr(func, "clear", None)
+        if callable(clear):
+            clear()
+    except Exception:
+        pass
 
 
 def get_default_simulation_config() -> Dict:
