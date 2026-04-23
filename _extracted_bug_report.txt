@@ -1,0 +1,1357 @@
+Stellar Ascendant Group
+
+Full Page 1 Evaluation
+
+🔴 CRITICAL BUGS
+
+BUG 1 Multiple &quot;0.0 status&quot; Metrics Broken Data Throughout
+
+Image 3 shows these metrics all displaying &quot;0.0 status&quot;:
+
+Metric
+
+Displayed Value
+
+What It Should Be
+
+Updated potential liability range
+
+0.0 $M
+
+A dollar figure e.g. $12M–$28M
+
+Classification of Regulation B matter
+
+0.0 status
+
+Yes/No or &quot;Significant&quot; / &quot;Not Yet Classified&quot;
+
+Regulatory compliance status during risk report
+
+0.0 status
+
+A descriptive status label
+
+Disclosure status to OCC
+
+0.0 status
+
+Yes/No or &quot;Pending&quot; / &quot;Filed&quot;
+
+Size of loan portfolio
+
+0.0 count
+
+$ Billions completely wrong unit AND value
+
+These are all placeholder/broken fields a director seeing this dashboard would have no usable information 🔴
+
+BUG 2 Mission Objective: Non-Compliant Accounts TARGET is HIGHER than Current
+
+Current: 1,847 accounts non-compliant
+
+Target: 1,939.35 accounts 🔴
+
+The simulation is setting a goal to increase non-compliance this is the exact opposite of what a governance simulation should teach
+
+Also: 1939.35 a decimal on an account count makes no sense
+
+And &quot;1939.35accounts&quot; no space between number and unit
+
+BUG 3 Mission Objective: Board Packet Length Target is LONGER
+
+Current board packet: 214 pages
+
+Target: 224.7 pages ↑
+
+The goal is to make the board packet longer? Effective governance teaches that board packs should be concise and well-structured, not longer 🔴
+
+Also &quot;224.7pages&quot; no space, unnecessary decimal
+
+BUG 4 Mission Objective: Reserve Reduction Makes No Governance Sense
+
+Current reserve: $4.2M
+
+Target: $3.99M ↓
+
+The goal is to reduce the reserve set aside for a live regulatory compliance issue this is financially and legally dangerous framing
+
+A board would want to either resolve the non-compliance or adequately provision for it, not reduce the reserve 🔴
+
+BUG 5 &quot;Founded: Not specified&quot;
+
+The Company Brief explicitly shows Founded: Not specified
+
+This is clearly a missing data field unacceptable in a live simulation
+
+For a banking institution, founding year affects legacy culture, regulatory history, and director tenure context 🔴
+
+BUG 6 Majority of Directors Show &quot;Tenure: 0 years&quot;
+
+Director
+
+Tenure Shown
+
+Margaret &quot;Meg&quot; Harlow
+
+0 years
+
+Sandra Cho
+
+0 years
+
+Jonathan Marsh (CEO)
+
+0 years
+
+Patricia Delgado (CFO)
+
+0 years
+
+David Sung (CRO)
+
+0 years
+
+Company Secretary
+
+0 years
+
+6 out of 8 directors show 0 years tenure clearly unfilled data fields
+
+Only Richard Paxton (20 years) and Thomas Brennan (&quot;Longest serving years&quot;) have real values
+
+A CEO, CFO, and CRO with 0 years tenure at an $18B bank is not credible 🔴
+
+🟠 SERIOUS CONTENT ISSUES
+
+ISSUE 7 Company Brief is Too Thin for a Banking Simulation
+
+The brief is only 2 sentences. For a board audience in banking, they need:
+
+Ownership/listing status (public? private? mutual?)
+
+Geographic footprint
+
+Key business lines (retail, commercial, mortgage, wealth?)
+
+Regulatory supervisors (OCC? Federal Reserve? FDIC?)
+
+Recent performance context
+
+Employee count
+
+Without this, directors cannot make credible governance decisions 🟠
+
+ISSUE 8 Company Secretary Listed as a Playable Board Role
+
+Company Secretary is not a board member they are an officer who attends meetings but does not vote or make board decisions
+
+A learner &quot;playing as Company Secretary&quot; would be playing a non-director role in a directors' simulation this is a governance accuracy issue
+
+Should either be removed from playable roles or clearly labelled as &quot;Non-voting Attendee&quot; 🟠
+
+ISSUE 9 CEO and CFO as Playable &quot;Board Roles&quot; Without Executive Director Label
+
+Jonathan Marsh (CEO) and Patricia Delgado (CFO) are listed as board members, but their cards don't say &quot;Executive Director&quot;
+
+Their role cards just say &quot;CEO&quot; and &quot;CFO&quot; in governance terms this matters enormously
+
+The simulation should distinguish: Independent Director / Non-Executive Director / Executive Director 🟠
+
+ISSUE 10 Key Metrics Are Not Banking-Relevant
+
+The metrics shown are mostly about the compliance issue itself, not the bank's performance. A banking board dashboard should include:
+
+Missing Metric
+
+Why It Matters for Directors
+
+Capital Adequacy Ratio (CAR)
+
+Regulatory minimum requirement
+
+Net Interest Margin (NIM)
+
+Core banking profitability
+
+Non-Performing Assets (NPA) ratio
+
+Credit risk health
+
+Return on Assets (ROA) / Return on Equity (ROE)
+
+Shareholder value
+
+Loan-to-Deposit Ratio
+
+Liquidity risk
+
+Cost-to-Income Ratio
+
+Operational efficiency
+
+None of these appear the dashboard feels generic, not banking-specific 🟠
+
+ISSUE 11 &quot;Challenging rate environment: 1.0 status&quot;
+
+A qualitative observation (&quot;challenging rate environment&quot;) is being forced into a numeric &quot;status&quot; field showing 1.0
+
+This makes no sense as a metric it should either be a narrative note or removed from the metrics dashboard 🟠
+
+ISSUE 12 Stray 🔗 Link Icons on Two Headings
+
+&quot;Current Challenges 🔗&quot; (Image 2)
+
+&quot;Select Your Role 🔗&quot; (Image 4)
+
+Same rendering bug as Stellar Ascendant stray markdown anchor tags 🟠
+
+🟡 MEDIUM ISSUES
+
+#
+
+Issue
+
+13
+
+Unnecessary decimals everywhere &quot;14.0 directors&quot;, &quot;214.0 pages&quot;, &quot;1847.0 accounts&quot; whole numbers should display as integers
+
+14
+
+Learning Objectives appear too late after metrics and mission objectives, by which point the learner has scrolled through confusing data. Should be at the top
+
+15
+
+&quot;Total number of directors present: 14&quot; seems high for an $18B regional bank. Typical boards are 8–12 members. 14 should be justified or corrected
+
+16
+
+Sandra Cho: Tenure 0 years as Audit Committee Chair Audit Committee chairs typically need experience. 0 years tenure is contradictory to the role
+
+17
+
+Thomas Brennan tenure: &quot;Longest serving years&quot; vague. Should be an actual number of years
+
+18
+
+&quot;Play as Company Secretary&quot; The Company Secretary facilitating a board meeting as a learner role blurs the governance learning a learner should always play a director
+
+🆕 WHAT SHOULD BE ADDED
+
+#
+
+Addition
+
+Why
+
+1
+
+Bank-specific metrics CAR, NIM, NPA, ROE, Cost-to-Income
+
+Makes the simulation credible for banking professionals
+
+2
+
+Founding year in Company Brief
+
+Basic company context
+
+3
+
+Regulatory supervisor identified OCC? Federal Reserve?
+
+Banking governance is regulator-specific
+
+4
+
+Executive Director labels on CEO and CFO board cards
+
+Governance accuracy
+
+5
+
+Real tenure values for all directors
+
+Credibility and role context
+
+6
+
+Scenario: What is Regulation B? A brief one-liner explaining it
+
+Not all learners will know US banking regulation
+
+📋 PRIORITY SUMMARY FOR ROHIT CLEARWATER PAGE 1
+
+Priority
+
+Issue
+
+🔴 Critical
+
+Non-compliant accounts target HIGHER than current fix direction
+
+🔴 Critical
+
+5 metrics showing &quot;0.0 status&quot; broken/empty data fields
+
+🔴 Critical
+
+Board packet target longer than current fix direction
+
+🔴 Critical
+
+Reserve reduction target is poor governance framing fix
+
+🔴 Critical
+
+Founded: Not specified fill in
+
+🔴 Critical
+
+6 directors showing Tenure: 0 years fill in real values
+
+🟠 Serious
+
+Company Secretary as playable board role governance inaccuracy
+
+🟠 Serious
+
+CEO/CFO not labelled as Executive Directors
+
+🟠 Serious
+
+Key Metrics not banking-specific missing CAR, NIM, NPA, ROE
+
+🟠 Serious
+
+Company Brief too thin needs ownership, geography, regulators
+
+🟠 Serious
+
+&quot;1.0 status&quot; for rate environment meaningless metric
+
+Page 2 : 
+
+🔴 CRITICAL BUGS
+
+BUG 1 Same Broken Metrics Carried Over Still Showing &quot;0.0 status&quot;
+
+All the broken data fields from Page 1 are still visible here and not fixed in this view:
+
+Metric
+
+Value
+
+Updated potential liability range
+
+0.0 $M
+
+Classification of Regulation B
+
+0.0 status
+
+Regulatory compliance status
+
+0.0 status
+
+Disclosure to OCC
+
+0.0 status
+
+Size of loan portfolio
+
+0.0 count
+
+For Richard Paxton specifically as Lead Independent Director, the regulatory liability range and OCC disclosure status are the most critical metrics he needs. Both are broken. 🔴
+
+BUG 2 Dashboard is Identical for Every Role Not Personalised
+
+Richard Paxton as Lead Independent Director should see a dashboard prioritising:
+
+Regulatory compliance status
+
+OCC disclosure status
+
+Board independence metrics
+
+Reserve adequacy
+
+Instead he sees the exact same generic dashboard as every other role
+
+Same issue flagged in Stellar Ascendant still not resolved here 🔴
+
+BUG 3 Stray 🔗 Icon on &quot;Initial Scenario&quot; Heading
+
+&quot;Initial Scenario 🔗&quot; same rendering bug appearing again (Image 2)
+
+Now seen on: Current Challenges, Select Your Role, and Initial Scenario headings
+
+This is a systemic markdown rendering bug across the entire platform 🔴
+
+🟠 SERIOUS ISSUES
+
+ISSUE 4 Page Order Problem Persists
+
+The order is: Dashboard → Challenges → Scenario → Start Simulation
+
+For a Lead Independent Director specifically, the correct flow should be:
+
+Your Role &amp; Responsibilities as Lead ID
+
+Scenario (what situation are you walking into)
+
+Challenges (context)
+
+Key metrics relevant to your role
+
+Start Simulation
+
+Richard Paxton as Lead Independent Director has a very specific governance responsibility in this scenario he is the person Meg Harlow should ideally escalate to. This context should be surfaced before anything else. 🟠
+
+ISSUE 5 No Role-Specific Brief for Richard Paxton
+
+As Lead Independent Director, Richard should have a pre-simulation note covering:
+
+His specific duty when a new director raises a compliance concern
+
+His relationship with the CEO (noted as &quot;concerned with CEO relations&quot; in his card)
+
+His responsibility to protect the board's independence from management influence
+
+What the Lead Independent Director's role is in an emergency escalation
+
+None of this is surfaced the learner playing Richard has no lens going in 🟠
+
+ISSUE 6 &quot;14.0 directors&quot; Present Whole Number with Decimal
+
+Still displaying as 14.0 directors should be 14
+
+Same decimal issue across all whole numbers systemic 🟠
+
+ISSUE 7 Scenario Doesn't Shift Perspective for Richard Paxton
+
+The scenario text is identical regardless of which role you choose
+
+It reads from Meg Harlow's perspective: &quot;Margaret 'Meg' Harlow, a new board director...&quot;
+
+When playing as Richard Paxton, the scenario should be reframed: &quot;As Richard Paxton, Lead Independent Director, you've just been approached by a newly appointed director who has flagged a potential compliance issue buried in the board pack...&quot;
+
+This is the same personalisation gap as Stellar Ascendant 🟠
+
+🟡 MEDIUM ISSUES
+
+#
+
+Issue
+
+8
+
+&quot;View All Metrics&quot; checkbox icon same wrong UI element as Stellar Ascendant, should be an expand arrow
+
+9
+
+No indication of simulation structure before Start how many rounds, what type of decisions, time pressure
+
+10
+
+Challenges list identical to Page 1 no filtering or highlighting for Richard Paxton's specific responsibilities. Challenge #6 (&quot;New director dynamic&quot;) and #8 (&quot;CEO perception of detailed inquiries&quot;) are directly in his domain as Lead ID but not highlighted
+
+11
+
+&quot;Initial Scenario&quot; section header appears below Challenges same order issue. Scenario should contextualise the challenges, not follow them
+
+📋 PAGE 3 PRIORITY SUMMARY FOR ROHIT CLEARWATER
+
+Priority
+
+Issue
+
+🔴 Critical
+
+5 broken &quot;0.0 status&quot; metrics still showing unfilled data
+
+🔴 Critical
+
+Dashboard not personalised to Richard Paxton's role
+
+🔴 Critical
+
+Stray 🔗 icon on &quot;Initial Scenario&quot; heading systemic bug
+
+🟠 Serious
+
+No role-specific brief for Richard Paxton before simulation
+
+🟠 Serious
+
+Scenario text not reframed for Richard Paxton's perspective
+
+🟠 Serious
+
+Whole numbers showing decimals throughout (14.0, 214.0, 1847.0)
+
+🔴 CRITICAL ISSUES
+
+ISSUE 1 Time Pressure: Normal vs Time Sensitivity: High Same Contradiction
+
+Key Question panel: Time Sensitivity: High
+
+Timer label: Time Pressure: Normal
+
+Flagged in Stellar Ascendant still not fixed here
+
+These two must be aligned a learner gets contradictory urgency signals 🔴
+
+ISSUE 2 Option A Has a Governance Concern Not Flagged
+
+Option A asks Richard Paxton to directly question the CEO and CRO during the &quot;Compliance Update&quot; agenda item in the full board meeting.
+
+For a Lead Independent Director, this approach has a serious governance risk:
+
+Confronting the CEO publicly in front of the full board without prior private escalation can damage management-board trust irreparably
+
+Standard governance practice: Lead ID speaks to CEO privately first, then escalates formally if needed
+
+The simulation should either flag this risk or make it a learning point as written, Option A could teach the wrong escalation sequence 🔴
+
+ISSUE 3 Option C Governance Issue Special Meeting Request
+
+Option C says: &quot;Immediately after the current meeting, approach the Company Secretary to formally request a special board meeting&quot;
+
+The Lead Independent Director does not request a special meeting via the Company Secretary he has the standing to call for it directly or raise it with the Chairman
+
+Routing through the Company Secretary for a matter of this gravity understates the Lead ID's authority
+
+This subtly teaches an incorrect governance escalation path 🔴
+
+ISSUE 4 Consultation Section Same Broken UX as Stellar Ascendant
+
+&quot;Ask Board Member(s)&quot; button is greyed out with no explanation
+
+&quot;Speak&quot; button appears before a member is selected
+
+No indication of what the 1/1 Director limit means
+
+Identical unresolved issue from the previous simulation 🔴
+
+ISSUE 5 Round Label Text is Highlighted/Selected in Image 1
+
+&quot;Round 1 of 5 | Difficulty: Medium | Focus: Purpose of Board Meetings&quot; appears with a blue text selection highlight
+
+This appears to be a UI rendering bug looks like the text is accidentally selected on page load
+
+Minor visually but unprofessional in a live tool 🔴
+
+🟠 SERIOUS ISSUES
+
+ISSUE 6 Scenario is Excellent But Has No &quot;Key Facts&quot; Summary
+
+The scenario is one very long, dense paragraph rich in detail but hard to absorb in under 10 minutes with a timer running. Specific facts a director needs:
+
+The failure has been present for 2 quarters buried
+
+Reserve is $4.2M potentially insufficient
+
+It's listed as a consent agenda item meaning it was designed to pass without discussion
+
+These 3 facts are game-changing but buried in flowing prose. A 3-bullet Key Facts box at the top would dramatically improve learning effectiveness 🟠
+
+ISSUE 7 Option B Governance Accuracy Issue
+
+Option B says: &quot;Propose to the board that the full board formally requests Sandra Cho (Chair of Audit Committee) and her committee to conduct an immediate, in-depth review&quot;
+
+In practice, the Lead Independent Director does not need a full board resolution to ask the Audit Committee Chair to look into something he can do this directly and bilaterally
+
+Going to the full board first before speaking to the Audit Chair is procedurally heavy and unusual
+
+The more accurate governance path: Richard speaks to Sandra Cho privately first, then brings a formal motion if needed
+
+This is a subtle but important governance accuracy point for a director audience 🟠
+
+ISSUE 8 No Explanation of Director/Committee/Revise Counters
+
+Still showing Director: 1/1 | Committee: 1/1 | Revise: 1/1 with zero explanation
+
+Same issue flagged in Stellar Ascendant not resolved 🟠
+
+ISSUE 9 &quot;Compliance Update&quot; Listed as Consent Agenda Item
+
+This is mentioned correctly in the scenario as a problem but the simulation doesn't teach what a consent agenda is or why listing a compliance matter there is problematic.
+
+For aspiring directors who may not know, a one-line explanation would be a powerful learning moment:
+
+&quot;Consent agenda items are typically approved without discussion placing a material compliance issue here effectively suppresses board debate&quot;
+
+This is a missed teaching opportunity 🟠
+
+ROUND 1 PRIORITY SUMMARY CLEARWATER
+
+Priority
+
+Issue
+
+🔴 Critical
+
+Time Sensitivity: High vs Time Pressure: Normal contradiction
+
+🔴 Critical
+
+Option A teaches wrong escalation sequence for Lead ID
+
+🔴 Critical
+
+Option C misroutes special meeting request through Company Secretary
+
+🔴 Critical
+
+Round label text appears selected/highlighted on page load
+
+🔴 Critical
+
+Consultation UX broken same unresolved issue from Stellar Ascendant
+
+🟠 Serious
+
+No Key Facts summary box scenario too dense for timed reading
+
+🟠 Serious
+
+Option B procedurally heavy Lead ID should speak to Audit Chair directly first
+
+🟠 Serious
+
+Director/Committee/Revise counters still unexplained
+
+🟠 Serious
+
+Consent agenda concept not explained missed teaching moment
+
+ HYPERLINK &quot;https://board-room-wdc.streamlit.app/aurora-synapse-systems-pvt-ltd&quot; 🏢
+
+ HYPERLINK &quot;https://board-room-wdc.streamlit.app/aurora-synapse-systems-pvt-ltd&quot; Aurora Synapse Systems Pvt. Lt
+
+TEST 
+
+PRIORITY SUMMARY FOR ROHIT — AURORA SYNAPSE
+
+       Priority
+
+Issue
+
+🔴 Critical
+
+&quot;Founded: Not specified&quot; — value is in the text but not in the header field
+
+🔴 Critical
+
+Carbon Footprint target direction is wrong — moving from -11% to -6.2% is worsening
+
+🔴 Critical
+
+Dr. Marcus Feld (CTO) — Expertise listed as &quot;Finance&quot; — should be Technology
+
+🔴 Critical
+
+&quot;Customer Advocate Director&quot; — not a recognised board designation
+
+🔴 Critical
+
+&quot;Investor Director&quot; — should be &quot;Nominee Director&quot; per Companies Act
+
+🟠 Serious
+
+Chair-CEO combined role not flagged as governance issue despite IPO context
+
+🟠 Serious
+
+No Lead Independent Director designated
+
+🟠 Serious
+
+Arjun Patel (Observer) is playable without voting rights disclaimer
+
+🟠 Serious
+
+Learning Objectives misaligned with scenario content — appears to be wrong module
+
+🟠 Serious
+
+Key Metrics too thin — missing churn, NRR, deployment frequency, compliance debt
+
+PAGE 2 PRIORITY SUMMARY FOR ROHIT — AURORA
+
+Priority
+
+Issue
+
+🔴 Critical
+
+Dashboard not personalised to Elena Kovács — financial metrics shown first, EU/compliance metrics buried
+
+🔴 Critical
+
+Data Privacy Incident Count: 0.0 — contradicts 3 open high-severity risks
+
+🔴 Critical
+
+Stray 🔗 icon on &quot;Initial Scenario&quot; — platform-level bug, fourth simulation affected
+
+🔴 Critical
+
+1280.0 employees — unnecessary decimal, systemic issue
+
+🟠 Serious
+
+No role-specific brief for Elena Kovács
+
+🟠 Serious
+
+Page order — Scenario still buried below Dashboard and Challenges
+
+🟠 Serious
+
+Diversity Ratio — unclear if board or company-wide, number doesn't match visible board composition
+
+🟠 Serious
+
+Carbon Footprint metric direction still unresolved from Page 1
+
+🟠 Serious
+
+&quot;Infrastructure Cost Efficiency&quot; label too vague for board use
+
+Page 3 : 
+
+🔴 CRITICAL BUGS
+
+BUG 1 — Option C is Cut Off — Text Incomplete
+
+Both Image 2 and Image 3 show Option C ending with:
+
+&quot;...I would expect Ananya Rao, our Chairperson &amp; CEO, to present potential strategic partners and the framework for such an&quot;
+
+The sentence is cut off mid-word — &quot;such an&quot; has no completion. This is a significant content rendering bug. A learner cannot evaluate Option C without reading the full text. 🔴
+
+BUG 2 — Only 3 Options Instead of 4
+
+All previous simulations (Stellar Ascendant, Clearwater) had 4 decision options
+
+Aurora Round 1 has only 3 options — and one of them is cut off
+
+Either a 4th option is missing entirely, or Option C's overflow is hiding it
+
+The asymmetric layout (Option C spans full width alone at the bottom) suggests a 4th option was intended but is missing 🔴
+
+BUG 3 — Stray 🔗 Icon on &quot;Scenario&quot; Heading
+
+Image 1: &quot;Scenario 🔗&quot; — same rendering bug
+
+Now appearing on Scenario headings in addition to &quot;Current Challenges&quot;, &quot;Select Your Role&quot;, &quot;Initial Scenario&quot;
+
+This is confirmed as a platform-wide systemic bug affecting every heading across all simulations 🔴
+
+BUG 4 — Time Pressure: Normal vs Time Sensitivity: High — Same Contradiction
+
+Timer: Time Pressure: Normal
+
+Key Question panel: &quot;High. The client's ultimatum...&quot;
+
+Same unresolved contradiction flagged in Stellar Ascendant and Clearwater
+
+Still not fixed across any simulation 🔴
+
+BUG 5 — Consultation UX Still Broken
+
+&quot;Ask Board Member(s)&quot; button greyed out with no explanation
+
+&quot;Speak&quot; button active before any member is selected
+
+Director: 1/1 counter unexplained
+
+Identical unresolved issue — fourth simulation in a row 🔴
+
+🟠 SERIOUS ISSUES
+
+ISSUE 6 — Round Focus Mismatch
+
+Round label: &quot;Focus: Company Formation and Types&quot;
+
+Scenario: About EU legal entity structure, GDPR compliance, BFSI client ultimatum
+
+These are actually well-aligned — the scenario IS about company formation types (branch vs. subsidiary vs. joint venture). However the Round Focus label is too academic — it sounds like a textbook chapter, not a board session.
+
+For a director audience, it should read: &quot;Focus: EU Legal Structure &amp; Regulatory Compliance&quot; — this is what they're actually deciding, and it's more compelling than the course module title. 🟠
+
+ISSUE 7 — Scenario Has Two Dense Paragraphs With No Key Facts Summary
+
+Paragraph 1: Client ultimatum in Berlin
+
+Paragraph 2: Connects to broader growth-trust paradox and board division
+
+Both are well-written but dense. With a 10-minute timer, a learner needs:
+
+Key Fact 1: German BFSI client has escalated to legal entity challenge
+
+Key Fact 2: Future EU sales contingent on resolution
+
+Key Fact 3: Board is divided — Rajiv (growth) vs. Kavita/Thomas (caution)
+
+A 3-bullet summary box at the top would make this significantly more usable under time pressure. 🟠
+
+ISSUE 8 — Option Layout is Asymmetric and Inconsistent
+
+Options A and B: Side by side (2-column)
+
+Option C: Full width alone (1-column)
+
+This asymmetry visually suggests Option C is less important or an afterthought
+
+All options should have equal visual weight — either all 2-column or all displayed equally 🟠
+
+ISSUE 9 — Option A Governance Concern
+
+Option A says: &quot;I would ask Kavita Mehra, our Independent Director for Compliance &amp; Law, to outline the specific legal and procedural enhancements required&quot;
+
+Elena Kovács asking another Independent Director to do the work is unusual — as the EU Markets director, Elena herself should be leading or co-leading this analysis
+
+This option slightly undermines Elena's own authority and expertise in the EU context
+
+Should be framed as: &quot;I would propose that Kavita Mehra and I jointly lead an assessment...&quot; 🟠
+
+ISSUE 10 — Option B Assigns CFO to Lead Legal Formation
+
+Option B: &quot;I would look to Kavita Mehra to lead the legal formation roadmap and Sanjay Kulkarni, our CFO, to present the detailed financial implications&quot;
+
+CFO presenting financial implications of a subsidiary formation is correct ✅
+
+But having Kavita Mehra lead the legal formation roadmap without Elena's involvement again sidelines the EU Markets director from her own domain
+
+Elena should be the primary driver of EU legal structure decisions 🟠
+
+🟡 MEDIUM ISSUES
+
+#
+
+Issue
+
+11
+
+&quot;Our Chairperson &amp; CEO&quot; — Elena referring to Ananya Rao as &quot;our&quot; Chairperson reinforces the combined Chair-CEO role without flagging its governance implications
+
+12
+
+No indication of which option best aligns with Elena's mandate — Option B (full subsidiary) is most aligned with her risk-first EU approach, but no signal is given
+
+13
+
+Duplicate &quot;Speak&quot; button — appears twice again above and below decision text box
+
+14
+
+No consequence preview — what dimensions will this decision impact? Legal risk? Revenue? Customer trust?
+
+15
+
+&quot;Write your own decision&quot; box — still no structured template for board-standard decision writing
+
+ROUND 1 PRIORITY SUMMARY FOR ROHIT — AURORA
+
+Priority
+
+Issue
+
+🔴 Critical
+
+Option C text cut off mid-sentence — learner cannot read full option
+
+🔴 Critical
+
+Only 3 options — 4th option likely missing entirely
+
+🔴 Critical
+
+Stray 🔗 icon on &quot;Scenario&quot; heading — now on all headings platform-wide
+
+🔴 Critical
+
+Time Pressure: Normal vs Time Sensitivity: High — still unresolved
+
+🔴 Critical
+
+Consultation UX broken — same issue across all 4 simulations
+
+🟠 Serious
+
+Round Focus label too academic — should reflect the actual board decision
+
+🟠 Serious
+
+No Key Facts summary — scenario too dense for timed reading
+
+🟠 Serious
+
+Option layout asymmetric — Option C shown full-width alone
+
+🟠 Serious
+
+Options A and B sideline Elena from her own EU domain
+
+NEXt 
+
+🔴 BUGS IN THIS SECTION
+
+BUG 1 — Decision Options Disappeared
+
+In Image 2, the &quot;Your Decision&quot; section shows only the free-text box — the 4 option cards (A, B, C) are completely gone
+
+The learner cannot see which option they selected or change it
+
+This appears to be a rendering issue when the Board Deliberation loads 🔴
+
+BUG 2 — Supporting: 0, Convinced: 0 With No Decision Selected
+
+The scoreboard shows Supporting: 0, Opposing: 3, Neutral: 6, Convinced: 0
+
+But no decision was actually submitted — the options disappeared
+
+The deliberation triggered before a decision was made 🔴
+
+BUG 3 — Dr. Marcus Feld Expertise Still Shows &quot;Finance&quot;
+
+In Image 4: &quot;Expertise: Finance&quot; for the CTO
+
+Previously flagged — still not fixed 🔴
+
+BUG 4 — Counter-opinion Text Colour
+
+The counter-opinion text in Images 4 &amp; 5 is in red/orange colour
+
+Red typically signals danger or error — a counter-opinion is a valid board perspective, not an error
+
+Should be in blue or neutral grey 🟠
+
+BUG 5 — &quot;Debate with Dr. Marcus Feld (Exchange 1 of 3)&quot;
+
+Great feature — but 3 exchanges with 3 dissenters = 9 total exchanges
+
+On top of reading the scenario, consulting, and deciding — this may be too many steps within one round
+
+With only 10 minutes on the clock, a learner cannot realistically do all of this 🟠
+
+🌟 SERIOUS CONTENT OBSERVATION
+
+Kavita Mehra (Compliance &amp; Law) is OPPOSING — this is surprising and needs checking. As the compliance director, Kavita should actually support strengthening the EU legal structure. Her opposing stance needs a strong rationale — is it because she opposes Option C (partnership) specifically? Or the entire approach? This should be clear before the learner debates her.
+
+🔴 BUGS FOUND
+
+BUG 1 — Kavita Mehra is listed as OPPOSING — but her Counter-opinion SUPPORTS Option B
+
+She says: &quot;I strongly believe we should pursue Option B...I would be willing to lead the legal formation roadmap&quot;
+
+She is not opposing Option B — she is opposing Option C (the partnership)
+
+Her status should show SUPPORTS with concerns about Option C — not blanket OPPOSES
+
+This is a logic error in the deliberation engine — her stance label contradicts her actual position 🔴
+
+BUG 2 — Rajiv Malhotra's Quote References &quot;A Partnership&quot;
+
+Rajiv says: &quot;A partnership? That's a dilution of our control...&quot;
+
+But if Elena chose Option B (subsidiary), there is no partnership involved
+
+Rajiv is responding to Option C, not Option B
+
+The deliberation engine appears to be showing pre-written objections regardless of which option was selected 🔴
+
+BUG 3 — Counter-opinion Text Still in Red/Orange
+
+Both Kavita and Rajiv's counter-opinions displayed in red
+
+Red = error/danger in standard UX — should be neutral blue 🟠
+
+BUG 4 — &quot;Kavita Mehra — OPPOSES (waiting)&quot; Still Shows in Rajiv's Screen
+
+Image 2 shows Kavita still listed as OPPOSES even after her debate presumably concluded
+
+The status should update after each debate exchange is completed 🟠
+
+🎮 NOW LET'S PLAY — Debate Responses
+
+💬 RESPONSE TO KAVITA MEHRA
+
+Kavita's concern: Outsourcing compliance to a partner dilutes control over data governance
+
+Her counter-opinion already agrees with Option B — so Elena needs to acknowledge this alignment and close the debate:
+
+&quot;Kavita, I believe we are actually in complete agreement. My proposal is Option B — establishing a German GmbH subsidiary — not a third-party partnership. A fully-fledged subsidiary keeps our compliance strategy entirely in-house, with local legal accountability and full data sovereignty. There is no outsourcing involved. In fact, your offer to lead the legal formation roadmap is exactly what I was going to propose. Your expertise in compliance will be critical to ensuring we are compliant from day one. I formally second your involvement as the lead on this initiative.&quot;
+
+💬 RESPONSE TO RAJIV MALHOTRA
+
+Rajiv's concern: Partnership dilutes valuation and slows IPO timeline
+
+Again — Rajiv is arguing against Option C, while Elena chose Option B. Elena needs to correct the framing AND address his real concern about IPO timing:
+
+&quot;Rajiv, I share your concern about valuation and the IPO narrative — which is precisely why I am not proposing a partnership. A subsidiary is the opposite of dilution — it is a demonstration of commitment and market seriousness in the EU. Let me put it this way: when investors evaluate our IPO prospectus, they will scrutinise our regulatory standing in every market we operate in. A branch office with unresolved GDPR exposure and a client ultimatum on record is a far greater threat to our IPO valuation than the upfront cost of establishing a GmbH. We are not slowing growth — we are building the legal foundation that makes growth sustainable and defensible to public market investors.&quot;
+
+📋 BUGS SUMMARY — BOARD DELIBERATION ENGINE
+
+Priority
+
+Bug
+
+🔴 Critical
+
+Kavita labelled OPPOSES but her counter-opinion supports Option B — logic error
+
+🔴 Critical
+
+Rajiv's objection references &quot;a partnership&quot; when Option B has no partnership — pre-written responses not adapting to selected option
+
+🟠 Serious
+
+Counter-opinion text in red — should be neutral colour
+
+🟠 Serious
+
+Kavita's status not updating after debate completion
+
+🌟 BIG PICTURE OBSERVATION FOR ROHIT
+
+The Board Deliberation feature is conceptually brilliant — the best feature in the entire platform. But there is one fundamental engine issue:
+
+The objections appear to be pre-written for Option C and are not dynamically adapting to whichever option the learner actually chose.
+
+If a learner chooses Option A or B, they should receive objections relevant to that choice — not objections about a partnership they didn't select. This needs to be fixed at the deliberation engine level, not just content level.
+
+After submitting first response 👍
+
+🔴 CRITICAL BUGS
+
+BUG 1 — Scoring System Evaluated the WRONG Decision
+
+This is the most serious bug in the entire simulation.
+
+The feedback says:
+
+&quot;The decision to explore a partnership without deeper investigation shows superficial understanding&quot;
+
+&quot;Lack of specifics about the partnership's legal structure&quot;
+
+&quot;Ignoring Internal Capabilities: The player dismisses establishing a subsidiary&quot;
+
+Business Impact: &quot;The partnership approach, while potentially diluting control...&quot;
+
+But Elena chose Option B — the German GmbH Subsidiary — NOT Option C (partnership).
+
+The scoring engine has evaluated Option C (partnership) instead of Option B (subsidiary). This is the same bug seen in the deliberation engine — the system is scoring against a pre-fixed &quot;assumed&quot; decision, not the actual decision made.
+
+This completely destroys the learning feedback loop — the most critical feature of the simulation. 🔴
+
+BUG 2 — Metric Changes Reflect Option C, Not Option B
+
+Metric Change Shown
+
+What It Reflects
+
+&quot;Partnership could unlock new revenue streams&quot;
+
+Option C language
+
+&quot;Partnership should help accelerate expansion&quot;
+
+Option C language
+
+&quot;Reliance on partner's systems introduces new risks&quot;
+
+Option C language
+
+&quot;Partner provides compliance expertise&quot;
+
+Option C language
+
+&quot;Partner provides more efficient market access&quot;
+
+Option C language
+
+Every single metric explanation references &quot;partnership&quot; — confirming the system scored Option C throughout 🔴
+
+BUG 3 — Data Privacy Incident Count shows &quot;-1.0count&quot;
+
+Displaying as &quot;-1.0count&quot; — no space between number and unit
+
+Should read &quot;-1 incident&quot; or &quot;Reduced by 1&quot;
+
+Same decimal and spacing issue seen throughout all simulations 🔴
+
+BUG 4 — &quot;Employee Count: +2.0employees&quot;
+
+No space between number and unit — &quot;+2.0employees&quot; should be &quot;+2 employees&quot;
+
+Same formatting bug 🔴
+
+BUG 5 — &quot;Open High Severity Risks: -2.0count&quot;
+
+&quot;-2.0count&quot; — same formatting issue
+
+Also: reducing from 3 to 1 open high-severity risk via a partnership decision is a very optimistic assumption — needs justification 🔴
+
+🟠 SERIOUS CONTENT ISSUES
+
+ISSUE 6 — Score Dimensions Don't Add Up to 100
+
+Dimension
+
+Points
+
+Governance Understanding
+
+15 pts
+
+Legal/Regulatory Compliance
+
+10 pts
+
+Stakeholder Consideration
+
+15 pts
+
+Strategic Thinking
+
+15 pts
+
+Role Alignment
+
+10 pts
+
+Total shown
+
+65 pts
+
+But 15+10+15+15+10 = 65 — so the score IS the sum of what was awarded, but the maximum possible from these five dimensions is only 65? That can't be right for a /100 scale.
+
+There must be additional dimensions not shown (perhaps decision quality, debate performance, consultation usage) — but they're invisible to the learner. What are the remaining 35 points? A director receiving a 65/100 with no explanation of the missing 35 points cannot improve. 🟠
+
+ISSUE 7 — Strengths Section is Very Thin
+
+Only one strength mentioned: &quot;The player recognizes the severity of the situation and the time sensitivity&quot;
+
+Four areas for improvement
+
+For a 65/100 score, there should be at least 2-3 strengths to balance the feedback
+
+Heavy criticism without adequate recognition is poor adult learning pedagogy 🟠
+
+ISSUE 8 — &quot;Areas for Improvement&quot; Point 4 is Contradictory
+
+&quot;Ignoring Internal Capabilities: The player dismisses the option of building internal compliance capabilities or establishing a subsidiary without sufficient consideration&quot;
+
+But Elena chose the subsidiary (Option B) — this feedback point directly contradicts the decision made. Further confirming Bug 1 — the system scored the wrong option. 🟠
+
+ISSUE 9 — Business Impact Text References Partnership Throughout
+
+&quot;The partnership approach, while potentially diluting control, offers a faster route to market and shared risk&quot;
+
+This entire Business Impact paragraph is written for Option C, not Option B. A subsidiary decision would have completely different business impact language — higher upfront cost, full control, no dilution, stronger regulatory standing. 🟠
+
+ISSUE 10 — &quot;Support Ticket CSAT: +1.0/5&quot;
+
+Displayed as &quot;+1.0/5&quot; — what does this mean?
+
+Is the CSAT going from 4.5 to 5.5/5? That's impossible on a /5 scale
+
+Or is it improving by 1 point on a 5-point scale? That's a 20% improvement from one board decision — unrealistic
+
+The metric label and value need clarification 🟠
+
+ISSUE 11 — &quot;Customer Acquisition Cost: -2.0L ₹&quot;
+
+Unit is &quot;L ₹&quot; (Lakhs) — inconsistent with other metrics shown in Cr ₹ (Crores)
+
+Mix of Lakhs and Crores in the same dashboard is confusing and unprofessional 🟠
+
+Aurora
+
+Aurora Round 2 : 
+
+COMMITTEES THAT SHOULD EXIST — Tell Rohit to Add These
+
+Committee
+
+Why Needed for This Round
+
+Audit Committee
+
+MOA amendments affect financial reporting obligations
+
+Legal &amp; Compliance Committee
+
+Directly owns MOA/AOA — most critical for this round
+
+Risk Committee
+
+MOA changes carry legal and operational risk
+
+Nomination &amp; Governance Committee
+
+Constitutional document changes are governance matters
+
+Stakeholders Relationship Committee
+
+✅ Already present — handles investor/partner relations
+
+For Round 2 specifically, the most important missing committee is Legal &amp; Compliance — it's the most directly relevant to a MOA/AOA question. 🔴
+
+🟠 SERIOUS ISSUE
+
+&quot;Stakeholders Relationship Committee&quot; is the WRONG committee to consult for this question
+
+The MOA/AOA amendment question is about legal structure and constitutional documents — not stakeholder relations. Consulting this committee for a MOA question is like asking HR about financial audits.
+
+The correct committee should be Legal &amp; Compliance or Nomination &amp; Governance. 🟠
+
+🎮 WHAT TO ASK — Since Only This Committee is Available
+
+Since we only have the Stakeholders Relationship Committee, ask something within their actual domain — investor and partner impact:
+
+💬 RECOMMENDED QUESTION TO TYPE:
+
+&quot;Given that a MOA amendment requires a special shareholder resolution, what is the Stakeholders Relationship Committee's assessment of investor sentiment — particularly Rajiv Malhotra's PE fund — toward a targeted Objects Clause amendment at this stage? And how should we communicate this to the German BFSI client to maintain their confidence while the amendment process is underway?&quot;
+
+This question is smart because:
+
+It's within the Stakeholders Committee's actual jurisdiction ✅
+
+It addresses Rajiv's known concern about IPO narrative and valuation ✅
+
+It gets intel on how to manage the German client during the amendment delay ✅
+
+It will likely unlock useful information for writing a stronger decision ✅
+
+📝 FEEDBACK TO GIVE ROHIT
+
+Priority
+
+Feedback
+
+🔴 Critical
+
+Only 1 committee available — need Legal &amp; Compliance, Risk, Audit, Nomination &amp; Governance
+
+🔴 Critical
+
+&quot;Stakeholders Relationship Committee&quot; is wrong committee for MOA/AOA question
+
+🟠 Serious
+
+Committee dropdown should dynamically show only committees relevant to the round's topic
+
+🔴 CRITICAL BUGS — STILL PRESENT
+
+BUG 1 — Metric descriptions still reference &quot;partnership&quot; not &quot;subsidiary&quot;
+
+&quot;if the partnership is secured&quot; — appears in 6 different metric explanations
+
+&quot;if the partnership leads to revenue growth&quot;
+
+&quot;if the partnership generates profit&quot;
+
+Elena chose Option B — a subsidiary — not a partnership
+
+Same root cause bug from Round 1 — metric explanation text not updating per decision 🔴
+
+BUG 2 — &quot;Open High Severity Risks: -1.0count&quot;
+
+Still displaying decimal on a count — should be -1 risk 🔴
+
+BUG 3 — Stray 🔗 on &quot;Metric Changes from Your Decision&quot; heading
+
+Image 4: &quot;Metric Changes from Your Decision 🔗&quot;
+
+Same systemic heading bug — now appearing on yet another heading 🔴
+
+BUG 4 — Score dimensions total only 78 — remaining 22 points unexplained
+
+18+15+17+16+12 = 78 — full score
+
+But this is out of 100 — what are the other 22 points?
+
+Same mystery as Round 1 — no explanation of remaining dimensions 🔴
+
+🟠 SERIOUS ISSUES
+
+ISSUE 5 — Areas for Improvement Point 4 is slightly unfair &quot;The player does not specifically address compliance debt and engineering burnout issues mentioned in the scenario&quot;
+
+The scenario introduced these as background context, not decision requirements. Elena's role is EU Markets — compliance debt and engineering burnout fall under Thomas Greene (Cybersecurity) and Meera Iyer (HR). Holding Elena accountable for addressing issues outside her mandate is a scoring inaccuracy. 🟠
+
+ISSUE 6 — Only One Strength Despite 78/100
+
+78/100 is a strong score yet only one strength is listed
+
+Four areas for improvement listed
+
+Feedback is still unbalanced — should show at least 3 strengths for a 78 score 🟠
+
+ISSUE 7 — &quot;Recommended Best Approach&quot; Still Collapsed
+
+Still not expanded by default
+
+Most valuable learning feature hidden behind a click 🟠
+
+ISSUE 8 — All Metric Impacts Only Show Positive Side
+
+Every metric listed is under &quot;Positive Impacts&quot; — no negative impacts section
+
+But the Business Impact text says &quot;short-term impacts expected to be minimal&quot; — suggesting some nuance
+
+A subsidiary decision DOES have negatives — upfront legal cost, slower EU entry vs partnership
+
+Hiding negative impacts doesn't teach directors realistic consequence thinking 🟠
+
+MEDIUM ISSUES
+
+#
+
+Issue
+
+9
+
+&quot;Ebitda&quot; — inconsistent capitalisation, should be EBITDA
+
+10
+
+&quot;Net Promoter Score: +1.0score&quot; — no space between number and unit
+
+11
+
+&quot;Open High Severity Risks: -1.0count&quot; — decimal on count
+
+12
+
+&quot;Proceed to Next Round&quot; button still unstyled — plain text
+
+Round 5 
+
+#
+
+Bug
+
+Location
+
+Severity
+
+1
+
+Progress counter shows 5/5 instead of 5/8 — simulation has 8 rounds but tracker never updated from the earlier wrong count
+
+Round label / header
+
+🔴 Critical
+
+2
+
+&quot;Support Ticket Cost +1.1%&quot; listed under Positive Impacts — a cost increase is a negative outcome, not a positive one. Wrong classification.
+
+Metric Changes panel
+
+🔴 Critical
