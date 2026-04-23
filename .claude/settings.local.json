@@ -14,7 +14,17 @@
       "Bash(.venv/Scripts/python -c \"import ast; ast.parse\\(open\\(''components/deliberation.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''deliberation.py: OK''\\)\")",
       "Bash(.venv/Scripts/python -c \"from google.api_core import exceptions as google_exceptions; print\\(''ResourceExhausted:'', google_exceptions.ResourceExhausted\\); print\\(''ServiceUnavailable:'', google_exceptions.ServiceUnavailable\\); print\\(''InternalServerError:'', google_exceptions.InternalServerError\\); print\\(''DeadlineExceeded:'', google_exceptions.DeadlineExceeded\\); print\\(''All imports OK''\\)\")",
       "Bash(.venv/Scripts/python -c \"import ast; ast.parse\\(open\\(''pages/create_simulation.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''create_simulation.py: OK''\\)\")",
-      "Bash(pip show streamlit)"
+      "Bash(pip show streamlit)",
+      "Bash(streamlit run *)",
+      "PowerShell(Get-Command python3, py, streamlit -ErrorAction SilentlyContinue)",
+      "PowerShell(& \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\python.exe\" -m pip install -r \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\requirements.txt\" 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\python.exe\" -m venv \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\.venv\")",
+      "PowerShell(& \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\.venv\\\\Scripts\\\\pip.exe\" install -r \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\requirements.txt\" 2>&1)",
+      "PowerShell(& \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\.venv\\\\Scripts\\\\streamlit.exe\" run \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\main.py\")",
+      "PowerShell(& \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\.venv\\\\Scripts\\\\streamlit.exe\" run \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\main.py\" --server.headless=true)",
+      "Bash(git pull *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
