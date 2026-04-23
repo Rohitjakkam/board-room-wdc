@@ -13,6 +13,7 @@ LOWER_IS_BETTER_KEYWORDS = {
     'liability', 'remediation', 'penalty', 'loss', 'exposure',
     'violation', 'complaint', 'breach',
     'gap', 'delay', 'overdue',
+    'carbon', 'emission', 'footprint', 'greenhouse',
 }
 
 # Metrics containing these keywords should NOT be classified as lower-is-better,
@@ -38,8 +39,9 @@ def calculate_board_effectiveness_score(round_number: int,
     total_members = len(member_stances)
     initially_approving = sum(1 for s in member_stances.values()
                               if s.get('stance') == 'APPROVE')
+    # CONVINCED members started as OPPOSE — include them for accurate initial opposition count
     initially_opposing = sum(1 for s in member_stances.values()
-                             if s.get('stance') == 'OPPOSE')
+                             if s.get('stance') in ('OPPOSE', 'CONVINCED'))
     convinced = sum(1 for s in member_stances.values()
                     if s.get('convinced_in_round') is not None)
 

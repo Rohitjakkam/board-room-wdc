@@ -10,6 +10,22 @@ from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
+# Acronyms that .title() would mangle (e.g. "ebitda" → "Ebitda" instead of "EBITDA")
+_ACRONYMS = {
+    'Ebitda': 'EBITDA', 'Nps': 'NPS', 'Roi': 'ROI', 'Roe': 'ROE', 'Roa': 'ROA',
+    'Yoy': 'YoY', 'Kpi': 'KPI', 'Kpis': 'KPIs', 'Esg': 'ESG',
+    'Hr': 'HR', 'It': 'IT', 'Ceo': 'CEO', 'Cfo': 'CFO', 'Coo': 'COO',
+    'Cto': 'CTO', 'Ciso': 'CISO', 'Cmo': 'CMO', 'Id': 'ID',
+    'Erp': 'ERP', 'Crm': 'CRM', 'Saas': 'SaaS', 'Arr': 'ARR', 'Mrr': 'MRR',
+    'Ltv': 'LTV', 'Cac': 'CAC', 'Csat': 'CSAT', 'Ar': 'AR', 'Ap': 'AP',
+    'Gdp': 'GDP', 'Ipo': 'IPO', 'R&D': 'R&D',
+}
+
+
+def _title_with_acronyms(text: str) -> str:
+    """Like str.title() but preserves known acronyms (e.g. EBITDA, NPS, ROI)."""
+    return ' '.join(_ACRONYMS.get(w, w) for w in text.title().split())
+
 
 def _extract_json(text: str) -> str:
     """Strip markdown fences and extract JSON object from LLM response."""
@@ -89,7 +105,7 @@ def _validate_company_data(data: Dict) -> Dict:
                 val = float(info) if info is not None else 0
             except (TypeError, ValueError):
                 val = 0
-            metrics[key] = {'value': val, 'unit': _infer_unit(key), 'description': key.replace('_', ' ').title()}
+            metrics[key] = {'value': val, 'unit': _infer_unit(key), 'description': _title_with_acronyms(key.replace('_', ' '))}
         else:
             # Ensure value is numeric (not None or string)
             raw_val = info.get('value')
@@ -98,7 +114,7 @@ def _validate_company_data(data: Dict) -> Dict:
             except (TypeError, ValueError):
                 info['value'] = 0
             info['unit'] = info.get('unit') or _infer_unit(key)
-            info['description'] = info.get('description') or key.replace('_', ' ').title()
+            info['description'] = info.get('description') or _title_with_acronyms(key.replace('_', ' '))
 
     # Board members — ensure list, each member has all required fields
     _ensure_list(data, 'board_members', {
@@ -287,8 +303,8 @@ Return ONLY valid JSON:
     "board_members": [
         {{
             "name": "Full Name",
-            "role": "Complete Title (e.g. CEO, CFO, COO)",
-            "expertise": "Area of expertise (e.g. Finance, Operations, Technology)",
+            "role": "Standard corporate title ONLY — use one of: CEO, MD, CFO, COO, CTO, CMO, CHRO, CRO, CLO, Board Director, Independent Director, Non-Executive Director, Chairperson, Vice Chairperson, Executive Director, Company Secretary, General Counsel. Do NOT invent custom hybrid titles (e.g. 'Customer Advocate Director' is invalid).",
+            "expertise": "Area of expertise (e.g. Finance, Operations, Technology, HR, Legal, Risk, Marketing, Strategy)",
             "tenure_years": 5,
             "personality": "2-3 sentences: communication style, decision-making approach, biases, and key traits that affect boardroom dynamics (e.g. defensive when challenged, defers to authority, detail-oriented and persistent)"
         }}

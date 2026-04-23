@@ -72,10 +72,7 @@ YOUR ROLE IN THIS SIMULATION:
 - Consider the module topic: {module_data['module_name']}
 
 KEY METRICS TO CONSIDER:
-- Annual Revenue: {company_data['metrics']['total_revenue_annual']['value']} {company_data['metrics']['total_revenue_annual']['unit']}
-- EBITDA: {company_data['metrics']['ebitda']['value']} {company_data['metrics']['ebitda']['unit']}
-- Employee Count: {company_data['metrics']['employee_count']['value']}
-- Platform Uptime: {company_data['metrics']['platform_uptime']['value']}%
+{chr(10).join(f"- {v.get('description', k)}: {v.get('value', 'N/A')} {v.get('unit', '')}" for k, v in list(company_data['metrics'].items())[:6])}
 
 Respond naturally as this board member would, considering their biases and priorities."""
 
@@ -151,8 +148,13 @@ Consider any conflicts of interest — if the decision scrutinises your own depa
 SCENARIO PRESENTED:
 {scenario}
 
-DECISION MADE BY {player_role['name']} ({player_role['role']}):
+DECISION MADE BY {player_role['name']} ({player_role['role']}) — react to THIS decision ONLY:
+<<<
 {player_decision}
+>>>
+
+CRITICAL: Your REACTION and COUNTER_OPINION MUST reference the specific action, option, or approach described above.
+Do NOT reference or assume a different decision was made. Do NOT mention options that were not chosen.
 
 Based on your expertise in {member['expertise']} and your personality:
 1. Would you APPROVE, OPPOSE, or remain NEUTRAL on this decision?
@@ -163,8 +165,8 @@ Respond in this EXACT format:
 STANCE: [APPROVE/OPPOSE/NEUTRAL]
 CONVICTION_LEVEL: [1-10, where 10 is absolute certainty]
 EXPERTISE_RELEVANCE: [Brief explanation of how your expertise relates to this decision]
-REACTION: [Your 2-3 sentence reaction as this board member, in first person]
-COUNTER_OPINION: [If OPPOSE: Your specific objection and what you believe should be done instead. If APPROVE/NEUTRAL: Write "N/A"]
+REACTION: [Your 2-3 sentence reaction as this board member, in first person — must reference the specific decision above]
+COUNTER_OPINION: [If OPPOSE: Your specific objection to THIS decision and what you believe should be done instead. Must reference the exact decision. If APPROVE/NEUTRAL: Write "N/A"]
 
 Stay in character. Consider how {member['name']}'s biases and priorities would influence their view."""
 

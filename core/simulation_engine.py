@@ -189,10 +189,12 @@ CURRENT METRICS:
 SCENARIO:
 {scenario}
 
-DECISION MADE:
+DECISION MADE (model impacts for THIS decision ONLY — do not reference or assume any other option was chosen):
+<<<
 {decision}
+>>>
 
-Based on this decision, analyze the realistic impact on company metrics. Consider:
+Based on this exact decision, analyze the realistic impact on company metrics. Consider:
 1. Direct impacts from the decision
 2. Indirect/ripple effects
 3. Short-term vs long-term implications
@@ -339,8 +341,10 @@ RELEVANT TOPICS:
 SCENARIO PRESENTED:
 {scenario}
 
-PLAYER'S DECISION:
+PLAYER'S EXACT DECISION (evaluate THIS decision ONLY — do not reference, compare, or assume any other option was chosen):
+<<<
 {decision}
+>>>
 
 DIFFICULTY: {round_config['difficulty']}
 
@@ -570,6 +574,11 @@ def generate_member_stances(llm: object, company_data: Dict,
             except Exception:
                 pass
 
+        # Semantic guard: OPPOSE without a substantive counter_opinion is contradictory — downgrade
+        if stance == "OPPOSE" and not counter_opinion:
+            stance = "NEUTRAL"
+            logger.debug(f"Downgraded {member['name']} from OPPOSE to NEUTRAL (no counter_opinion)")
+
         stances[member['name']] = {
             'member_name': member['name'],
             'member_role': member['role'],
@@ -702,6 +711,12 @@ def parse_scenario_options(scenario: str) -> List[Dict]:
 
     if current_option:
         options.append(current_option)
+
+    if 0 < len(options) < 4:
+        logger.warning(
+            f"parse_scenario_options: only {len(options)} option(s) parsed (expected 4). "
+            "Scenario may be malformed or LLM did not follow the OPTIONS TO CONSIDER format."
+        )
 
     return options
 

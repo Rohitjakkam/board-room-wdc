@@ -118,6 +118,12 @@ def inject_styles():
         background: #e9ecef;
         border-radius: 20px;
         display: inline-block;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    /* Hide Streamlit's default heading anchor link icons */
+    [data-testid="stHeadingAnchorLink"] {
+        display: none !important;
     }
     .consultation-counter {
         font-size: 1rem;

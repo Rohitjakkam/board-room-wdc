@@ -15,6 +15,21 @@ logger = logging.getLogger(__name__)
 
 _COLLECTION = "simulations"
 
+_ACRONYMS = {
+    'Ebitda': 'EBITDA', 'Nps': 'NPS', 'Roi': 'ROI', 'Roe': 'ROE', 'Roa': 'ROA',
+    'Yoy': 'YoY', 'Kpi': 'KPI', 'Kpis': 'KPIs', 'Esg': 'ESG',
+    'Hr': 'HR', 'It': 'IT', 'Ceo': 'CEO', 'Cfo': 'CFO', 'Coo': 'COO',
+    'Cto': 'CTO', 'Ciso': 'CISO', 'Cmo': 'CMO', 'Id': 'ID',
+    'Erp': 'ERP', 'Crm': 'CRM', 'Saas': 'SaaS', 'Arr': 'ARR', 'Mrr': 'MRR',
+    'Ltv': 'LTV', 'Cac': 'CAC', 'Csat': 'CSAT', 'Ar': 'AR', 'Ap': 'AP',
+    'Gdp': 'GDP', 'Ipo': 'IPO',
+}
+
+
+def _title_with_acronyms(text: str) -> str:
+    """Like str.title() but preserves known acronyms (e.g. EBITDA, NPS, ROI)."""
+    return ' '.join(_ACRONYMS.get(w, w) for w in text.title().split())
+
 
 def _get_collection():
     """Return Firestore collection reference, or None if unavailable."""
@@ -62,7 +77,7 @@ def _normalize_metrics(data: Dict) -> Dict:
             if not isinstance(metric_info, dict):
                 metrics[metric_key] = {
                     'value': 0, 'unit': _infer_unit(metric_key), 'priority': None,
-                    'description': metric_key.replace('_', ' ').title(),
+                    'description': _title_with_acronyms(metric_key.replace('_', ' ')),
                 }
                 continue
             # Ensure value is numeric; flag categorical values
@@ -78,7 +93,7 @@ def _normalize_metrics(data: Dict) -> Dict:
             metric_info['unit'] = metric_info.get('unit') or _infer_unit(metric_key)
             metric_info['description'] = (
                 metric_info.get('description')
-                or metric_key.replace('_', ' ').title()
+                or _title_with_acronyms(metric_key.replace('_', ' '))
             )
             # Normalize priority
             if metric_info.get('priority') not in ("High", "Medium", "Low"):

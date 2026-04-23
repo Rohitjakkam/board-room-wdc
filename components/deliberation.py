@@ -91,7 +91,8 @@ def display_deliberation_phase(llm: object, data: Dict,
 
     # Categorize members by stance
     approving = [(n, s) for n, s in member_stances.items() if s['stance'] == 'APPROVE']
-    all_oppose = [(n, s) for n, s in member_stances.items() if s['stance'] == 'OPPOSE']
+    # Include CONVINCED so index-based current_dissenter tracking stays stable after stance flip
+    all_oppose = [(n, s) for n, s in member_stances.items() if s['stance'] in ('OPPOSE', 'CONVINCED')]
     opposing = [(n, s) for n, s in all_oppose if s.get('convinced_in_round') is None]
     neutral = [(n, s) for n, s in member_stances.items() if s['stance'] == 'NEUTRAL']
     convinced = [(n, s) for n, s in member_stances.items() if s.get('convinced_in_round') is not None]
@@ -175,9 +176,9 @@ def display_deliberation_phase(llm: object, data: Dict,
                     st.markdown("---")
 
                 if exchanges > 0:
-                    st.error(f"**{name}'s Response:** {stance['counter_opinion']}")
+                    st.warning(f"**{name}'s Response:** {stance['counter_opinion']}")
                 else:
-                    st.error(f"**Counter-opinion:** {stance['counter_opinion']}")
+                    st.warning(f"**Counter-opinion:** {stance['counter_opinion']}")
 
                 if exchanges < max_exchanges:
                     st.markdown(f"#### 💬 Debate with {name} (Exchange {exchanges + 1} of {max_exchanges})")
@@ -244,6 +245,7 @@ def display_deliberation_phase(llm: object, data: Dict,
                                         st.session_state[stances_key][name]['original_counter_opinion'] = stance['counter_opinion']
                                         st.session_state[stances_key][name]['convinced_in_round'] = exchanges + 1
                                         st.session_state[stances_key][name]['conviction_level'] = 0
+                                        st.session_state[stances_key][name]['stance'] = 'CONVINCED'
                                         st.session_state[current_dissenter_key] = current_idx + 1
                                     else:
                                         st.session_state[stances_key][name]['counter_opinion'] = result['follow_up']

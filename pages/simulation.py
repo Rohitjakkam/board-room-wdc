@@ -30,6 +30,15 @@ from core.activity_tracker import start_session, log_round, save_progress, find_
 logger = logging.getLogger(__name__)
 
 
+def _fmt_val(v) -> str:
+    """Format a metric value: drop unnecessary .0 for whole numbers."""
+    try:
+        f = float(v)
+        return str(int(f)) if f == int(f) else f"{f:.1f}"
+    except (TypeError, ValueError):
+        return str(v) if v is not None else "0"
+
+
 def _save_checkpoint(checkpoint_name: str):
     """Save current simulation state to Firestore for crash recovery."""
     sid = st.session_state.get('activity_session_id')
@@ -206,7 +215,7 @@ def run_simulation_round(llm: object, data: Dict,
             st.markdown(f"""
             <div id="{timer_id}" class="timer-container {timer_class}">
                 <div class="timer-display" id="{timer_id}_display">⏱️ {remaining_seconds // 60:02d}:{remaining_seconds % 60:02d}</div>
-                <div class="timer-label" id="{timer_id}_label">Time Pressure: {time_pressure.title()}</div>
+                <div class="timer-label" id="{timer_id}_label">Time Limit ({time_pressure.title()})</div>
             </div>
             <script>
                 (function() {{
@@ -229,7 +238,7 @@ def run_simulation_round(llm: object, data: Dict,
                         }}
                         if (remainingSeconds <= 0) {{
                             displayEl.innerHTML = "⏱️ 00:00";
-                            labelEl.innerHTML = "⚠️ Time's Up!";
+                            labelEl.innerHTML = "⚠️ Time Limit Reached!";
                             container.className = "timer-container timer-expired";
                             clearInterval(window['timerInterval_' + timerId]);
                             return;
@@ -773,7 +782,8 @@ def run_simulation_round(llm: object, data: Dict,
                                    'cost', 'defect', 'burn', 'incident', 'latency',
                                    'vacancy', 'audit', 'pending',
                                    'liability', 'remediation', 'penalty', 'loss',
-                                   'exposure', 'violation', 'complaint', 'breach'}
+                                   'exposure', 'violation', 'complaint', 'breach',
+                                   'carbon', 'emission', 'footprint', 'greenhouse'}
                 positive_impacts = {}
                 negative_impacts = {}
                 for k, v in changed_metrics.items():
@@ -793,7 +803,10 @@ def run_simulation_round(llm: object, data: Dict,
                             metric_name = key.replace('_', ' ').title()
                             unit = (current_metrics.get(key) or {}).get('unit') or ''
                             reason = reasons.get(key, '')
-                            st.success(f"**{metric_name}**: {change:+.1f}{unit}")
+                            usep = "" if unit.startswith('%') else " "
+                            is_lib = any(kw in key.lower() for kw in LOWER_IS_BETTER)
+                            direction = "↓" if (is_lib and change < 0) else "↑" if change > 0 else ""
+                            st.success(f"**{metric_name}**: {direction} {change:+.1f}{usep}{unit}".rstrip())
                             if reason:
                                 st.caption(f"↳ {reason}")
                 with col2:
@@ -803,7 +816,10 @@ def run_simulation_round(llm: object, data: Dict,
                             metric_name = key.replace('_', ' ').title()
                             unit = (current_metrics.get(key) or {}).get('unit') or ''
                             reason = reasons.get(key, '')
-                            st.error(f"**{metric_name}**: {change:+.1f}{unit}")
+                            usep = "" if unit.startswith('%') else " "
+                            is_lib = any(kw in key.lower() for kw in LOWER_IS_BETTER)
+                            direction = "↑" if (is_lib and change > 0) else "↓" if change < 0 else ""
+                            st.error(f"**{metric_name}**: {direction} {change:+.1f}{usep}{unit}".rstrip())
                             if reason:
                                 st.caption(f"↳ {reason}")
 
@@ -964,12 +980,13 @@ def simulation_page():
                     current_val = round(goal.get('current_value', goal['current']), 1)
                     target_val = round(goal['target'], 1)
                     unit = goal['unit']
+                    unit_sep = "" if unit.startswith('%') else " "
 
                     st.markdown(f"""
                     <div style="margin-bottom: 0.8rem;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
                             <span>{status_icon} {goal['name']}</span>
-                            <span>{current_val}{unit} / {target_val}{unit}</span>
+                            <span>{_fmt_val(current_val)}{unit_sep}{unit} / {_fmt_val(target_val)}{unit_sep}{unit}</span>
                         </div>
                         <div style="background: #e9ecef; border-radius: 4px; height: 8px; margin-top: 4px;">
                             <div style="background: {color}; width: {min(progress, 100):.1f}%; height: 100%; border-radius: 4px;"></div>
@@ -998,6 +1015,19 @@ def simulation_page():
                 st.info("No high priority metrics flagged")
 
             st.markdown("---")
+
+            # Currency mixing detection — warn if metrics use incompatible unit scales
+            _currency_units = set()
+            for _m in metrics.values():
+                _u = (_m.get('unit') or '').strip()
+                if any(sym in _u for sym in ('$', '₹', '€', '£', 'L ', 'Cr', '£', 'M', 'K', 'B')):
+                    _currency_units.add(_u)
+            if len(_currency_units) > 1:
+                st.caption(
+                    f"⚠️ Mixed currency/scale units detected ({', '.join(sorted(_currency_units))}). "
+                    "Values are shown as extracted and are NOT normalized to a common scale."
+                )
+
             st.header("📊 All Metrics")
 
             if impact_reasons is None:
@@ -1014,10 +1044,10 @@ def simulation_page():
                     value = metric.get('value', 0) or 0
                     unit = metric.get('unit', '')
                     change = metric.get('change', 0) or 0
-                    display_val = f"{value} {unit}"
+                    display_val = f"{_fmt_val(value)} {unit}".rstrip()
                     delta_str = None
                     if change != 0:
-                        delta_str = f"{change:+.2f}" if isinstance(change, float) else f"{change:+d}"
+                        delta_str = f"{change:+.1f}" if isinstance(change, float) else f"{change:+d}"
                     delta_color = "inverse" if key in inverse_metrics else "normal"
                     st.metric(metric.get('description', key), display_val, delta=delta_str, delta_color=delta_color)
                     if key in impact_reasons and impact_reasons[key]:
@@ -1257,7 +1287,8 @@ def simulation_page():
             metric_cols = st.columns(num_cols)
             for idx, (key, metric) in enumerate(key_metric_items):
                 with metric_cols[idx % num_cols]:
-                    st.metric(metric.get('description', key), f"{metric.get('value', 0)} {metric.get('unit', '')}")
+                    st.metric(metric.get('description', key),
+                              f"{_fmt_val(metric.get('value', 0))} {metric.get('unit', '')}".rstrip())
 
         st.markdown("---")
 
@@ -1269,8 +1300,10 @@ def simulation_page():
             with goal_cols[idx % 3]:
                 lower_better = goal.get('lower_is_better', False)
                 arrow = "↓" if lower_better else "↑"
-                current_display = f"{goal['current']}{goal['unit']}"
-                target_display = f"{goal['target']}{goal['unit']}"
+                _unit = goal['unit']
+                _usep = "" if _unit.startswith('%') else " "
+                current_display = f"{_fmt_val(goal['current'])}{_usep}{_unit}".rstrip()
+                target_display = f"{_fmt_val(goal['target'])}{_usep}{_unit}".rstrip()
                 priority_color = "#dc3545" if goal['priority'] == 'high' else "#ffc107"
                 st.markdown(f"""
                 <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 10px; border-top: 3px solid {priority_color}; margin-bottom: 0.5rem; text-align: center;">
@@ -1340,7 +1373,7 @@ def simulation_page():
         tab1, tab2, tab3 = st.tabs(["🏢 Company Overview", "👥 Board Members", "📚 Module Info"])
 
         with tab1:
-            display_company_dashboard(company_data)
+            display_company_dashboard(company_data, player_role=player_role)
             st.markdown("---")
             display_current_problems(company_data['current_problems'])
             st.markdown("### 📋 Initial Scenario")
