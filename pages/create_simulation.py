@@ -2,13 +2,20 @@
 Create Simulation page — PDF upload, extraction, parsing, preview, and save.
 """
 
+import copy
 import logging
+import time
+
 import streamlit as st
 
 from extractors.pdf_extractor import extract_pdf_text
 from extractors.content_parser import parse_company_data, parse_module_content
-from core.data_manager import save_extracted_data
-from core.admin_agents import run_create_review_agent
+from core.data_manager import save_extracted_data, get_default_simulation_config
+from core.admin_agents import (
+    run_create_review_agent,
+    run_audit_agent,
+    run_planning_agent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +195,11 @@ def create_simulation_page():
 
         st.divider()
 
-        # Agent 1 — AI Review panel
+        # Step 2.5 — one-click auto-prepare (primary flow)
+        _render_auto_prepare_panel()
+
+        # Advanced: manual per-agent review (fallback for users who want to
+        # see Agent 1's diff before applying, or re-run only part of the chain)
         _render_agent1_panel()
 
         st.divider()
@@ -204,6 +215,11 @@ def create_simulation_page():
                 key="dc_session_name"
             )
 
+            # If auto-prepare ran Agent 3, pass the narrative-enriched config through to save
+            _prepared_config = st.session_state.get("autoprep_sim_config")
+            if _prepared_config:
+                st.caption("✨ Save will include the AI-generated narrative plan (5 rounds, focus areas, tension pairs).")
+
             _save_processing = st.session_state.get("_dc_save_processing", False)
             if st.button("💾 Save Data for Simulation", type="primary", key="dc_save_btn",
                         disabled=_save_processing):
@@ -212,7 +228,8 @@ def create_simulation_page():
                     doc_id = save_extracted_data(
                         st.session_state.dc_company_data,
                         st.session_state.dc_module_data,
-                        session_name
+                        session_name,
+                        simulation_config=_prepared_config,
                     )
                     if doc_id:
                         st.success("Simulation saved! It's now available in the Simulations section.")
@@ -223,6 +240,10 @@ def create_simulation_page():
                         st.session_state.dc_module_data = None
                         st.session_state.dc_company_text = None
                         st.session_state.dc_module_text = None
+                        # Clear auto-prepare artifacts so next session starts clean
+                        for _k in ("autoprep_sim_config", "autoprep_log", "autoprep_status",
+                                   "autoprep_snapshot", "autoprep_failed_at"):
+                            st.session_state.pop(_k, None)
                         st.session_state.pop("_dc_save_processing", None)
                         st.rerun()
                     else:
@@ -293,11 +314,12 @@ def _render_agent1_panel():
     if not company_data or not module_data:
         return
 
-    with st.expander("🤖 Step 2.5 — AI Review Agent: Recover & Enrich Extracted Data", expanded=False):
+    with st.expander("🔧 Advanced — Run Agent 1 alone (skip Auto-Prepare)", expanded=False):
         st.markdown(
-            "The AI Review Agent scans the raw PDF text for data missed in the first extraction, "
-            "enriches thin fields, and generates only what's truly absent. "
-            "Every change is labeled by source so you know what came from the PDF vs what was generated."
+            "Runs only the AI Review Agent (PDF recovery + enrichment + gap completion). "
+            "Use this when you want to review Agent 1's diff before applying, or when "
+            "you don't need Agent 2's audit or Agent 3's narrative plan. "
+            "Every change is labeled by source (PDF / Enriched / Generated / Manual)."
         )
 
         has_text = bool(
@@ -631,3 +653,441 @@ def _apply_agent1_patch(patch: dict, apply_generated: bool = True):
 
     st.session_state["dc_company_data"] = company
     st.session_state["dc_module_data"]  = module
+
+
+# ==========================================================================
+# AUTO-PREPARE PIPELINE — runs Agent 1 → Agent 2 → Agent 3 in sequence
+# ==========================================================================
+
+def _render_auto_prepare_panel():
+    """Step 2.5 — one-click auto-prepare that runs all 3 agents sequentially.
+
+    Session-state keys:
+      autoprep_status    : "idle" | "done" | "failed"
+      autoprep_snapshot  : pre-run copy of company/module/config for undo
+      autoprep_log       : list of {agent, status, elapsed, summary, result}
+      autoprep_sim_config: Agent 3's enriched simulation_config (passed to save)
+      autoprep_failed_at : agent number (1/2/3) where chain stopped, if any
+    """
+    company_data = st.session_state.get("dc_company_data")
+    module_data  = st.session_state.get("dc_module_data")
+
+    if not company_data or not module_data:
+        return
+
+    status = st.session_state.get("autoprep_status", "idle")
+
+    # Stale-state detection: if a prior session left status=done/failed but
+    # no log survived (e.g. page refresh wiped session state partially), reset.
+    if status in ("done", "failed") and not st.session_state.get("autoprep_log"):
+        st.session_state["autoprep_status"] = "idle"
+        status = "idle"
+
+    # ── Completion view (after a successful or partial run) ──────────────
+    if status in ("done", "failed"):
+        _render_autoprep_summary()
+        st.divider()
+        return
+
+    # ── Idle view: big primary CTA + options ─────────────────────────────
+    st.header("Step 2.5: ✨ Auto-Prepare with AI")
+    st.markdown(
+        "Runs all three admin agents in sequence — **~2–3 minutes total**:\n\n"
+        "1. **Agent 1** — recovers missed PDF data, enriches thin fields, generates what's truly absent\n"
+        "2. **Agent 2** — audits coverage, generates missing metrics/members/committees, computes readiness score\n"
+        "3. **Agent 3** — designs a 3-act narrative arc with focus areas and board tensions for every round"
+    )
+
+    col_opts_a, col_opts_b = st.columns(2)
+    with col_opts_a:
+        apply_generated = st.checkbox(
+            "Auto-apply Agent 1's AI-generated content (not just PDF-recovered)",
+            value=True, key="autoprep_apply_generated",
+            help="Uncheck to apply ONLY items recovered from the PDF in Agent 1.",
+        )
+    with col_opts_b:
+        run_agent3 = st.checkbox(
+            "Include Agent 3 (narrative planning)",
+            value=True, key="autoprep_run_agent3",
+            help="Uncheck if you just want Agent 1 + Agent 2 and will plan rounds manually later.",
+        )
+
+    col_run, col_manual = st.columns([2, 1])
+    with col_run:
+        run_clicked = st.button(
+            "▶ Run All Agents",
+            type="primary",
+            key="autoprep_run_btn",
+            use_container_width=True,
+            help="Runs the full pipeline. Don't close this tab until complete.",
+        )
+    with col_manual:
+        st.caption("Or use the Advanced panel below for manual per-agent review.")
+
+    if run_clicked:
+        # Concurrency guard — if the previous run somehow left the flag set
+        # (e.g. user force-refreshed), clear it and proceed.
+        if st.session_state.get("autoprep_running"):
+            st.warning("A previous Auto-Prepare run appears to have been interrupted. Starting fresh.")
+            st.session_state["autoprep_running"] = False
+
+        # Pre-flight: API key must be present or every agent silently no-ops
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY", "") if hasattr(st, "secrets") else ""
+        except Exception:
+            api_key = ""
+        if not api_key:
+            st.error(
+                "❌ Gemini API key is not configured. "
+                "Add `GEMINI_API_KEY` to `.streamlit/secrets.toml` before running Auto-Prepare."
+            )
+            return
+
+        st.session_state["autoprep_running"] = True
+        try:
+            _run_auto_prepare_chain(
+                company_data=company_data,
+                module_data=module_data,
+                company_text=st.session_state.get("dc_company_text", ""),
+                module_text=st.session_state.get("dc_module_text", ""),
+                apply_generated=apply_generated,
+                run_agent3=run_agent3,
+            )
+        except Exception as exc:
+            logger.exception("Auto-Prepare chain raised an unhandled exception")
+            st.error(f"Auto-Prepare crashed unexpectedly: {exc}")
+            st.session_state["autoprep_status"] = "failed"
+            st.session_state["autoprep_failed_at"] = st.session_state.get("autoprep_failed_at", 0)
+        finally:
+            st.session_state["autoprep_running"] = False
+        st.rerun()
+
+    st.divider()
+
+
+# --------------------------------------------------------------------------
+# Pipeline executor
+# --------------------------------------------------------------------------
+
+def _run_auto_prepare_chain(
+    company_data: dict,
+    module_data: dict,
+    company_text: str,
+    module_text: str,
+    apply_generated: bool,
+    run_agent3: bool,
+) -> None:
+    """Run A1 → apply → A2 → apply → (optionally A3 → apply) inside one st.status."""
+    # Snapshot for undo — deep copy so later mutations don't poison the snapshot
+    st.session_state["autoprep_snapshot"] = {
+        "company_data":      copy.deepcopy(company_data),
+        "module_data":       copy.deepcopy(module_data),
+        "simulation_config": copy.deepcopy(st.session_state.get("autoprep_sim_config")),
+    }
+    log: list = []
+    st.session_state["autoprep_log"] = log
+    st.session_state["autoprep_status"] = "idle"
+    st.session_state.pop("autoprep_failed_at", None)
+
+    status_box = st.status("🤖 Preparing simulation — don't close this tab…", expanded=True)
+
+    # ── Phase 1: Agent 1 (PDF recovery + enrichment + gap completion) ──
+    with status_box:
+        st.write("**Agent 1 — Review & Enrich** (this is the slowest step)")
+        t0 = time.time()
+        try:
+            a1 = run_create_review_agent(
+                company_data=company_data,
+                module_data=module_data,
+                company_text=company_text,
+                module_text=module_text,
+            )
+        except Exception as exc:
+            elapsed = time.time() - t0
+            log.append({"agent": 1, "status": "failed", "elapsed": elapsed, "error": str(exc)})
+            st.session_state["autoprep_status"] = "failed"
+            st.session_state["autoprep_failed_at"] = 1
+            status_box.update(label=f"❌ Agent 1 failed ({elapsed:.0f}s)", state="error")
+            return
+
+        _apply_agent1_patch(a1.get("patch", {}), apply_generated=apply_generated)
+        company_data = st.session_state["dc_company_data"]
+        module_data  = st.session_state["dc_module_data"]
+        elapsed = time.time() - t0
+        s1 = a1.get("summary", {})
+        summary_line = (
+            f"PDF={s1.get('pdf_recovered', 0)} | "
+            f"Enriched={s1.get('enriched', 0)} | "
+            f"Generated={s1.get('generated', 0)} | "
+            f"Manual={s1.get('manual_required', 0)}"
+        )
+        items_count = len(a1.get("items", []))
+        log.append({
+            "agent": 1, "status": "done", "elapsed": elapsed,
+            "items_count": items_count,
+            "summary": summary_line,
+            "zero_output": items_count == 0,
+        })
+        if items_count == 0:
+            st.write(f"⚠️ Agent 1 finished in {elapsed:.0f}s — **no changes** (data may already be complete, or LLM returned empty — check API key)")
+        else:
+            st.write(f"✅ Agent 1 complete in {elapsed:.0f}s — {summary_line}")
+
+    # ── Phase 2: Agent 2 (audit + readiness score) ──
+    with status_box:
+        st.write("**Agent 2 — Audit & Score**")
+        t0 = time.time()
+        try:
+            a2 = run_audit_agent(company_data, module_data)
+        except Exception as exc:
+            elapsed = time.time() - t0
+            log.append({"agent": 2, "status": "failed", "elapsed": elapsed, "error": str(exc)})
+            st.session_state["autoprep_status"] = "failed"
+            st.session_state["autoprep_failed_at"] = 2
+            status_box.update(label=f"❌ Agent 2 failed after Agent 1 succeeded ({elapsed:.0f}s)", state="error")
+            return
+
+        _apply_a2_patch_to_dc(a2.get("patch", {}))
+        company_data = st.session_state["dc_company_data"]
+        module_data  = st.session_state["dc_module_data"]
+        elapsed = time.time() - t0
+        rs = a2.get("readiness_score", {})
+        summary_line = (
+            f"Readiness {rs.get('overall', 0)}/100 "
+            f"(metrics {rs.get('metric_coverage', 0)}, "
+            f"board {rs.get('board_coverage', 0)}, "
+            f"structural {rs.get('structural_health', 0)}) | "
+            f"{len(a2.get('items', []))} items applied"
+        )
+        log.append({
+            "agent": 2, "status": "done", "elapsed": elapsed,
+            "readiness_score": rs,
+            "items_count": len(a2.get("items", [])),
+            "summary": summary_line,
+            "flags": a2.get("flags", []),
+        })
+        # Persist audit snapshot so Manage Simulations can show it later
+        st.session_state["autoprep_audit_snapshot"] = {
+            "readiness_score": rs,
+            "gaps":  a2.get("gaps", {}),
+            "flags": a2.get("flags", []),
+            "summary": a2.get("summary", {}),
+        }
+        st.write(f"✅ Agent 2 complete in {elapsed:.0f}s — {summary_line}")
+
+    if not run_agent3:
+        status_box.update(label="✅ Prepared (Agent 3 skipped) — ready to save", state="complete")
+        st.session_state["autoprep_status"] = "done"
+        return
+
+    # ── Phase 3: Agent 3 (narrative planning) ──
+    with status_box:
+        st.write("**Agent 3 — Plan Narrative Arc**")
+        t0 = time.time()
+        sim_config = get_default_simulation_config()
+        try:
+            a3 = run_planning_agent(company_data, module_data, sim_config)
+        except Exception as exc:
+            elapsed = time.time() - t0
+            log.append({"agent": 3, "status": "failed", "elapsed": elapsed, "error": str(exc)})
+            st.session_state["autoprep_status"] = "failed"
+            st.session_state["autoprep_failed_at"] = 3
+            status_box.update(label=f"❌ Agent 3 failed — Agent 1 + Agent 2 changes preserved ({elapsed:.0f}s)", state="error")
+            return
+
+        sim_config = _apply_a3_plan_to_config(a3, sim_config)
+        st.session_state["autoprep_sim_config"] = sim_config
+        elapsed = time.time() - t0
+        n_rounds = len(a3.get("rounds", []))
+        arc_title = a3.get("narrative_arc_title", "")
+        summary_line = f'{n_rounds}-round arc: "{arc_title[:55]}"'
+        log.append({
+            "agent": 3, "status": "done", "elapsed": elapsed,
+            "summary": summary_line,
+            "arc_title": arc_title,
+            "rounds": a3.get("rounds", []),
+            "act_labels": a3.get("act_labels", {}),
+            "coverage": a3.get("coverage", {}),
+        })
+        st.write(f"✅ Agent 3 complete in {elapsed:.0f}s — {summary_line}")
+
+    total = sum(e.get("elapsed", 0) for e in log)
+    status_box.update(label=f"✅ All agents complete in {total:.0f}s — ready to save", state="complete")
+    st.session_state["autoprep_status"] = "done"
+
+
+# --------------------------------------------------------------------------
+# Inline apply helpers (mirror manage_simulations.py write-backs so the
+# pipeline doesn't depend on cross-page imports and session-state juggling)
+# --------------------------------------------------------------------------
+
+def _apply_a2_patch_to_dc(patch: dict) -> None:
+    """Apply Agent 2's patch directly into dc_company_data (skipping audit_data)."""
+    cd = st.session_state.setdefault("dc_company_data", {})
+    cp = patch.get("company", {}) if isinstance(patch, dict) else {}
+
+    for key, info in cp.get("metrics_generated", {}).items():
+        cd.setdefault("metrics", {})[key] = info
+    for key, val in cp.get("metrics_fixed_values", {}).items():
+        if key in cd.get("metrics", {}):
+            cd["metrics"][key]["value"] = val
+    for m in cp.get("board_members_generated", []):
+        if isinstance(m, dict):
+            cd.setdefault("board_members", []).append(m)
+    for c in cp.get("committees_generated", []):
+        if isinstance(c, dict):
+            cd.setdefault("committees", []).append(c)
+    for p in cp.get("problems_generated", []):
+        if isinstance(p, str):
+            cd.setdefault("current_problems", []).append(p)
+
+    st.session_state["dc_company_data"] = cd
+
+
+def _apply_a3_plan_to_config(result: dict, cfg: dict) -> dict:
+    """Apply Agent 3's plan into the given sim_config. Mirrors manage_simulations._apply_agent3_plan."""
+    enriched_rounds = result.get("rounds", [])
+    if not enriched_rounds:
+        return cfg
+
+    existing_map = {r["round_number"]: r for r in cfg.get("rounds", [])}
+    new_rounds = []
+    for er in enriched_rounds:
+        rnum = er.get("round_number")
+        base = existing_map.get(rnum, {"round_number": rnum})
+        base["focus_area"]    = er.get("focus_area") or base.get("focus_area")
+        base["difficulty"]    = er.get("difficulty") or base.get("difficulty", "medium")
+        base["round_type"]    = er.get("round_type") or base.get("round_type", "both")
+        base["time_pressure"] = base.get("time_pressure") or (
+            "tight" if base["difficulty"] == "hard" else "normal"
+        )
+        base["_title"]          = er.get("title", "")
+        base["_tension_pair"]   = er.get("tension_pair") or ""
+        base["_cascade_seed"]   = er.get("cascade_seed") or ""
+        base["_act"]            = er.get("act")
+        base["_act_label"]      = er.get("act_label", "")
+        base["_topics_covered"] = er.get("topics_covered", []) or []
+        new_rounds.append(base)
+
+    new_rounds.sort(key=lambda r: r.get("round_number", 0))
+    for i, r in enumerate(new_rounds, start=1):
+        r["round_number"] = i
+
+    cfg["rounds"] = new_rounds
+    cfg["total_rounds"] = len(new_rounds)
+    cfg["_narrative_arc_title"] = result.get("narrative_arc_title", "")
+    cfg["_act_labels"]          = result.get("act_labels", {})
+    cfg["_coverage"]            = result.get("coverage", {})
+    cfg["_tension_pairs"]       = result.get("tension_pairs", [])
+    cfg["_planning_flags"]      = result.get("flags", [])
+    cfg["_planning_summary"]    = result.get("summary", {})
+    return cfg
+
+
+# --------------------------------------------------------------------------
+# Completion / summary view
+# --------------------------------------------------------------------------
+
+def _render_autoprep_summary() -> None:
+    """Show the post-run readiness card, change log, and undo/re-run controls."""
+    status = st.session_state.get("autoprep_status", "idle")
+    log    = st.session_state.get("autoprep_log", [])
+    failed_at = st.session_state.get("autoprep_failed_at")
+
+    if status == "failed":
+        st.error(
+            f"❌ Auto-prepare stopped at **Agent {failed_at}**. "
+            "Earlier agents' changes are preserved in the session — you can "
+            "retry below, continue without the failing step, or undo."
+        )
+    else:
+        st.success("✅ **Simulation prepared.** Review below and click **Save Data for Simulation** at Step 3.")
+
+    # ── Readiness score card (from Agent 2) ──────────────────────────────
+    a2_log = next((e for e in log if e.get("agent") == 2 and e.get("status") == "done"), None)
+    if a2_log:
+        rs = a2_log.get("readiness_score", {})
+        overall = rs.get("overall", 0)
+        color = "🟢" if overall >= 75 else ("🟡" if overall >= 50 else "🔴")
+        st.markdown(f"### {color} Readiness Score: **{overall}/100**")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Metric Coverage",    f"{rs.get('metric_coverage', 0)}/100")
+        c2.metric("Board Coverage",     f"{rs.get('board_coverage', 0)}/100")
+        c3.metric("Structural Health",  f"{rs.get('structural_health', 0)}/100")
+
+    # ── Per-agent summary ────────────────────────────────────────────────
+    st.markdown("### 📋 What changed")
+    for entry in log:
+        agent_n = entry.get("agent")
+        icon = {"done": "✅", "failed": "❌"}.get(entry.get("status"), "⚪")
+        elapsed = entry.get("elapsed", 0)
+        label = {1: "Agent 1 (Review)", 2: "Agent 2 (Audit)", 3: "Agent 3 (Planning)"}[agent_n]
+        summary = entry.get("summary", entry.get("error", ""))
+        st.markdown(f"- {icon} **{label}** ({elapsed:.0f}s): {summary}")
+
+    # ── Agent 3 arc details ──────────────────────────────────────────────
+    a3_log = next((e for e in log if e.get("agent") == 3 and e.get("status") == "done"), None)
+    if a3_log:
+        with st.expander("🎬 Narrative plan details"):
+            st.markdown(f"**Arc:** {a3_log.get('arc_title', '')}")
+            acts = a3_log.get("act_labels", {})
+            for key in ("1", "2", "3"):
+                if key in acts:
+                    st.markdown(f"- **Act {key}:** {acts[key]}")
+            for r in a3_log.get("rounds", []):
+                diff_icon = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}.get(r.get("difficulty", ""), "⚪")
+                st.markdown(
+                    f"**Round {r.get('round_number')}** {diff_icon} "
+                    f"_{r.get('difficulty', '')}_ — {r.get('title', '')}"
+                )
+                st.caption(str(r.get("focus_area", ""))[:220])
+                if r.get("tension_pair"):
+                    st.caption(f"Tension: {r['tension_pair']}")
+
+    # ── Agent 2 flags (if any) ───────────────────────────────────────────
+    if a2_log and a2_log.get("flags"):
+        with st.expander(f"⚠️ {len(a2_log['flags'])} structural flags from Agent 2"):
+            for f in a2_log["flags"]:
+                sev = f.get("severity", "warning")
+                sev_icon = {"error": "🔴", "warning": "🟡"}.get(sev, "⚪")
+                st.markdown(f"{sev_icon} [{f.get('type')}] {f.get('message', '')}")
+
+    # ── Control buttons ──────────────────────────────────────────────────
+    st.markdown("---")
+    col_rerun, col_undo, col_dismiss = st.columns(3)
+    with col_rerun:
+        if st.button("🔄 Re-run All", key="autoprep_rerun_btn", use_container_width=True):
+            _restore_autoprep_snapshot()
+            st.rerun()
+    with col_undo:
+        if st.button("↩ Undo", key="autoprep_undo_btn", use_container_width=True,
+                     help="Restore data to the state before Auto-Prepare ran"):
+            _restore_autoprep_snapshot()
+            st.session_state["autoprep_status"] = "idle"
+            st.rerun()
+    with col_dismiss:
+        if st.button("✓ Keep & Dismiss", key="autoprep_dismiss_btn",
+                     type="primary", use_container_width=True,
+                     help="Keep the changes; hide this panel and proceed to Save."):
+            # Keep the applied changes + sim_config, just close this summary
+            st.session_state["autoprep_status"] = "dismissed"
+            st.session_state.pop("autoprep_log", None)
+            st.session_state.pop("autoprep_failed_at", None)
+            st.rerun()
+
+
+def _restore_autoprep_snapshot() -> None:
+    """Restore company/module/config from the pre-run snapshot."""
+    snap = st.session_state.get("autoprep_snapshot")
+    if not snap:
+        return
+    st.session_state["dc_company_data"] = copy.deepcopy(snap.get("company_data"))
+    st.session_state["dc_module_data"]  = copy.deepcopy(snap.get("module_data"))
+    prior_cfg = snap.get("simulation_config")
+    if prior_cfg is None:
+        st.session_state.pop("autoprep_sim_config", None)
+    else:
+        st.session_state["autoprep_sim_config"] = copy.deepcopy(prior_cfg)
+    # Clear log and status so the idle view shows on next render
+    for k in ("autoprep_log", "autoprep_failed_at", "autoprep_audit_snapshot"):
+        st.session_state.pop(k, None)
