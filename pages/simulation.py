@@ -715,7 +715,12 @@ def run_simulation_round(llm: object, data: Dict,
         """, unsafe_allow_html=True)
 
         if evaluation.get('score_reasoning'):
-            with st.expander("📋 Score Breakdown & Reasoning", expanded=True):
+            with st.expander("📋 Score Breakdown & Reasoning (Total: 100 pts)", expanded=True):
+                st.caption(
+                    "**Dimensions:** Governance Understanding /25 · "
+                    "Legal & Regulatory /20 · Stakeholder Consideration /20 · "
+                    "Strategic Thinking /20 · Role Alignment /15"
+                )
                 st.markdown(evaluation['score_reasoning'])
 
         col1, col2 = st.columns(2)

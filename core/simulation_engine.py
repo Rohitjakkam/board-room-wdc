@@ -366,12 +366,13 @@ CRITICAL EVALUATION CRITERIA:
 Provide your evaluation in this EXACT format:
 SCORE: [0-100] (Be HONEST - if decision is poor, give a low score)
 
-SCORE_REASONING: [Explain SPECIFICALLY why you gave this score. Be critical where warranted:
-- Governance Understanding (0-25 pts): [points earned] - [what was right/wrong]
-- Legal/Regulatory Compliance (0-20 pts): [points earned] - [what was right/wrong]
-- Stakeholder Consideration (0-20 pts): [points earned] - [who was helped/harmed]
-- Strategic Thinking (0-20 pts): [points earned] - [strengths/weaknesses in approach]
-- Role Alignment (0-15 pts): [points earned] - [appropriate for their position?]]
+SCORE_REASONING: [Explain SPECIFICALLY why you gave this score. Show points as X/MAX. Be critical where warranted:
+- Governance Understanding: [points]/25 - [what was right/wrong]
+- Legal/Regulatory Compliance: [points]/20 - [what was right/wrong]
+- Stakeholder Consideration: [points]/20 - [who was helped/harmed]
+- Strategic Thinking: [points]/20 - [strengths/weaknesses in approach]
+- Role Alignment: [points]/15 - [appropriate for their position?]
+Total: [sum]/100]
 
 STRENGTHS: [What was done well - if little was done well, say "Limited strengths identified" and explain why]
 
