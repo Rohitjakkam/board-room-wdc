@@ -12,7 +12,8 @@
       "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestFeedbackPDFFixes -v)",
       "Bash(.venv/Scripts/python -c ' *)",
       "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestAgent1Improvements tests/test_scenarios.py::TestAgent2Improvements tests/test_scenarios.py::TestAgent3Improvements -v)",
-      "Bash(.venv/Scripts/python -m pytest tests/ -q)"
+      "Bash(.venv/Scripts/python -m pytest tests/ -q)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
