@@ -11,8 +11,9 @@ import json
 import logging
 import re
 import streamlit as st
+from difflib import SequenceMatcher
 from google import genai
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -266,9 +267,15 @@ def run_create_review_agent(
     """
     items: List[Dict] = []
     patch: Dict = {"company": {}, "module": {}}
+    raw_text_flags: List[Dict] = []
 
     has_company_text = bool(company_text and len(company_text.strip()) >= 200)
     has_module_text  = bool(module_text  and len(module_text.strip())  >= 200)
+
+    # Phase 0 — raw PDF text scan (NEW): duplicate names + value contradictions
+    # in the source document. Read-only flags surfaced to admin alongside patches.
+    if has_company_text:
+        raw_text_flags = _agent1_phase0_raw_text_scan(company_text)
 
     # Phase 1 — PDF recovery
     if has_company_text or has_module_text:
@@ -289,18 +296,202 @@ def run_create_review_agent(
 
     # Build summary counts
     summary = {
-        "pdf_recovered":  sum(1 for i in items if i["source"] == "pdf"),
-        "enriched":       sum(1 for i in items if i["source"] == "enriched"),
-        "generated":      sum(1 for i in items if i["source"] == "generated"),
-        "manual_required":sum(1 for i in items if i["source"] == "manual"),
+        "pdf_recovered":   sum(1 for i in items if i["source"] == "pdf"),
+        "enriched":        sum(1 for i in items if i["source"] == "enriched"),
+        "generated":       sum(1 for i in items if i["source"] == "generated"),
+        "manual_required": sum(1 for i in items if i["source"] == "manual"),
+        "raw_text_flags":  len(raw_text_flags),
     }
 
     return {
-        "patch": patch,
-        "items": items,
-        "phase1_skipped": phase1_skipped,
-        "summary": summary,
+        "patch":           patch,
+        "items":           items,
+        "phase1_skipped":  phase1_skipped,
+        "raw_text_flags":  raw_text_flags,
+        "summary":         summary,
     }
+
+
+# ---------------------------------------------------------------------------
+# Agent 1 — Phase 0: Raw PDF text scan (NEW)
+# ---------------------------------------------------------------------------
+# Two scans on raw PDF text BEFORE the LLM recovery call:
+#   1.2  Duplicate-name detection — flags people referenced in raw text with
+#        different roles (e.g. "Kenji Tanaka, CTO" + "Kenji Tanaka, Independent
+#        Director" both present)
+#   1.3  Numeric contradiction surfacing — flags the same financial line item
+#        stated differently in two parts of the same PDF (e.g. "$850M revenue"
+#        + "$1.2B in total revenue")
+#
+# Both produce read-only `flags` (severity warning) — they don't auto-fix the
+# data, they alert admin so the contradiction can be resolved by the source
+# author rather than papered over by silent extraction.
+
+# Roles that commonly co-occur as job titles in PDFs
+_ROLE_PATTERN_TOKENS = (
+    r"CEO|MD|CFO|COO|CTO|CMO|CHRO|CRO|CLO|"
+    r"Chief\s+Executive\s+Officer|Chief\s+Financial\s+Officer|"
+    r"Chief\s+Operating\s+Officer|Chief\s+Technology\s+Officer|"
+    r"Chief\s+Marketing\s+Officer|Chief\s+Risk\s+Officer|"
+    r"Chief\s+Human\s+Resources\s+Officer|Chief\s+Legal\s+Officer|"
+    r"Chairperson|Chair|Vice\s+Chairperson|"
+    r"Independent\s+Director|Non-Executive\s+Director|Executive\s+Director|"
+    r"Board\s+Director|Company\s+Secretary|General\s+Counsel"
+)
+
+# Pattern A: "Name, ROLE" or "Name is the ROLE" — name first, role second.
+# Name MUST be capitalised (no re.IGNORECASE). Role match is case-insensitive.
+_PERSON_NEAR_ROLE_RE = re.compile(
+    r"\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]+){1,3})\b"
+    r"(?:[\s,\-—:]+|\s+(?:is|was|serves\s+as)\s+(?:our|the|a)\s+)"
+    r"((?i:" + _ROLE_PATTERN_TOKENS + r"))\b"
+)
+
+# Pattern B: "ROLE is/was Name" / "Our ROLE Name" — role first, name second.
+# Catches "The CTO is Kenji Tanaka" / "Our CFO David Chen" style PDF prose.
+_ROLE_NEAR_PERSON_RE = re.compile(
+    r"\b(?:[Tt]he|[Oo]ur|[Aa])\s+"
+    r"((?i:" + _ROLE_PATTERN_TOKENS + r"))"
+    r"(?:\s+is\s+|\s+was\s+|,?\s+)"
+    r"\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]+){1,3})\b"
+)
+
+# Pattern: numeric financial value ($1.2B, ₹100 Cr, etc.) preceded by a label
+_LABELED_VALUE_RE = re.compile(
+    r"(?P<label>\b[A-Za-z][A-Za-z\s\-]{4,40}?)"
+    r"(?:\s+(?:of|was|reached|stood\s+at|reported|came\s+in\s+at|totalled|totaled|hit|was\s+at|amounted\s+to|of\s+approximately|approximately))"
+    r"\s+"
+    r"(?P<sym>\$|₹|€|£)"
+    r"\s*(?P<num>\d+(?:\.\d+)?)"
+    r"\s*(?P<scale>billion|million|thousand|crore|lakh|bn|mn|b|m|k|cr|l)\b",
+    re.IGNORECASE,
+)
+
+
+def _agent1_phase0_raw_text_scan(
+    company_text: str,
+) -> List[Dict]:
+    """Phase 0: scan raw PDF text for duplicate names + value contradictions.
+
+    Returns a list of flags (read-only — does NOT mutate company_data or patch).
+    These flags are surfaced to admin alongside the patch UI so contradictions
+    can be resolved at the source rather than silently absorbed.
+    """
+    flags: List[Dict] = []
+    if not company_text or len(company_text) < 200:
+        return flags
+
+    # ── 1.2 Duplicate-name detection ──────────────────────────────────────
+    # Find every "Name, Title" mention via two patterns (forward + reverse word
+    # order). A name with TWO DIFFERENT titles in the document = duplicate-person
+    # bug from the source PDF.
+    name_to_roles: Dict[str, set] = {}
+
+    def _record(name_str: str, role_str: str) -> None:
+        name = " ".join(name_str.split())
+        role = " ".join(role_str.split())
+        canonical_role = _normalize_role(role) or role.title()
+        name_to_roles.setdefault(name, set()).add(canonical_role)
+
+    for match in _PERSON_NEAR_ROLE_RE.finditer(company_text):
+        _record(match.group(1), match.group(2))
+    for match in _ROLE_NEAR_PERSON_RE.finditer(company_text):
+        _record(match.group(2), match.group(1))
+
+    for name, roles in name_to_roles.items():
+        if len(roles) > 1:
+            flags.append({
+                "type": "raw_text_duplicate_role",
+                "severity": "warning",
+                "message": (
+                    f"Source PDF references '{name}' with multiple distinct roles: "
+                    f"{', '.join(sorted(roles))}. Likely a typo in the source OR "
+                    f"two people sharing the same name."
+                ),
+                "field": f"raw_text.{name}",
+                "fix_hint": (
+                    "Read the original PDF context for each mention. If same person, "
+                    "keep the most senior/current role. If two people, distinguish them "
+                    "(e.g. add middle initial or junior/senior)."
+                ),
+            })
+
+    # ── 1.3 Numeric contradiction surfacing ───────────────────────────────
+    # Group labeled values by their normalized label. Two values for the same
+    # label that disagree by >25% (after $M canonicalization) = contradiction.
+    label_to_values: Dict[str, List[Tuple[float, str, str]]] = {}
+    scale_factors_to_m = {
+        "b": 1000.0, "billion": 1000.0, "bn": 1000.0,
+        "m": 1.0,    "million":   1.0,  "mn":   1.0,
+        "k": 0.001,  "thousand":  0.001,
+        "cr": 12.0,  "crore":    12.0,
+        "l":  0.012, "lakh":      0.012,
+    }
+    for m in _LABELED_VALUE_RE.finditer(company_text):
+        label = (m.group("label") or "").strip().lower()
+        # Filter out generic stopwords and short tokens (≥4 chars).
+        label_words = [w for w in label.split() if w not in _PRIORITY_STOPWORDS and len(w) >= 4]
+        if not label_words:
+            continue
+        # Dedup key is the RIGHTMOST significant noun — handles "total revenue"
+        # vs "our reported total revenue" both keying to "revenue".
+        norm_label = label_words[-1]
+        try:
+            num = float(m.group("num"))
+        except ValueError:
+            continue
+        scale = (m.group("scale") or "").lower()
+        currency = m.group("sym") or "$"
+        mult = scale_factors_to_m.get(scale, 1.0)
+        # Currency adj for $/₹/€/£
+        currency_mult = {"$": 1.0, "₹": 0.012, "€": 1.08, "£": 1.27}.get(currency, 1.0)
+        # ₹+crore/lakh already absorbs FX in scale_factors_to_m, so skip double-conversion
+        if currency == "₹" and scale in ("cr", "crore", "l", "lakh"):
+            value_in_m = num * mult
+        else:
+            value_in_m = num * mult * currency_mult
+        verbatim = f"{currency}{m.group('num')}{m.group('scale').upper()}"
+        label_to_values.setdefault(norm_label, []).append((value_in_m, verbatim, m.group(0)))
+
+    for label, vals in label_to_values.items():
+        if len(vals) < 2:
+            continue
+        # Find the largest pairwise discrepancy
+        seen_pairs: set = set()
+        for i in range(len(vals)):
+            for j in range(i + 1, len(vals)):
+                v1, v2 = vals[i][0], vals[j][0]
+                if v1 == 0 or v2 == 0:
+                    continue
+                diff_ratio = abs(v1 - v2) / max(abs(v1), abs(v2))
+                if diff_ratio < 0.25:
+                    continue
+                key = tuple(sorted([round(v1, 1), round(v2, 1)]))
+                if key in seen_pairs:
+                    continue
+                seen_pairs.add(key)
+                flags.append({
+                    "type": "raw_text_value_contradiction",
+                    "severity": "warning",
+                    "message": (
+                        f"Source PDF reports '{label}' with conflicting values: "
+                        f"{vals[i][1]} (≈${v1:.1f}M) vs {vals[j][1]} (≈${v2:.1f}M) — "
+                        f"a {int(diff_ratio*100)}% discrepancy."
+                    ),
+                    "field": f"raw_text.{label}",
+                    "fix_hint": (
+                        "Confirm with the original PDF which value is canonical "
+                        "(e.g. fiscal year vs forecast, gross vs net, consolidated vs standalone). "
+                        "Update the metric value to match the canonical source."
+                    ),
+                })
+                # One contradiction-pair per label is enough to surface the issue
+                break
+            else:
+                continue
+            break
+
+    return flags
 
 
 def _agent1_phase1_recovery(
@@ -1538,6 +1729,423 @@ Respond in JSON:
 }}"""
 
 
+# ---------------------------------------------------------------------------
+# Agent 2 — Phase 2b: Cross-field consistency checks (NEW)
+# ---------------------------------------------------------------------------
+# Catches contradictions across fields that the structural checker misses:
+# duplicate person names, single-incumbent role violations (dual CEOs),
+# person-name mismatches between board and narrative, and numeric value
+# contradictions between company_overview and metric values.
+#
+# Future-proof: all checks are registered in _CONSISTENCY_CHECKS so new
+# checks can be added without touching the orchestrator.
+
+# Roles where corporate governance norms expect ONLY ONE incumbent
+_SINGLE_INCUMBENT_ROLES = {
+    "CEO", "MD", "CFO", "COO", "CTO", "CMO", "CHRO", "CRO", "CLO",
+    "Chairperson", "Vice Chairperson", "Company Secretary", "General Counsel",
+}
+
+# Words that don't carry semantic identity for metric ↔ problem matching
+_PRIORITY_STOPWORDS = {
+    "rate", "ratio", "score", "index", "count", "number", "total", "annual",
+    "metric", "value", "level", "percentage", "change", "amount", "data",
+    "with", "this", "that", "from", "into", "company", "business", "corporate",
+    "report", "reported", "current", "average", "monthly", "yearly", "quarterly",
+    "year", "time", "weekly", "daily",
+}
+
+# Currency / scale -> multiplier to canonical "USD millions" ($M)
+# Used by value-contradiction detector to normalize before comparing.
+_TEXT_SCALE_TO_M = {
+    "b":         1000.0,  "billion":  1000.0,  "bn":  1000.0,
+    "m":            1.0,  "million":     1.0,  "mn":     1.0,
+    "k":         0.001,   "thousand":  0.001,
+    "cr":           12.0, "crore":       12.0,  # ≈ 1Cr INR ≈ $12M (FX-approx — refine via feed)
+    "l":         0.012,   "lakh":      0.012,
+}
+
+
+def _fuzzy_ratio(a: str, b: str) -> float:
+    """Stdlib fuzzy similarity 0.0-1.0 (no new dep). Lowercases + strips."""
+    if not a or not b:
+        return 0.0
+    return SequenceMatcher(None, a.lower().strip(), b.lower().strip()).ratio()
+
+
+def _significant_words(text: str) -> set:
+    """Distinctive content words ≥4 chars, lowercased, stopwords removed."""
+    if not text:
+        return set()
+    words = re.findall(r"[a-z]{4,}", text.lower())
+    return set(words) - _PRIORITY_STOPWORDS
+
+
+def _check_dup_persons_and_dual_incumbents(
+    company_data: Dict, module_data: Dict,
+) -> List[Dict]:
+    """Detect duplicate person entries AND single-incumbent role violations.
+
+    Catches the feedback PDF B-ii (dual CEOs Amelia + Evelyn) and B-iii
+    (Kenji Tanaka twice) cases.
+    """
+    flags = []
+    members = [m for m in company_data.get("board_members", []) if isinstance(m, dict)]
+
+    # Exact-duplicate names (case-insensitive)
+    name_to_entries: Dict[str, List[Dict]] = {}
+    for m in members:
+        n = (m.get("name") or "").strip()
+        if n:
+            name_to_entries.setdefault(n.lower(), []).append(m)
+    for lower_name, entries in name_to_entries.items():
+        if len(entries) > 1:
+            roles = ", ".join(e.get("role", "?") for e in entries)
+            flags.append({
+                "type": "duplicate_person",
+                "severity": "error",
+                "message": (
+                    f"'{entries[0].get('name')}' appears {len(entries)} times "
+                    f"on the board with roles: {roles}. Same person cannot hold two seats."
+                ),
+                "field": f"board_members.{entries[0].get('name')}",
+                "fix_hint": (
+                    "Merge into a single entry with the most senior role, "
+                    "OR rename the second person if they are actually different individuals."
+                ),
+            })
+
+    # Fuzzy near-duplicate names ("John Smith" vs "Jon Smith" — typo or two people?)
+    seen = []
+    for m in members:
+        n = (m.get("name") or "").strip().lower()
+        if not n:
+            continue
+        for prev in seen:
+            score = _fuzzy_ratio(n, prev)
+            # 0.90+ = near-certain typo/variant; exclude exact duplicates already caught above
+            if 0.90 <= score < 1.0:
+                flags.append({
+                    "type": "fuzzy_name_match",
+                    "severity": "warning",
+                    "message": (
+                        f"Near-duplicate names: '{m.get('name')}' vs previously-seen "
+                        f"'{prev.title()}' ({int(score*100)}% similar)"
+                    ),
+                    "field": f"board_members.{m.get('name')}",
+                    "fix_hint": "Confirm these are two distinct people. If not, deduplicate.",
+                })
+        seen.append(n)
+
+    # Single-incumbent role violations (dual CEOs etc.)
+    role_counts: Dict[str, List[str]] = {}
+    for m in members:
+        role = _normalize_role(m.get("role", ""))
+        name = m.get("name", "")
+        if role and name:
+            role_counts.setdefault(role, []).append(name)
+    for role, names in role_counts.items():
+        if role in _SINGLE_INCUMBENT_ROLES and len(names) > 1:
+            flags.append({
+                "type": "duplicate_incumbent",
+                "severity": "error",
+                "message": (
+                    f"Multiple incumbents for single-incumbent role '{role}': {', '.join(names)}. "
+                    f"Corporate governance norms allow only one {role} at a time."
+                ),
+                "field": f"board_members.{role}",
+                "fix_hint": (
+                    f"Keep one as '{role}', reassign the other to a different role "
+                    f"(e.g. former-{role}, deputy, or different C-suite slot)."
+                ),
+            })
+
+    return flags
+
+
+def _check_person_name_consistency(
+    company_data: Dict, module_data: Dict,
+) -> List[Dict]:
+    """Flag person-name capitalised mentions in narrative that don't match any board member.
+
+    Catches the feedback PDF B-iv case ("David Chen called CFO in board but
+    'Mr. Chen' in problems") via fuzzy matching.
+    """
+    flags = []
+    members = [m for m in company_data.get("board_members", []) if isinstance(m, dict)]
+    board_names_lower = {(m.get("name") or "").strip().lower() for m in members if m.get("name")}
+    if not board_names_lower:
+        return flags
+
+    # Title-prefix names like "Mr. Chen" or "Dr. Sharma" are common — extract the surname token
+    text_sources = [
+        ("current_problems", " ".join(p for p in company_data.get("current_problems", []) if isinstance(p, str))),
+        ("company_overview", company_data.get("company_overview") or ""),
+        ("initial_scenario", company_data.get("initial_scenario") or ""),
+    ]
+    # Pattern: 1-3 capitalised words, optionally preceded by a title (Mr./Mrs./Ms./Dr./Prof.)
+    name_re = re.compile(
+        r"\b(?:(?:Mr|Mrs|Ms|Dr|Prof|Sir|Lady)\.?\s+)?"
+        r"([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]+){0,2})\b"
+    )
+    seen_misses = set()  # dedupe per text source
+    for label, text in text_sources:
+        if not text:
+            continue
+        for match in name_re.finditer(text):
+            cand = match.group(1).strip()
+            cand_lower = cand.lower()
+            # Skip very short single tokens (likely common nouns capitalised at sentence start)
+            if " " not in cand and len(cand) < 5:
+                continue
+            # Exact match
+            if cand_lower in board_names_lower:
+                continue
+            # Dedupe within one source
+            if (label, cand_lower) in seen_misses:
+                continue
+            # Best fuzzy match against board roster
+            best_match, best_score = "", 0.0
+            for bn in board_names_lower:
+                # Also try matching just by surname (last word)
+                bn_surname = bn.split()[-1] if bn.split() else bn
+                cand_surname = cand_lower.split()[-1]
+                score = max(
+                    _fuzzy_ratio(cand_lower, bn),
+                    _fuzzy_ratio(cand_surname, bn_surname),
+                )
+                if score > best_score:
+                    best_score = score
+                    best_match = bn
+            # Likely a real third-party name (regulator, customer, journalist, etc.)
+            if best_score < 0.55:
+                continue
+            # 0.95+ surname-only matches are almost certainly the same person referenced informally —
+            # not a bug, just a stylistic variant. Skip.
+            if best_score >= 0.95:
+                continue
+            # 0.55 - 0.95: probable identity mismatch worth surfacing
+            seen_misses.add((label, cand_lower))
+            flags.append({
+                "type": "person_name_mismatch",
+                "severity": "warning",
+                "message": (
+                    f"'{cand}' appears in {label} but doesn't exactly match any board member. "
+                    f"Closest match: '{best_match.title()}' ({int(best_score * 100)}% similar)."
+                ),
+                "field": label,
+                "fix_hint": (
+                    "Either correct the name in the narrative OR add this person to board_members "
+                    "if they are actually a board-relevant party."
+                ),
+            })
+
+    return flags
+
+
+def _check_value_contradictions(
+    company_data: Dict, module_data: Dict,
+) -> List[Dict]:
+    """Flag numeric values in company_overview that contradict metric values.
+
+    Catches the feedback PDF B-i case ("Revenue stated as $850M in some places,
+    $1.2B in others") by parsing currency/scale mentions in narrative text and
+    comparing against the metric with the most-similar description.
+    """
+    flags = []
+    overview = (company_data.get("company_overview") or "").strip()
+    metrics = company_data.get("metrics", {})
+    if not overview or not metrics:
+        return flags
+
+    # Currency-prefixed: "$1.2B", "₹100 Cr", "$850 million"
+    val_re = re.compile(
+        r"(?P<sym>\$|₹|€|£)\s*"
+        r"(?P<num>\d+(?:\.\d+)?)\s*"
+        r"(?P<scale>billion|million|thousand|crore|lakh|bn|mn|b|m|k|cr|l)\b",
+        re.IGNORECASE,
+    )
+
+    def _to_usd_millions(num: float, scale: str, currency: str) -> float:
+        scale_l = scale.lower()
+        mult = _TEXT_SCALE_TO_M.get(scale_l, 1.0)
+        # Currency adjustment: ₹ → $ via FX approximation embedded in scale_to_m for crore/lakh,
+        # but bare $/₹/€/£ with M/B should still distinguish. Quick approximations:
+        currency_mult = {"$": 1.0, "₹": 0.012, "€": 1.08, "£": 1.27}.get(currency, 1.0)
+        # If currency is ₹ but scale is m/b/k (English), still apply currency_mult
+        if currency == "₹" and scale_l not in ("cr", "crore", "l", "lakh"):
+            return round(num * mult * currency_mult, 2)
+        if currency != "₹" and scale_l in ("cr", "crore", "l", "lakh"):
+            # Mixed currency/scale — pass through with default mult
+            return round(num * mult, 2)
+        return round(num * mult * currency_mult, 2)
+
+    def _metric_to_usd_millions(value: float, unit: str) -> Optional[float]:
+        if value is None:
+            return None
+        u = (unit or "").strip()
+        # Reuse data_manager's canonical scale table by inline lookup
+        scale_table = {
+            "$B": 1000.0, "$M": 1.0, "$K": 0.001,
+            "B": 1000.0,  "M": 1.0,  "K": 0.001,
+            "₹Cr": 12.0,  "Cr": 12.0,
+            "₹L": 0.012,  "L": 0.012,
+            "€M": 1.08, "€B": 1080.0,
+            "£M": 1.27, "£B": 1270.0,
+        }
+        mult = scale_table.get(u)
+        if mult is None:
+            return None
+        try:
+            return float(value) * mult
+        except (TypeError, ValueError):
+            return None
+
+    seen_ctx = set()  # dedupe by (matched_metric_key, near_value)
+    for match in val_re.finditer(overview):
+        currency = match.group("sym")
+        num = float(match.group("num"))
+        scale = match.group("scale")
+        narrative_value_m = _to_usd_millions(num, scale, currency)
+        if narrative_value_m == 0:
+            continue
+        # Look at the 80 chars before the number for descriptive context
+        ctx_start = max(0, match.start() - 80)
+        context_before = overview[ctx_start:match.start()]
+        ctx_words = _significant_words(context_before)
+        if not ctx_words:
+            continue
+        # Find the metric whose description shares the most words with the context
+        best_metric_key, best_overlap = "", 0
+        for mkey, m in metrics.items():
+            if not isinstance(m, dict):
+                continue
+            desc = str(m.get("description") or mkey.replace("_", " "))
+            desc_words = _significant_words(desc)
+            overlap = len(desc_words & ctx_words)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_metric_key = mkey
+        # Need at least 1 distinctive word match to anchor — otherwise we'd guess wildly
+        if best_overlap == 0 or not best_metric_key:
+            continue
+        m = metrics[best_metric_key]
+        metric_value_m = _metric_to_usd_millions(m.get("value"), m.get("unit"))
+        if metric_value_m is None or metric_value_m == 0:
+            continue
+        diff_ratio = abs(narrative_value_m - metric_value_m) / max(abs(metric_value_m), 1.0)
+        # Only flag mismatches >25% — paraphrasing/rounding can produce smaller drift
+        if diff_ratio < 0.25:
+            continue
+        ctx_key = (best_metric_key, round(narrative_value_m, 1))
+        if ctx_key in seen_ctx:
+            continue
+        seen_ctx.add(ctx_key)
+        flags.append({
+            "type": "value_contradiction",
+            "severity": "warning",
+            "message": (
+                f"Overview says '{currency}{num}{scale.upper()}' (≈${narrative_value_m:.1f}M) "
+                f"in context matching metric '{m.get('description', best_metric_key)}', "
+                f"but that metric stores {m.get('value')} {m.get('unit')} "
+                f"(≈${metric_value_m:.1f}M) — a {int(diff_ratio*100)}% mismatch."
+            ),
+            "field": f"metrics.{best_metric_key}.value",
+            "fix_hint": (
+                f"Pick one source of truth: update either the narrative or the metric "
+                f"value so both agree."
+            ),
+        })
+
+    return flags
+
+
+# Registry of consistency checks — future checks added here are picked up automatically
+_CONSISTENCY_CHECKS: List[Callable[[Dict, Dict], List[Dict]]] = [
+    _check_dup_persons_and_dual_incumbents,
+    _check_person_name_consistency,
+    _check_value_contradictions,
+]
+
+
+def _audit_phase2b_consistency_checks(
+    company_data: Dict, module_data: Dict,
+) -> List[Dict]:
+    """Phase 2b — run all registered cross-field consistency checks."""
+    flags = []
+    for check in _CONSISTENCY_CHECKS:
+        try:
+            flags.extend(check(company_data, module_data))
+        except Exception:
+            logger.exception("Consistency check %s failed", check.__name__)
+    return flags
+
+
+# ---------------------------------------------------------------------------
+# Agent 2 — Phase 2c: Auto-elevate metric priority when named in problems (NEW)
+# ---------------------------------------------------------------------------
+
+def _audit_phase2c_auto_priority(
+    company_data: Dict, items: List[Dict], patch: Dict,
+) -> int:
+    """Elevate priority='High' on any metric whose identity words appear in current_problems.
+
+    Closes feedback PDF A9 / Issue #3: metrics like the $75M liability, 40%
+    stock drop, 8% churn, security incidents were all surfaced in problems but
+    NOT marked High. Priority is the runtime signal that drives the High
+    Priority Metrics panel — auto-elevation makes sure problem-relevant
+    metrics get the surface they deserve.
+
+    Returns the count of metrics elevated.
+    """
+    problems = [p for p in company_data.get("current_problems", []) if isinstance(p, str)]
+    if not problems:
+        return 0
+    problems_words: set = set()
+    for p in problems:
+        problems_words |= _significant_words(p)
+    if not problems_words:
+        return 0
+
+    elevated = 0
+    auto_priority_updates: Dict[str, str] = {}
+    for key, metric in company_data.get("metrics", {}).items():
+        if not isinstance(metric, dict):
+            continue
+        # Already High — skip
+        current = str(metric.get("priority") or "").strip().lower()
+        if current == "high":
+            continue
+        # Identity = key + description words
+        identity = f"{key.replace('_', ' ')} {metric.get('description', '')}"
+        metric_words = _significant_words(identity)
+        matched = metric_words & problems_words
+        if not matched:
+            continue
+        old_priority = metric.get("priority")
+        # Mutate in place so phase 3's prompt sees the elevation;
+        # also stash in patch so Streamlit save layer picks it up.
+        metric["priority"] = "High"
+        auto_priority_updates[key] = "High"
+        items.append({
+            "field": f"metrics.{key}.priority",
+            "source": "consistency",
+            "label": f"Auto-elevated to HIGH: {metric.get('description', key)}",
+            "before": old_priority,
+            "after": "High",
+            "reason": (
+                f"This metric is referenced in current_problems via term(s): "
+                f"{', '.join(sorted(matched)[:4])}. High-priority metrics surface in the "
+                f"player's High Priority Metrics panel — problem-relevant metrics belong there."
+            ),
+        })
+        elevated += 1
+
+    if auto_priority_updates:
+        patch["company"].setdefault("auto_priority_updates", {}).update(auto_priority_updates)
+    return elevated
+
+
 def _compute_readiness_score(
     company_data: Dict, module_data: Dict,
     gaps: Dict, flags: List[Dict],
@@ -1684,33 +2292,47 @@ def _audit_phase3_generate_and_score(
 def run_audit_agent(company_data: Dict, module_data: Dict) -> Dict:
     """
     Agent 2 entry point.
-    Returns: {items, patch, readiness_score, gaps, flags, summary}
+    Returns: {items, patch, readiness_score, gaps, flags, consistency_flags, summary}
     """
     items: List[Dict] = []
     patch: Dict = {"company": {}, "module": {}}
 
     gaps  = _audit_phase1_gap_analysis(company_data, module_data)
     flags = _audit_phase2_structural_checks(company_data, module_data)
+
+    # Phase 2b — cross-field consistency (NEW). These are surfaced as flags but
+    # NOT auto-fixed: contradictions (e.g. dual CEOs, revenue mismatch) need admin judgment.
+    consistency_flags = _audit_phase2b_consistency_checks(company_data, module_data)
+    # Merge into the same flags list so readiness scoring penalises them too
+    flags.extend(consistency_flags)
+
+    # Phase 2c — auto-elevate priority on problem-relevant metrics (NEW, in-place mutation).
+    # Runs BEFORE Phase 3 so the LLM sees the corrected priorities.
+    auto_elevated_count = _audit_phase2c_auto_priority(company_data, items, patch)
+
     readiness = _audit_phase3_generate_and_score(
         company_data, module_data, gaps, flags, patch, items,
     )
 
     summary = {
-        "metrics_missing":   len(gaps.get("missing_metric_categories", [])),
-        "roles_missing":     len(gaps.get("missing_expertise_roles", [])),
-        "committees_missing": len(gaps.get("missing_committee_types", [])),
-        "problems_missing":  len(gaps.get("missing_problem_themes", [])),
-        "structural_flags":  len(flags),
-        "items_generated":   len(items),
+        "metrics_missing":     len(gaps.get("missing_metric_categories", [])),
+        "roles_missing":       len(gaps.get("missing_expertise_roles", [])),
+        "committees_missing":  len(gaps.get("missing_committee_types", [])),
+        "problems_missing":    len(gaps.get("missing_problem_themes", [])),
+        "structural_flags":    len(flags) - len(consistency_flags),
+        "consistency_flags":   len(consistency_flags),
+        "priority_elevated":   auto_elevated_count,
+        "items_generated":     len(items),
     }
 
     return {
-        "items":          items,
-        "patch":          patch,
-        "readiness_score": readiness,
-        "gaps":           gaps,
-        "flags":          flags,
-        "summary":        summary,
+        "items":             items,
+        "patch":             patch,
+        "readiness_score":   readiness,
+        "gaps":              gaps,
+        "flags":             flags,
+        "consistency_flags": consistency_flags,
+        "summary":           summary,
     }
 
 
@@ -1808,6 +2430,81 @@ def _compute_act_structure(num_rounds: int) -> List[Dict]:
     return acts
 
 
+def _assign_dissenters_per_round(
+    act_structure: List[Dict],
+    board_members: List[Dict],
+    coverage_requirements: Dict,
+) -> Dict[int, List[str]]:
+    """Agent 3.1 — deterministic dissenter rotation across rounds.
+
+    Closes feedback PDF Agent-W1: "Marcus and Jamal opposed every round."
+
+    Algorithm (idempotent):
+    - For each round, score each board member by:
+        +relevance: their expertise's significant words overlap with the round's topics
+        +rotation_bonus: members with fewer prior dissent slots are preferred
+        -recency_penalty: members who dissented in the immediately-previous round are deprioritised
+        +seniority_bias: 0.5 for Finance/Risk/Governance backgrounds (commonly dissent on most decisions)
+    - Pick top 2 (Act 1) or 3 (Acts 2-3) members as `expected_dissenters`.
+    - Track running dissent_count to balance load across the simulation.
+
+    Returns: {round_number: [member_name, ...]}
+    """
+    if not board_members or not act_structure:
+        return {}
+
+    # Distribute topics roughly evenly across rounds for relevance scoring.
+    topics_list = list(coverage_requirements.keys())
+    num_rounds = len(act_structure)
+    rounds_topics: Dict[int, List[str]] = {}
+    per_round = max(1, (len(topics_list) + num_rounds - 1) // num_rounds) if num_rounds else 1
+    for i, r in enumerate(act_structure):
+        rnum = r["round_number"]
+        start = i * per_round
+        end = start + per_round
+        rounds_topics[rnum] = topics_list[start:end]
+
+    valid_members = [m for m in board_members if isinstance(m, dict) and (m.get("name") or "").strip()]
+    if not valid_members:
+        return {}
+
+    dissent_count: Dict[str, int] = {m["name"]: 0 for m in valid_members}
+    last_round_dissenters: set = set()
+    assignments: Dict[int, List[str]] = {}
+
+    for r in act_structure:
+        rnum = r["round_number"]
+        topics_for_round = rounds_topics.get(rnum, [])
+        topic_words: set = set()
+        for t in topics_for_round:
+            topic_words |= _significant_words(t)
+
+        scored: List[Tuple[float, str]] = []
+        for m in valid_members:
+            name = m["name"]
+            expertise = (m.get("expertise") or "").lower()
+            exp_words = set(re.findall(r"[a-z]{4,}", expertise))
+            relevance = len(exp_words & topic_words) * 1.5
+            seniority_bias = 0.5 if exp_words & {"finance", "risk", "governance", "compliance", "audit"} else 0
+            rotation_bonus = max(0, 3 - dissent_count[name]) * 1.0
+            recency_penalty = 4.0 if name in last_round_dissenters else 0
+            score = relevance + seniority_bias + rotation_bonus - recency_penalty
+            scored.append((score, name))
+
+        # Stable sort: by score desc, then by current dissent count asc (round-robin tiebreak)
+        scored.sort(key=lambda x: (-x[0], dissent_count[x[1]]))
+
+        target_count = 3 if r.get("act", 1) >= 2 else 2
+        chosen = [n for _, n in scored[:target_count]]
+
+        assignments[rnum] = chosen
+        for n in chosen:
+            dissent_count[n] += 1
+        last_round_dissenters = set(chosen)
+
+    return assignments
+
+
 def _check_coverage_requirements(module_data: Dict, num_rounds: int) -> Dict:
     """
     Returns a map of topics/objectives that must be covered at least once,
@@ -1884,17 +2581,27 @@ def _build_narrative_planning_prompt(
     act_structure: List[Dict],
     tension_pairs: List[Dict],
     coverage_requirements: Dict,
+    expected_dissenters: Optional[Dict[int, List[str]]] = None,
+    cohort_insights_block: str = "",
 ) -> str:
-    """Build the LLM prompt for Agent 3 Phase 2 narrative arc design."""
+    """Build the LLM prompt for Agent 3 Phase 2 narrative arc design.
+
+    Now passes deterministic dissenter assignments (3.1), asks the LLM to
+    write supporter briefs (3.2), and (X.1) injects a closed-feedback-loop
+    block summarising prior cohort performance + calibration directives.
+    """
     num_rounds = simulation_config.get("total_rounds", 5)
 
     # Summarise act structure
     act_lines = []
     for r in act_structure:
-        act_lines.append(
+        line = (
             f"  Round {r['round_number']}: Act {r['act']} ({r['act_label']}) — "
             f"difficulty: {r['difficulty']}"
         )
+        if expected_dissenters and r["round_number"] in expected_dissenters:
+            line += f"  | DISSENTERS: {', '.join(expected_dissenters[r['round_number']])}"
+        act_lines.append(line)
 
     # Top tension pairs (max 3)
     tension_lines = "\n".join(
@@ -1919,6 +2626,10 @@ def _build_narrative_planning_prompt(
         f"  - {p}" for p in company_data.get("current_problems", [])
     ) or "  (none)"
 
+    cohort_section = (
+        f"\n{cohort_insights_block}\n" if cohort_insights_block.strip() else ""
+    )
+
     return f"""You are a corporate governance simulation narrative designer.
 
 COMPANY: {company_data.get('company_name', 'Unknown')}
@@ -1934,7 +2645,7 @@ Overview: {module_data.get('overview', '')}
 BOARD MEMBERS:
 {board_list}
 
-ACT STRUCTURE (fixed — do not change difficulty or act):
+ACT STRUCTURE (fixed — do not change difficulty, act, or dissenter assignment):
 {chr(10).join(act_lines)}
 
 TENSION PAIRS AVAILABLE:
@@ -1942,7 +2653,7 @@ TENSION PAIRS AVAILABLE:
 
 COVERAGE REQUIREMENTS (Bloom sequenced — must appear in the stated act):
 {cov_lines}
-
+{cohort_section}
 DESIGN TASK:
 Create a 3-act simulation narrative that:
 1. Tells a connected story — each round's decision causes the next round's crisis
@@ -1952,6 +2663,10 @@ Create a 3-act simulation narrative that:
 5. Makes focus_area RICH (2-3 sentences) — this text feeds directly into the scenario generator
    and must name: (a) the specific challenge, (b) which board member's domain is tested,
    (c) the decision frame the player faces
+6. For each round, write SUPPORTER BRIEFS — a 1-line angle each NON-dissenter board member
+   would contribute if asked. Use each member's expertise + role. Briefs should ADD VALUE
+   (a complementary framing or stakeholder consideration the dissenters would miss),
+   NOT just say "I support this." Closes the "supporters too quiet" feedback gap.
 
 Respond in JSON:
 {{
@@ -1969,12 +2684,19 @@ Respond in JSON:
       "round_type": "<both|business|module>",
       "tension_pair": "<ROLE_A and ROLE_B — theme>" or null,
       "cascade_seed": "<1 sentence: what decision from this round seeds the next round's crisis>",
-      "topics_covered": ["<topic1>", "<topic2>"]
+      "topics_covered": ["<topic1>", "<topic2>"],
+      "support_briefs": [
+        {{
+          "member": "<board member name (NOT in DISSENTERS list above)>",
+          "angle":  "<1 sentence: the value-add framing this supporter brings, grounded in their expertise>"
+        }}
+      ]
     }}
   ]
 }}
 
-Generate exactly {num_rounds} rounds. Each focus_area must be specific, vivid, and different."""
+Generate exactly {num_rounds} rounds. Each focus_area must be specific, vivid, and different.
+Each round's support_briefs must list 2-4 supporters DIFFERENT from that round's DISSENTERS list."""
 
 
 def _verify_coverage(rounds: List[Dict], coverage_requirements: Dict) -> Dict:
@@ -2009,14 +2731,57 @@ def _verify_coverage(rounds: List[Dict], coverage_requirements: Dict) -> Dict:
 
 def _agent3_phase1_pre_planning(
     company_data: Dict, module_data: Dict, simulation_config: Dict,
-) -> Tuple[List[Dict], List[Dict], Dict, List[str]]:
-    """Phase 1: compute act structure, tensions, coverage requirements, pre-flags."""
+) -> Tuple[List[Dict], List[Dict], Dict, List[str], Dict[int, List[str]]]:
+    """Phase 1: compute act structure, tensions, coverage, flags, dissenter rotation."""
     num_rounds   = simulation_config.get("total_rounds", 5)
     act_structure = _compute_act_structure(num_rounds)
     tension_pairs = _identify_tension_pairs(company_data.get("board_members", []))
     coverage_req  = _check_coverage_requirements(module_data, num_rounds)
     flags         = _run_pre_planning_flags(company_data, module_data, simulation_config)
-    return act_structure, tension_pairs, coverage_req, flags
+    expected_dissenters = _assign_dissenters_per_round(
+        act_structure, company_data.get("board_members", []), coverage_req,
+    )
+    return act_structure, tension_pairs, coverage_req, flags, expected_dissenters
+
+
+def _validate_support_briefs(
+    briefs: List[Any],
+    dissenters_for_round: List[str],
+    board_member_names: set,
+) -> List[Dict]:
+    """Filter LLM-generated support_briefs: keep only entries whose `member` is on
+    the board AND not in this round's dissenters. Drops malformed entries."""
+    if not isinstance(briefs, list):
+        return []
+    valid = []
+    seen_members: set = set()
+    dissenters_lower = {n.lower() for n in dissenters_for_round}
+    for b in briefs:
+        if not isinstance(b, dict):
+            continue
+        member = (b.get("member") or "").strip()
+        angle  = (b.get("angle")  or "").strip()
+        if not member or not angle:
+            continue
+        if member.lower() in dissenters_lower:
+            continue  # LLM violated the constraint — drop
+        if member not in board_member_names:
+            # Try fuzzy match against board roster (handles minor typos)
+            best_name, best_score = "", 0.0
+            for bn in board_member_names:
+                s = _fuzzy_ratio(member, bn)
+                if s > best_score:
+                    best_score = s
+                    best_name = bn
+            if best_score >= 0.92:
+                member = best_name  # auto-correct
+            else:
+                continue  # hallucinated name
+        if member.lower() in seen_members:
+            continue  # de-duplicate
+        seen_members.add(member.lower())
+        valid.append({"member": member, "angle": angle})
+    return valid[:6]  # cap at 6 supporter briefs per round
 
 
 def _agent3_phase2_narrative_design(
@@ -2026,17 +2791,33 @@ def _agent3_phase2_narrative_design(
     act_structure: List[Dict],
     tension_pairs: List[Dict],
     coverage_requirements: Dict,
+    expected_dissenters: Optional[Dict[int, List[str]]] = None,
+    cohort_insights_block: str = "",
 ) -> Tuple[str, Dict, List[Dict]]:
-    """Phase 2: LLM generates narrative arc title + enriched round configs."""
+    """Phase 2: LLM generates narrative arc title + enriched round configs.
+
+    Now passes deterministic `expected_dissenters` (3.1), asks for supporter
+    briefs (3.2), and injects a cohort-feedback block (X.1) when prior
+    completion data is available.
+    """
+    expected_dissenters = expected_dissenters or {}
+    board_member_names = {
+        m.get("name", "")
+        for m in company_data.get("board_members", [])
+        if isinstance(m, dict) and m.get("name")
+    }
+
     prompt = _build_narrative_planning_prompt(
         company_data, module_data, simulation_config,
         act_structure, tension_pairs, coverage_requirements,
+        expected_dissenters=expected_dissenters,
+        cohort_insights_block=cohort_insights_block,
     )
     raw   = _call_admin_llm(prompt, temperature=0.7, max_tokens=6000)
     delta = _extract_json(raw)
 
     if not delta or "rounds" not in delta:
-        # Fallback: use act structure with basic focus areas
+        # Fallback: use act structure with basic focus areas + deterministic dissenters
         return (
             f"{module_data.get('module_name', 'Simulation')} — 3-Act Governance Journey",
             {"1": "Orientation", "2": "Complication", "3": "Resolution"},
@@ -2050,6 +2831,8 @@ def _agent3_phase2_narrative_design(
                     "tension_pair": None,
                     "cascade_seed": None,
                     "topics_covered": [],
+                    "expected_dissenters": expected_dissenters.get(r["round_number"], []),
+                    "support_briefs": [],
                 }
                 for r in act_structure
             ],
@@ -2059,7 +2842,7 @@ def _agent3_phase2_narrative_design(
     act_labels      = delta.get("act_labels", {"1": "Orientation", "2": "Complication", "3": "Resolution"})
     llm_rounds      = delta.get("rounds", [])
 
-    # Merge LLM round data with act structure (difficulty comes from act structure)
+    # Merge LLM round data with act structure (difficulty + dissenters from Phase 1)
     merged_rounds = []
     act_map = {r["round_number"]: r for r in act_structure}
 
@@ -2068,18 +2851,28 @@ def _agent3_phase2_narrative_design(
             continue
         rnum = llm_round.get("round_number")
         base = act_map.get(rnum, {})
+        # Deterministic dissenters take precedence — protects against LLM ignoring the constraint
+        dissenters = expected_dissenters.get(rnum, [])
+        # Validate LLM's support_briefs against the board roster + dissenters list
+        validated_briefs = _validate_support_briefs(
+            llm_round.get("support_briefs", []),
+            dissenters,
+            board_member_names,
+        )
         merged_rounds.append({
-            "round_number":  rnum,
-            "act":           base.get("act", 1),
-            "act_label":     base.get("act_label", ""),
-            "title":         llm_round.get("title", f"Round {rnum}"),
-            "focus_area":    llm_round.get("focus_area", ""),
-            "difficulty":    base.get("difficulty", "medium"),
-            "round_type":    llm_round.get("round_type", "both"),
-            "tension_pair":  llm_round.get("tension_pair"),
-            "cascade_seed":  llm_round.get("cascade_seed"),
-            "topics_covered": llm_round.get("topics_covered", []),
-            "time_pressure": "tight" if base.get("difficulty") == "hard" else "normal",
+            "round_number":       rnum,
+            "act":                base.get("act", 1),
+            "act_label":          base.get("act_label", ""),
+            "title":              llm_round.get("title", f"Round {rnum}"),
+            "focus_area":         llm_round.get("focus_area", ""),
+            "difficulty":         base.get("difficulty", "medium"),
+            "round_type":         llm_round.get("round_type", "both"),
+            "tension_pair":       llm_round.get("tension_pair"),
+            "cascade_seed":       llm_round.get("cascade_seed"),
+            "topics_covered":     llm_round.get("topics_covered", []),
+            "expected_dissenters": dissenters,
+            "support_briefs":     validated_briefs,
+            "time_pressure":      "tight" if base.get("difficulty") == "hard" else "normal",
         })
 
     # Sort by round_number
@@ -2091,20 +2884,59 @@ def run_planning_agent(
     company_data: Dict,
     module_data: Dict,
     simulation_config: Dict,
+    use_cohort_feedback: bool = True,
+    cohort_insights: Optional[Dict] = None,
 ) -> Dict:
     """
     Agent 3 entry point.
-    Returns: {narrative_arc_title, act_labels, rounds, coverage, flags, summary}
+    Returns: {narrative_arc_title, act_labels, rounds, coverage, flags, summary,
+              dissenter_distribution, cohort_insights, calibration_recommendations}
+
+    Args:
+      use_cohort_feedback: when True, auto-fetch cohort analytics from Firestore
+        (X.1 closed feedback loop). Set False for fresh deployments or testing.
+      cohort_insights: pre-computed insights to inject (bypasses Firestore fetch).
+        Useful for testing OR when admin wants to lock in a snapshot.
     """
-    # Phase 1: deterministic pre-planning analysis
-    act_structure, tension_pairs, coverage_req, pre_flags = _agent3_phase1_pre_planning(
+    # Phase 1: deterministic pre-planning analysis (now also computes dissenter rotation)
+    (act_structure, tension_pairs, coverage_req, pre_flags,
+     expected_dissenters) = _agent3_phase1_pre_planning(
         company_data, module_data, simulation_config,
     )
 
-    # Phase 2: LLM narrative arc design
+    # X.1 — Closed feedback loop: load cohort analytics from prior completed sessions.
+    calibration_recommendations: List[Dict] = []
+    cohort_insights_block = ""
+    if cohort_insights is None and use_cohort_feedback:
+        try:
+            from core.cohort_analytics import aggregate_cohort_insights
+            sim_name = (
+                simulation_config.get("simulation_name")
+                or simulation_config.get("session_name")
+                or company_data.get("company_name")
+                or ""
+            )
+            cohort_insights = aggregate_cohort_insights(sim_name) if sim_name else None
+        except Exception:
+            logger.exception("Cohort analytics fetch failed — proceeding without")
+            cohort_insights = None
+
+    if cohort_insights:
+        from core.cohort_analytics import (
+            derive_calibration_recommendations,
+            format_insights_for_prompt,
+        )
+        calibration_recommendations = derive_calibration_recommendations(cohort_insights)
+        cohort_insights_block = format_insights_for_prompt(
+            cohort_insights, calibration_recommendations,
+        )
+
+    # Phase 2: LLM narrative arc design (now uses dissenter rotation + supporter briefs + cohort feedback)
     narrative_title, act_labels, enriched_rounds = _agent3_phase2_narrative_design(
         company_data, module_data, simulation_config,
         act_structure, tension_pairs, coverage_req,
+        expected_dissenters=expected_dissenters,
+        cohort_insights_block=cohort_insights_block,
     )
 
     # Phase 3: coverage verification
@@ -2113,20 +2945,46 @@ def run_planning_agent(
 
     all_flags = pre_flags + post_flags
 
+    # Dissenter load balance — shows admin if any member never dissents (Agent-W4)
+    # or if a member is overused (Agent-W1).
+    dissenter_distribution: Dict[str, int] = {}
+    for r in enriched_rounds:
+        for name in r.get("expected_dissenters", []):
+            dissenter_distribution[name] = dissenter_distribution.get(name, 0) + 1
+    # Flag any board member never assigned as dissenter
+    board_member_names = {
+        m.get("name", "")
+        for m in company_data.get("board_members", [])
+        if isinstance(m, dict) and m.get("name")
+    }
+    silent_members = [n for n in board_member_names if n not in dissenter_distribution]
+    if silent_members:
+        all_flags.append(
+            f"Board member(s) never assigned as dissenter (will only appear via support_briefs): "
+            f"{', '.join(silent_members[:5])}"
+        )
+
     summary = {
-        "total_rounds":       len(enriched_rounds),
-        "tension_pairs_used": len([r for r in enriched_rounds if r.get("tension_pair")]),
-        "topics_covered":     len(coverage.get("covered", {})),
-        "topics_uncovered":   len(coverage.get("uncovered", [])),
-        "flags":              len(all_flags),
+        "total_rounds":              len(enriched_rounds),
+        "tension_pairs_used":        len([r for r in enriched_rounds if r.get("tension_pair")]),
+        "topics_covered":            len(coverage.get("covered", {})),
+        "topics_uncovered":          len(coverage.get("uncovered", [])),
+        "support_briefs_total":      sum(len(r.get("support_briefs", [])) for r in enriched_rounds),
+        "flags":                     len(all_flags),
+        "cohort_sessions_used":      (cohort_insights or {}).get("n_sessions", 0),
+        "calibration_recs_applied":  len(calibration_recommendations),
     }
 
     return {
-        "narrative_arc_title": narrative_title,
-        "act_labels":          act_labels,
-        "rounds":              enriched_rounds,
-        "coverage":            coverage,
-        "tension_pairs":       tension_pairs,
-        "flags":               all_flags,
-        "summary":             summary,
+        "narrative_arc_title":         narrative_title,
+        "act_labels":                  act_labels,
+        "rounds":                      enriched_rounds,
+        "coverage":                    coverage,
+        "tension_pairs":               tension_pairs,
+        "flags":                       all_flags,
+        "summary":                     summary,
+        "dissenter_distribution":      dissenter_distribution,
+        # X.1 — Closed feedback loop output
+        "cohort_insights":             cohort_insights,
+        "calibration_recommendations": calibration_recommendations,
     }

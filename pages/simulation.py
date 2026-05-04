@@ -163,6 +163,11 @@ def run_simulation_round(llm: object, data: Dict,
 
     time_pressure = round_config.get('time_pressure', 'normal')
     time_limit_minutes = get_time_pressure_minutes(time_pressure)
+    # Round 1 onboarding bonus: first-time players need extra time to learn the interface,
+    # consult the board, debate dissenters, and compose a written decision (feedback A8/F).
+    # Adds 5 min to whatever time_pressure was configured for round 1 only.
+    if state.current_round == 0 and time_pressure != 'urgent':
+        time_limit_minutes += 5
 
     eval_key = f"evaluation_{state.current_round}"
     decision_submitted = eval_key in st.session_state
@@ -183,10 +188,14 @@ def run_simulation_round(llm: object, data: Dict,
         committee_left = max(0, 1 - st.session_state[committee_consult_key])
         revision_left = max(0, 1 - st.session_state[revision_key])
         st.markdown(f"""
-        <div class="consultation-counter">
+        <div class="consultation-counter" title="One-shot quotas per round. Director: ask one board member privately. Committee: ask one committee for collective input. Revise: rewrite your decision once after submission.">
             👥 Director: {board_left}/1 | 🏛️ Committee: {committee_left}/1 | ✏️ Revise: {revision_left}/1
         </div>
         """, unsafe_allow_html=True)
+        st.caption(
+            "ℹ️ Each round you can use **1 Director** consult, **1 Committee** consult, "
+            "and **1 Revise** of your decision. Hover the counter for details."
+        )
 
     with col3:
         if not decision_submitted:
@@ -286,7 +295,11 @@ def run_simulation_round(llm: object, data: Dict,
 
     if timer_expired and not decision_submitted:
         st.session_state[f"force_submitted_{state.current_round}"] = True
-        st.warning("⚠️ **Time has expired!** Consultations are now locked. You can still submit your decision, but it will be recorded as a late submission.")
+        st.warning(
+            "⚠️ **Time has expired!** Consultations are now locked. You can still submit your decision, but it will be recorded as a **late submission** "
+            "— positive metric impacts will be reduced by 15% and your Board Effectiveness "
+            "efficiency score is capped at 5/20 for this round."
+        )
 
     # Generate or retrieve scenario
     scenario_key = f"scenario_round_{state.current_round}"
@@ -723,6 +736,49 @@ def run_simulation_round(llm: object, data: Dict,
                 )
                 st.markdown(evaluation['score_reasoning'])
 
+        # Module Vocabulary tracker — independent of board-persuasion outcome (P1-5/P1-6)
+        vocab_score = evaluation.get('vocabulary_score', 0)
+        vocab_invoked = evaluation.get('vocabulary_invoked') or []
+        vocab_missed = evaluation.get('vocabulary_missed') or []
+        vocab_misused = evaluation.get('vocabulary_misused') or []
+        if vocab_score or vocab_invoked or vocab_missed or vocab_misused:
+            vocab_color = "#28a745" if vocab_score >= 70 else "#ffc107" if vocab_score >= 40 else "#dc3545"
+            with st.expander(
+                f"🎓 Module Application: {vocab_score}/100 — vocabulary you invoked vs missed",
+                expanded=(vocab_score < 60),
+            ):
+                st.caption(
+                    "Independent of board persuasion. Measures whether your decision invoked the "
+                    "module's canonical concepts by name or correct paraphrase."
+                )
+                st.markdown(
+                    f"<div style='font-size:1.4rem;color:{vocab_color};font-weight:600;'>"
+                    f"Module Application Score: {vocab_score}/100</div>",
+                    unsafe_allow_html=True,
+                )
+                vc1, vc2, vc3 = st.columns(3)
+                with vc1:
+                    st.markdown("**✅ Invoked**")
+                    if vocab_invoked:
+                        for t in vocab_invoked:
+                            st.markdown(f"- {t}")
+                    else:
+                        st.caption("_None invoked_")
+                with vc2:
+                    st.markdown("**🟡 Missed**")
+                    if vocab_missed:
+                        for t in vocab_missed:
+                            st.markdown(f"- {t}")
+                    else:
+                        st.caption("_All relevant terms used_")
+                with vc3:
+                    st.markdown("**🔴 Misused**")
+                    if vocab_misused:
+                        for t in vocab_misused:
+                            st.markdown(f"- {t}")
+                    else:
+                        st.caption("_None misused_")
+
         col1, col2 = st.columns(2)
         with col1:
             if evaluation.get('strengths'):
@@ -840,6 +896,14 @@ def run_simulation_round(llm: object, data: Dict,
                     _round_start = st.session_state.get(f"round_start_time_{state.current_round}")
                     _submit_time = st.session_state.get(f"decision_submit_time_{state.current_round}", datetime.now())
                     _time_taken = int((_submit_time - _round_start).total_seconds()) if _round_start else None
+                    # Persuasion outcome — drives X.1 cohort analytics for stuck-dissenter detection.
+                    _stances = st.session_state.get(f"member_stances_{state.current_round}", {}) or {}
+                    _persuaded = [n for n, s in _stances.items() if s.get('convinced_in_round') is not None]
+                    _unpersuaded = [
+                        n for n, s in _stances.items()
+                        if s.get('stance') in ('OPPOSE', 'CONVINCED')
+                        and s.get('convinced_in_round') is None
+                    ]
                     log_round(
                         session_id=_act_sid,
                         round_number=state.current_round + 1,
@@ -851,6 +915,13 @@ def run_simulation_round(llm: object, data: Dict,
                         time_taken_seconds=_time_taken,
                         strengths=evaluation.get('strengths', []),
                         improvements=evaluation.get('improvements', []),
+                        # X.1 — feed cohort analytics so Agent 3's next plan can self-calibrate
+                        vocabulary_score=evaluation.get('vocabulary_score'),
+                        vocabulary_invoked=evaluation.get('vocabulary_invoked', []),
+                        vocabulary_missed=evaluation.get('vocabulary_missed', []),
+                        vocabulary_misused=evaluation.get('vocabulary_misused', []),
+                        dissenters_persuaded=_persuaded,
+                        dissenters_unpersuaded=_unpersuaded,
                     )
             except Exception:
                 logger.warning("Failed to log round activity")
@@ -1004,7 +1075,10 @@ def simulation_page():
             metrics = st.session_state.get('current_metrics', company_data['metrics'])
 
             st.header("🔴 High Priority Metrics")
-            high_priority_metrics = {k: v for k, v in metrics.items() if v.get('priority') == 'High'}
+            high_priority_metrics = {
+                k: v for k, v in metrics.items()
+                if str(v.get('priority') or '').strip().lower() == 'high'
+            }
 
             if high_priority_metrics:
                 for key, metric in high_priority_metrics.items():
@@ -1021,16 +1095,18 @@ def simulation_page():
 
             st.markdown("---")
 
-            # Currency mixing detection — warn if metrics use incompatible unit scales
+            # Currency mixing detection — warn ONLY if mixed currency units survived normalization.
+            # data_manager._normalize_metrics() canonicalizes recognized units to $M; the warning
+            # should only fire when extraction produced a unit we couldn't normalize.
             _currency_units = set()
             for _m in metrics.values():
                 _u = (_m.get('unit') or '').strip()
-                if any(sym in _u for sym in ('$', '₹', '€', '£', 'L ', 'Cr', '£', 'M', 'K', 'B')):
+                if any(sym in _u for sym in ('$', '₹', '€', '£')) or _u in ('Cr', 'L', 'M', 'K', 'B'):
                     _currency_units.add(_u)
             if len(_currency_units) > 1:
                 st.caption(
                     f"⚠️ Mixed currency/scale units detected ({', '.join(sorted(_currency_units))}). "
-                    "Values are shown as extracted and are NOT normalized to a common scale."
+                    "These units could not be auto-normalized — admin should review the metric definitions."
                 )
 
             st.header("📊 All Metrics")
@@ -1229,6 +1305,28 @@ def simulation_page():
         </div>
         """, unsafe_allow_html=True)
 
+        # Module framing banner — tells the player exactly what's being tested before they start.
+        # Pulled from module_data (populated by Agent 1's PDF extraction + Agent 2's enrichment).
+        _module_subject  = module_data.get('subject_area') or module_data.get('module_name', '')
+        _module_overview = (module_data.get('overview') or '').strip()
+        _topic_names = [t.get('name', '') for t in module_data.get('topics', []) if t.get('name')][:6]
+        _key_terms = list((module_data.get('key_terms') or {}).keys())[:8]
+        _topic_chips = " · ".join(f"<span style='background:rgba(255,255,255,0.18); padding:0.2rem 0.55rem; border-radius:12px; font-size:0.82rem; display:inline-block; margin:0.15rem;'>{t}</span>" for t in _topic_names)
+        _term_chips = " · ".join(f"<span style='background:rgba(255,255,255,0.10); padding:0.15rem 0.45rem; border-radius:10px; font-size:0.78rem; display:inline-block; margin:0.1rem;'>{t}</span>" for t in _key_terms)
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%); padding: 1.2rem 1.4rem; border-radius: 12px; margin-bottom: 1.5rem; color: white; border-left: 5px solid #ffc107;">
+            <div style="font-size: 0.78rem; letter-spacing: 0.12em; opacity: 0.8; text-transform: uppercase;">📘 What this simulation tests</div>
+            <div style="font-size: 1.15rem; font-weight: 600; margin-top: 0.3rem;">{module_data.get('module_name', 'Module')} {'— ' + _module_subject if _module_subject and _module_subject != module_data.get('module_name') else ''}</div>
+            {f'<p style="margin: 0.6rem 0 0.4rem 0; opacity: 0.92; font-size: 0.9rem;">{_module_overview}</p>' if _module_overview else ''}
+            {f'<div style="margin-top: 0.6rem;"><span style="font-size: 0.78rem; opacity: 0.75;">TOPICS:</span><br>{_topic_chips}</div>' if _topic_chips else ''}
+            {f'<div style="margin-top: 0.6rem;"><span style="font-size: 0.78rem; opacity: 0.75;">KEY VOCABULARY YOU WILL BE SCORED ON:</span><br>{_term_chips}</div>' if _term_chips else ''}
+            <p style="margin: 0.8rem 0 0 0; font-size: 0.82rem; opacity: 0.85;">
+                Your score has two independent axes: <b>Decision Quality</b> (governance/legal/stakeholder/strategy/role)
+                and <b>Module Application</b> (whether you invoked the vocabulary above by name or correct paraphrase).
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
         game_goals = generate_game_goals(company_data['metrics'], simulation_config['total_rounds'])
         st.session_state.game_goals = game_goals
 
@@ -1283,7 +1381,10 @@ def simulation_page():
         # Key Metrics
         st.markdown("### 📊 Key Metrics")
         metrics = company_data['metrics']
-        key_metrics = {k: v for k, v in metrics.items() if v.get('priority') in ['High', 'high', 'Medium', 'medium']}
+        key_metrics = {
+            k: v for k, v in metrics.items()
+            if str(v.get('priority') or '').strip().lower() in ('high', 'medium')
+        }
         if not key_metrics:
             key_metrics = metrics
         key_metric_items = list(key_metrics.items())

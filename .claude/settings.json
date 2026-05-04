@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pdftotext --version)",
+      "Bash(pdftotext -layout \"feedback .pdf\" \"feedback_extracted.txt\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "WebSearch",
+      "Bash(.venv/Scripts/python -m pytest tests/ -x --tb=short)",
+      "Bash(.venv/Scripts/python -m pytest tests/ --tb=short)",
+      "Bash(.venv/Scripts/python -m pytest tests/test_bug_fixes.py::TestFirestoreSimulations::test_no_empty_unit_metrics_in_any_simulation -v)",
+      "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestFeedbackPDFFixes -v)",
+      "Bash(.venv/Scripts/python -c ' *)",
+      "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestAgent1Improvements tests/test_scenarios.py::TestAgent2Improvements tests/test_scenarios.py::TestAgent3Improvements -v)",
+      "Bash(.venv/Scripts/python -m pytest tests/ -q)"
+    ]
+  }
+}

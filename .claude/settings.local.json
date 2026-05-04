@@ -24,7 +24,17 @@
       "PowerShell(& \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\.venv\\\\Scripts\\\\streamlit.exe\" run \"c:\\\\Users\\\\USER\\\\WDC_Rohit\\\\board-room-wdc\\\\main.py\" --server.headless=true)",
       "Bash(git pull *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git config *)",
+      "Bash(python -m pytest tests/test_scenarios.py -v --tb=short)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_scenarios.py -v --tb=short)",
+      "Bash(.venv/Scripts/pip.exe install *)",
+      "Bash(git push *)",
+      "Bash(py -c ' *)",
+      "Read(//mnt/**)",
+      "Bash(ls /c/Python*)",
+      "Bash(command -v python)",
+      "Read(//c/Users/USER/AppData/Local/Programs/Python/**)"
     ]
   }
 }

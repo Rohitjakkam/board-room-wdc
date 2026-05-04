@@ -333,7 +333,7 @@ def display_final_summary(data: Dict):
                     col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
 
                     with col1:
-                        priority_badge = "🔴 " if initial.get('priority') == 'High' else ""
+                        priority_badge = "🔴 " if str(initial.get('priority') or '').strip().lower() == 'high' else ""
                         st.markdown(f"**{priority_badge}{initial.get('description', key)}**")
                     with col2:
                         st.markdown(f"Before: `{initial_val} {unit}`")

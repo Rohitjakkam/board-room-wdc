@@ -7,7 +7,7 @@ import logging
 import os
 import streamlit as st
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from core.firebase_client import get_firestore_client
 
@@ -54,10 +54,14 @@ def _infer_unit(metric_key: str) -> str:
     if any(kw in key for kw in ('nps', 'net_promoter', 'promoter_score', 'satisfaction_score',
                                   'sentiment_score', 'happiness_score')):
         return 'score'
+    if 'rating' in key or '_rating' in key or 'rating_' in key:
+        return 'score'
     if any(kw in key for kw in ('employees', 'employee_count', 'headcount', 'workforce', 'staff_count')):
         return 'employees'
     if any(kw in key for kw in ('_count', 'count_', 'incident', '_incidents', 'violations',
-                                  'defects', '_risks', 'risks_', 'tickets', 'cases')):
+                                  'defects', '_risks', 'risks_', 'tickets', 'cases',
+                                  'audits', '_audits', 'patents', '_patents',
+                                  'filed', '_filed', 'pending')):
         return 'count'
     if any(kw in key for kw in ('status', 'classification', 'tier', 'level', 'phase',
                                   'environment', 'challenges')):
@@ -69,8 +73,55 @@ def _infer_unit(metric_key: str) -> str:
     return ''
 
 
+# Currency/scale unit normalization to a canonical USD-millions ($M) representation.
+# Maps: (regex pattern on unit string) -> (multiplier to convert to $M, canonical unit)
+# E.g. "1.2 $B" → multiplier 1000 → "1200 $M"; "100 ₹Cr" → multiplier 1.2 (≈10M INR / 8.3M USD per Cr → $M).
+# Note: cross-currency conversion uses fixed approximations — refine via FX feed if accuracy is critical.
+_CURRENCY_TO_USD_M = {
+    # USD scales
+    '$B': 1000.0,    '$ B': 1000.0,    '$bn': 1000.0,    '$Bn': 1000.0,
+    '$M': 1.0,       '$ M': 1.0,       '$mn': 1.0,       '$Mn': 1.0,
+    '$K': 0.001,     '$ K': 0.001,
+    'B':  1000.0,    'M':  1.0,        'K':  0.001,      # bare scales — assume USD
+    # INR scales (₹) — approx: 1 USD ≈ 83 INR (2026)
+    '₹Cr': 1.20,     '₹ Cr': 1.20,    'Cr':  1.20,      # 1 crore INR ≈ $1.2M
+    '₹L':  0.012,    '₹ L':  0.012,    'L':   0.012,    # 1 lakh INR ≈ $12K = $0.012M
+    '₹M':  0.012,    '₹B':  12.0,
+    # EUR / GBP — approx: 1 EUR ≈ 1.08 USD, 1 GBP ≈ 1.27 USD
+    '€M': 1.08,      '€B': 1080.0,
+    '£M': 1.27,      '£B': 1270.0,
+}
+
+_CANONICAL_CURRENCY_UNIT = '$M'
+
+
+def _normalize_currency_to_usd_m(value: float, unit: str) -> Tuple[float, str, bool]:
+    """If unit is a recognized currency/scale unit, convert value to USD-millions.
+
+    Returns: (new_value, new_unit, was_converted)
+    """
+    if not unit:
+        return value, unit, False
+    u = unit.strip()
+    multiplier = _CURRENCY_TO_USD_M.get(u)
+    if multiplier is None:
+        return value, unit, False
+    if u == _CANONICAL_CURRENCY_UNIT:
+        return value, unit, False
+    return round(value * multiplier, 4), _CANONICAL_CURRENCY_UNIT, True
+
+
 def _normalize_metrics(data: Dict) -> Dict:
-    """Normalize metrics structure: ensure all metrics have valid value, unit, description, priority."""
+    """Normalize metrics structure: ensure all metrics have valid value, unit, description, priority.
+
+    Root-cause fixes applied here (single chokepoint):
+    - Categorical values (e.g. "bi-weekly", "monthly") flagged as non_numeric and excluded from
+      numeric pipelines, NOT silently coerced to 0.
+    - Currency/scale units canonicalized to $M (e.g. "1.2 $B" → "1200 $M") so downstream
+      mixed-unit warnings stop firing on equivalent values.
+    - Priority normalized case-insensitively (LLM extraction can return "high"/"HIGH"/"High");
+      stored canonically as "High"/"Medium"/"Low".
+    """
     if 'company_data' in data and 'metrics' in data['company_data']:
         metrics = data['company_data']['metrics']
         for metric_key, metric_info in list(metrics.items()):
@@ -78,25 +129,46 @@ def _normalize_metrics(data: Dict) -> Dict:
                 metrics[metric_key] = {
                     'value': 0, 'unit': _infer_unit(metric_key), 'priority': None,
                     'description': _title_with_acronyms(metric_key.replace('_', ' ')),
+                    'non_numeric': True,
                 }
                 continue
-            # Ensure value is numeric; flag categorical values
+            # Ensure value is numeric; categorical values are flagged, original preserved,
+            # and excluded from impact/goal calculations rather than silently becoming 0.
             raw_val = metric_info.get('value')
             try:
                 metric_info['value'] = float(raw_val) if raw_val is not None else 0
                 metric_info.pop('categorical', None)
+                metric_info.pop('categorical_value', None)
+                metric_info['non_numeric'] = False
             except (TypeError, ValueError):
-                # Store original categorical value for reference, set numeric to 0
                 metric_info['categorical_value'] = str(raw_val)
                 metric_info['value'] = 0
+                metric_info['non_numeric'] = True
             # Ensure unit and description are strings; infer unit if empty
             metric_info['unit'] = metric_info.get('unit') or _infer_unit(metric_key)
             metric_info['description'] = (
                 metric_info.get('description')
                 or _title_with_acronyms(metric_key.replace('_', ' '))
             )
-            # Normalize priority
-            if metric_info.get('priority') not in ("High", "Medium", "Low"):
+            # Currency/scale canonicalization — only for numeric metrics
+            if not metric_info['non_numeric']:
+                new_val, new_unit, converted = _normalize_currency_to_usd_m(
+                    metric_info['value'], metric_info['unit']
+                )
+                if converted:
+                    metric_info['original_unit'] = metric_info['unit']
+                    metric_info['original_value'] = metric_info['value']
+                    metric_info['value'] = new_val
+                    metric_info['unit'] = new_unit
+            # Normalize priority case-insensitively → canonical Title Case
+            raw_priority = metric_info.get('priority')
+            if isinstance(raw_priority, str):
+                normalized_priority = raw_priority.strip().title()
+                if normalized_priority in ("High", "Medium", "Low"):
+                    metric_info['priority'] = normalized_priority
+                else:
+                    metric_info['priority'] = None
+            elif raw_priority not in ("High", "Medium", "Low"):
                 metric_info['priority'] = None
     return data
 

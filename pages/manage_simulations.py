@@ -1737,6 +1737,7 @@ def _render_agent3_panel():
 
         result = st.session_state.agent3_result
         _render_agent3_arc(result)
+        _render_agent3_cohort_feedback(result)   # X.1 — closed feedback loop
         _render_agent3_rounds(result)
         _render_agent3_coverage(result)
         if result.get("flags"):
@@ -1754,15 +1755,94 @@ def _render_agent3_arc(result: dict):
     c3.error(f"**Act 3:** {acts.get('3', 'Resolution')}")
 
     summary = result.get("summary", {})
-    s1, s2, s3, s4 = st.columns(4)
+    s1, s2, s3, s4, s5 = st.columns(5)
     s1.metric("Rounds", summary.get("total_rounds", 0))
     s2.metric("Tension Pairs", summary.get("tension_pairs_used", 0))
     s3.metric("Topics Covered", summary.get("topics_covered", 0))
-    s4.metric("Flags", summary.get("flags", 0))
+    s4.metric(
+        "Cohort Sessions",
+        summary.get("cohort_sessions_used", 0),
+        help="Completed simulation sessions analyzed to calibrate this plan (X.1).",
+    )
+    s5.metric(
+        "Calibration Directives",
+        summary.get("calibration_recs_applied", 0),
+        help="Cohort-derived directives the LLM was asked to apply.",
+    )
+
+
+def _render_agent3_cohort_feedback(result: dict):
+    """X.1 — Show cohort insights + calibration directives feeding the plan."""
+    insights = result.get("cohort_insights")
+    recs = result.get("calibration_recommendations", []) or []
+
+    if not insights:
+        with st.expander("🔄 Cohort Feedback Loop (X.1)", expanded=False):
+            st.info(
+                "**Cold start.** Agent 3 needs at least 5 completed sessions of this "
+                "simulation (within the last 90 days) before it can self-calibrate from "
+                "real player performance. Until then, the plan is generated purely from the "
+                "company + module data. Recommendations will start appearing automatically "
+                "once enough sessions accumulate."
+            )
+        return
+
+    n = insights.get("n_sessions", 0)
+    avg = insights.get("avg_final_score")
+    median = insights.get("median_final_score")
+    completion = insights.get("completion_rate", 0)
+
+    title = f"🔄 Cohort Feedback Loop ({n} sessions analyzed, {len(recs)} directives)"
+    with st.expander(title, expanded=bool(recs)):
+        # Headline cohort metrics
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Sessions", n)
+        m2.metric("Avg Final", f"{avg}/100" if avg is not None else "—")
+        m3.metric("Median", f"{median}/100" if median is not None else "—")
+        m4.metric("Completion", f"{int(completion*100)}%")
+
+        # Per-round table
+        per_round = insights.get("per_round", {})
+        if per_round:
+            st.markdown("**Per-round cohort performance:**")
+            header = (
+                "| Round | Avg | Std | Force-Submit | Avg Time | Vocab | Most-Missed Terms |\n"
+                "|---|---|---|---|---|---|---|"
+            )
+            rows = [header]
+            for rnum in sorted(per_round.keys()):
+                s = per_round[rnum]
+                missed = ", ".join(t for t, _ in (s.get("top_missed_vocab") or [])[:3]) or "—"
+                rows.append(
+                    f"| {rnum} | "
+                    f"{s.get('avg_score', '—')} | "
+                    f"{s.get('std_dev_score', '—')} | "
+                    f"{int((s.get('force_submit_rate') or 0)*100)}% | "
+                    f"{int(s.get('avg_time_seconds') or 0)}s | "
+                    f"{s.get('avg_vocab_score', '—')} | "
+                    f"{missed} |"
+                )
+            st.markdown("\n".join(rows))
+
+        # Calibration directives, grouped by severity
+        if recs:
+            st.markdown("**Calibration directives applied to this plan:**")
+            sev_color = {"high": "🔴", "medium": "🟡", "low": "🟢"}
+            for r in recs:
+                icon = sev_color.get(r.get("severity", "low"), "⚪")
+                rnum_str = f"Round {r['round']}" if r.get("round") is not None else "All rounds"
+                st.markdown(f"{icon} **{rnum_str} · {r['type']}** — {r.get('message', '')}")
+                st.caption(f"↳ Directive sent to LLM: _{r.get('directive', '')}_")
+        else:
+            st.success(
+                "No calibration directives needed — cohort performance is healthy across "
+                "all measured dimensions."
+            )
 
 
 def _render_agent3_rounds(result: dict):
-    """Show each round's narrative design."""
+    """Show each round's narrative design — including dissenter rotation (3.1)
+    and supporter briefs (3.2)."""
     rounds = result.get("rounds", [])
     if not rounds:
         return
@@ -1782,6 +1862,19 @@ def _render_agent3_rounds(result: dict):
                 st.caption(f"Board tension: {tension}")
             if r.get("cascade_seed"):
                 st.caption(f"Cascade: {r['cascade_seed']}")
+
+            # 3.1 — show deterministic dissenter assignment
+            dissenters = r.get("expected_dissenters") or []
+            if dissenters:
+                st.caption(f"🎯 Expected dissenters: {', '.join(dissenters)}")
+
+            # 3.2 — show supporter briefs (LLM-written, server-validated)
+            briefs = r.get("support_briefs") or []
+            if briefs:
+                with st.expander(f"💬 Supporter briefs ({len(briefs)})", expanded=False):
+                    for b in briefs:
+                        st.markdown(f"**{b.get('member', '?')}**: {b.get('angle', '')}")
+
             st.divider()
 
 

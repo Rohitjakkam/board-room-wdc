@@ -100,8 +100,21 @@ def log_round(
     time_taken_seconds: int | None = None,
     strengths: list[str] | None = None,
     improvements: list[str] | None = None,
+    vocabulary_score: int | None = None,
+    vocabulary_invoked: list[str] | None = None,
+    vocabulary_missed: list[str] | None = None,
+    vocabulary_misused: list[str] | None = None,
+    dissenters_persuaded: list[str] | None = None,
+    dissenters_unpersuaded: list[str] | None = None,
 ):
-    """Append a completed round to the session document."""
+    """Append a completed round to the session document.
+
+    Vocabulary fields and dissenter lists are optional — they enable cohort
+    analytics (Agent 3 closed-feedback-loop / X.1) to see which vocabulary
+    terms players struggle with and which dissenters never get persuaded.
+    All fields default to None for backward compatibility with existing
+    sessions that pre-date the schema extension.
+    """
     round_data = {
         "round_number": round_number,
         "decision": (decision or "")[:500],
@@ -112,6 +125,12 @@ def log_round(
         "time_taken_seconds": time_taken_seconds,
         "strengths": (strengths or [])[:3],
         "improvements": (improvements or [])[:3],
+        "vocabulary_score": vocabulary_score,
+        "vocabulary_invoked": (vocabulary_invoked or [])[:25],
+        "vocabulary_missed": (vocabulary_missed or [])[:25],
+        "vocabulary_misused": (vocabulary_misused or [])[:25],
+        "dissenters_persuaded": (dissenters_persuaded or [])[:10],
+        "dissenters_unpersuaded": (dissenters_unpersuaded or [])[:10],
     }
 
     try:

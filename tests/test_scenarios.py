@@ -561,6 +561,735 @@ class TestGovernanceMetrics:
 
 
 # ===========================================================================
+# 4b. FEEDBACK PDF FIXES — root-cause patches for the 2026-05-04 feedback report
+# ===========================================================================
+class TestFeedbackPDFFixes:
+    """Cross-checked from feedback .pdf and BugReport_CrossValidation.md."""
+
+    # ── A10/A12/A14: Metric impact unit conversion ─────────────────────
+
+    def test_unit_converter_b_to_m(self):
+        """LLM returning '-100 $B' for a $M-stored metric must convert to -100000 $M."""
+        from core.simulation_engine import _convert_unit
+        assert _convert_unit(-100, '$B', '$M') == -100000.0
+
+    def test_unit_converter_m_to_b(self):
+        """LLM returning '-60 $M' for a $B-stored metric must convert to -0.06 $B."""
+        from core.simulation_engine import _convert_unit
+        assert _convert_unit(-60, '$M', '$B') == -0.06
+
+    def test_unit_converter_inr_cr_to_usd_m(self):
+        """1 ₹Cr ≈ $1.2M (Indian crore → USD millions)."""
+        from core.simulation_engine import _convert_unit
+        # Cr is mapped to 10M (USD-base) and $M is 1M, so 1 Cr → 10 M-units
+        assert _convert_unit(1, 'Cr', '$M') == 10.0  # using base scale, not FX
+        # Self-conversion of same unit should be identity
+        assert _convert_unit(50, '$M', '$M') == 50.0
+
+    def test_unit_converter_unknown_units_passthrough(self):
+        """Unknown units should pass through unchanged (no false conversions)."""
+        from core.simulation_engine import _convert_unit
+        assert _convert_unit(50, 'XYZ', '$M') == 50
+        assert _convert_unit(50, '', '$M') == 50
+        assert _convert_unit(50, '$M', '') == 50
+
+    # ── A9 / Test #3 (D): High Priority case-sensitivity ────────────────
+
+    def test_normalize_priority_lowercase_to_canonical(self):
+        """LLM-extracted lowercase 'high'/'medium'/'low' should canonicalize to Title case."""
+        from core.data_manager import _normalize_metrics
+        data = {'company_data': {'metrics': {
+            'a': {'value': 1.0, 'unit': '%', 'priority': 'high'},
+            'b': {'value': 2.0, 'unit': '%', 'priority': 'MEDIUM'},
+            'c': {'value': 3.0, 'unit': '%', 'priority': '  Low  '},
+            'd': {'value': 4.0, 'unit': '%', 'priority': 'unknown'},
+            'e': {'value': 5.0, 'unit': '%'},  # missing
+        }}}
+        result = _normalize_metrics(data)
+        m = result['company_data']['metrics']
+        assert m['a']['priority'] == 'High'
+        assert m['b']['priority'] == 'Medium'
+        assert m['c']['priority'] == 'Low'
+        assert m['d']['priority'] is None
+        assert m['e']['priority'] is None
+
+    def test_high_priority_filter_works_after_normalization(self):
+        """After normalization, the High Priority filter must catch all variations."""
+        from core.data_manager import _normalize_metrics
+        data = {'company_data': {'metrics': {
+            'a': {'value': 1, 'unit': '%', 'priority': 'high'},
+            'b': {'value': 2, 'unit': '%', 'priority': 'High'},
+            'c': {'value': 3, 'unit': '%', 'priority': 'low'},
+        }}}
+        normalized = _normalize_metrics(data)
+        metrics = normalized['company_data']['metrics']
+        # Production filter (case-insensitive defense in depth)
+        high = {k: v for k, v in metrics.items()
+                if str(v.get('priority') or '').strip().lower() == 'high'}
+        assert set(high.keys()) == {'a', 'b'}
+
+    # ── A7/A11/A13/B-i: Currency normalization to $M ────────────────────
+
+    def test_dollar_b_normalizes_to_dollar_m(self):
+        """Revenue stated as 1.2 $B should canonicalize to 1200 $M."""
+        from core.data_manager import _normalize_metrics
+        data = {'company_data': {'metrics': {
+            'revenue': {'value': 1.2, 'unit': '$B', 'description': 'Revenue'},
+        }}}
+        result = _normalize_metrics(data)
+        m = result['company_data']['metrics']['revenue']
+        assert m['unit'] == '$M'
+        assert m['value'] == 1200.0
+        assert m['original_unit'] == '$B'
+        assert m['original_value'] == 1.2
+
+    def test_no_mixed_currency_after_normalization(self):
+        """A simulation with $B and $M units should normalize to a single $M unit."""
+        from core.data_manager import _normalize_metrics
+        data = {'company_data': {'metrics': {
+            'revenue':   {'value': 1.2, 'unit': '$B'},
+            'liability': {'value': 75,  'unit': '$M'},
+            'cash':      {'value': 0.5, 'unit': '$B'},
+        }}}
+        result = _normalize_metrics(data)
+        units = {m['unit'] for m in result['company_data']['metrics'].values()}
+        assert units == {'$M'}, f"Expected only $M after normalization, got {units}"
+
+    def test_inr_cr_normalizes_to_dollar_m(self):
+        """100 ₹Cr should canonicalize to ~120 $M (using FX approximation)."""
+        from core.data_manager import _normalize_metrics
+        data = {'company_data': {'metrics': {
+            'liability': {'value': 100, 'unit': '₹Cr'},
+        }}}
+        result = _normalize_metrics(data)
+        m = result['company_data']['metrics']['liability']
+        assert m['unit'] == '$M'
+        assert 100 < m['value'] < 200  # ~$120M with FX approximation
+
+    # ── B-v: bi-weekly = 0 silent coercion ──────────────────────────────
+
+    def test_biweekly_categorical_excluded_from_goals(self):
+        """Categorical values like 'bi-weekly' must be flagged non_numeric, not silently 0."""
+        from core.data_manager import _normalize_metrics
+        from core.scoring import generate_game_goals
+        data = {'company_data': {'metrics': {
+            'meeting_cadence': {'value': 'bi-weekly', 'unit': 'frequency'},
+            'revenue': {'value': 100, 'unit': '$M'},
+        }}}
+        result = _normalize_metrics(data)
+        m = result['company_data']['metrics']
+        # The non-numeric flag is set
+        assert m['meeting_cadence']['non_numeric'] is True
+        assert m['meeting_cadence']['categorical_value'] == 'bi-weekly'
+        assert m['revenue']['non_numeric'] is False
+        # Goals exclude the categorical metric
+        goals = generate_game_goals(m, total_rounds=5)
+        goal_keys = {g['metric_key'] for g in goals}
+        assert 'meeting_cadence' not in goal_keys
+
+    # ── _infer_unit improvements (rating/audits/patents) ──────────────────
+
+    def test_infer_unit_for_rating(self):
+        from core.data_manager import _infer_unit
+        assert _infer_unit('tech_debt_rating') == 'score'
+
+    def test_infer_unit_for_audits_and_patents(self):
+        from core.data_manager import _infer_unit
+        assert _infer_unit('pending_audits') == 'count'
+        assert _infer_unit('patents_filed') == 'count'
+
+    # ── P1-5/P1-6: Module Vocabulary scoring (parsing layer) ────────────
+
+    def test_evaluate_decision_returns_vocabulary_fields(self):
+        """evaluate_decision must always return the new vocabulary tracker fields."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import evaluate_decision
+
+        # Mock LLM that returns a properly formatted response
+        mock_llm = MagicMock()
+        mock_llm.generate_content.return_value.text = """SCORE: 78
+
+SCORE_REASONING: solid analysis
+
+MODULE_VOCABULARY_SCORE: 65
+
+VOCABULARY_INVOKED: Principle of Prudence, AS 5
+
+VOCABULARY_MISSED: Contingent Liability
+
+VOCABULARY_MISUSED: Extraordinary Item
+
+STRENGTHS: Used the prudence framework
+
+AREAS_FOR_IMPROVEMENT: Did not address contingent liability
+
+KEY_LEARNING_POINTS: Note Ind AS forbids extraordinary
+
+BEST_APPROACH: Use prudence, AS 5 disclosure
+
+CRITICAL_FEEDBACK:
+
+ENCOURAGEMENT: Good prudence application
+"""
+
+        result = evaluate_decision(
+            llm=mock_llm,
+            company_data={'company_name': 'X', 'company_overview': '', 'metrics': {}, 'board_members': []},
+            module_data={'module_name': 'M6', 'learning_objectives': [], 'topics': [],
+                         'key_terms': {'Principle of Prudence': 'def', 'AS 5': 'def',
+                                       'Contingent Liability': 'def', 'Extraordinary Item': 'forbidden'}},
+            scenario='test scenario',
+            decision='test decision',
+            round_config={'difficulty': 'medium'},
+            player_role={'name': 'P', 'role': 'CFO', 'expertise': 'Finance'},
+        )
+
+        assert 'vocabulary_score' in result
+        assert result['vocabulary_score'] == 65
+        assert result['vocabulary_invoked'] == ['Principle of Prudence', 'AS 5']
+        assert result['vocabulary_missed'] == ['Contingent Liability']
+        assert result['vocabulary_misused'] == ['Extraordinary Item']
+
+    def test_evaluate_decision_handles_missing_vocabulary_section(self):
+        """If LLM omits vocabulary fields, defaults are sane (score=0, empty lists)."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import evaluate_decision
+
+        mock_llm = MagicMock()
+        mock_llm.generate_content.return_value.text = """SCORE: 70
+
+STRENGTHS: ok
+
+AREAS_FOR_IMPROVEMENT: ok
+
+KEY_LEARNING_POINTS: ok
+
+BEST_APPROACH: ok
+
+ENCOURAGEMENT: ok"""
+
+        result = evaluate_decision(
+            llm=mock_llm,
+            company_data={'company_name': 'X', 'company_overview': '', 'metrics': {}, 'board_members': []},
+            module_data={'module_name': 'M', 'learning_objectives': [], 'topics': [], 'key_terms': {}},
+            scenario='s', decision='d',
+            round_config={'difficulty': 'medium'},
+            player_role={'name': 'P', 'role': 'CFO', 'expertise': 'Finance'},
+        )
+
+        assert result['vocabulary_score'] == 0
+        assert result['vocabulary_invoked'] == []
+        assert result['vocabulary_missed'] == []
+        assert result['vocabulary_misused'] == []
+
+
+# ===========================================================================
+# 4c. ADMIN AGENT IMPROVEMENTS — feedback PDF gap-fill (2026-05-04)
+# ===========================================================================
+class TestAgent2Improvements:
+    """Agent 2 improvements 2.1 (consistency checks) + 2.2 (auto-priority)."""
+
+    def test_dual_incumbent_ceo_flagged(self):
+        from core.admin_agents import _check_dup_persons_and_dual_incumbents
+        company = {
+            'board_members': [
+                {'name': 'Amelia Thorne', 'role': 'CEO'},
+                {'name': 'Evelyn Reed', 'role': 'CEO'},
+                {'name': 'David Chen', 'role': 'CFO'},
+            ],
+        }
+        flags = _check_dup_persons_and_dual_incumbents(company, {})
+        types = [f['type'] for f in flags]
+        assert 'duplicate_incumbent' in types
+        ceo_flag = next(f for f in flags if f['type'] == 'duplicate_incumbent')
+        assert 'Amelia Thorne' in ceo_flag['message']
+        assert 'Evelyn Reed' in ceo_flag['message']
+        assert ceo_flag['severity'] == 'error'
+
+    def test_duplicate_person_flagged(self):
+        from core.admin_agents import _check_dup_persons_and_dual_incumbents
+        company = {
+            'board_members': [
+                {'name': 'Kenji Tanaka', 'role': 'CTO'},
+                {'name': 'Kenji Tanaka', 'role': 'Independent Director'},
+            ],
+        }
+        flags = _check_dup_persons_and_dual_incumbents(company, {})
+        dup_flags = [f for f in flags if f['type'] == 'duplicate_person']
+        assert len(dup_flags) == 1
+        assert dup_flags[0]['severity'] == 'error'
+
+    def test_fuzzy_name_match_flagged(self):
+        from core.admin_agents import _check_dup_persons_and_dual_incumbents
+        company = {
+            'board_members': [
+                {'name': 'John Smith', 'role': 'CFO'},
+                {'name': 'Jon Smith', 'role': 'COO'},  # likely typo
+            ],
+        }
+        flags = _check_dup_persons_and_dual_incumbents(company, {})
+        fuzzy_flags = [f for f in flags if f['type'] == 'fuzzy_name_match']
+        assert len(fuzzy_flags) == 1
+
+    def test_no_false_positive_distinct_names(self):
+        from core.admin_agents import _check_dup_persons_and_dual_incumbents
+        # Two people with same SURNAME but very different given names — should NOT flag
+        company = {
+            'board_members': [
+                {'name': 'Sarah Chen', 'role': 'CFO'},
+                {'name': 'Michael Chen', 'role': 'CTO'},
+            ],
+        }
+        flags = _check_dup_persons_and_dual_incumbents(company, {})
+        fuzzy_flags = [f for f in flags if f['type'] == 'fuzzy_name_match']
+        assert len(fuzzy_flags) == 0, f"False positive: {fuzzy_flags}"
+
+    def test_value_contradiction_flagged(self):
+        from core.admin_agents import _check_value_contradictions
+        company = {
+            'company_overview': 'Veritas reported total revenue of $850M for FY2024.',
+            'metrics': {
+                'total_revenue_annual': {
+                    'value': 1.2, 'unit': '$B', 'description': 'Total Revenue Annual',
+                },
+            },
+        }
+        flags = _check_value_contradictions(company, {})
+        assert len(flags) >= 1
+        assert flags[0]['type'] == 'value_contradiction'
+        assert '850' in flags[0]['message']
+        assert '1.2' in flags[0]['message'] or '1200' in flags[0]['message']
+
+    def test_value_contradiction_no_false_positive_when_match(self):
+        from core.admin_agents import _check_value_contradictions
+        # Overview matches metric → no flag
+        company = {
+            'company_overview': 'Veritas reported total revenue of $1.2B for FY2024.',
+            'metrics': {
+                'total_revenue_annual': {
+                    'value': 1.2, 'unit': '$B', 'description': 'Total Revenue Annual',
+                },
+            },
+        }
+        flags = _check_value_contradictions(company, {})
+        assert len(flags) == 0
+
+    def test_auto_priority_elevation(self):
+        from core.admin_agents import _audit_phase2c_auto_priority
+        items, patch = [], {'company': {}, 'module': {}}
+        company = {
+            'current_problems': [
+                '$75M confirmed liability from the OCC consent order',
+                '8% client churn since the data breach',
+            ],
+            'metrics': {
+                'liability_exposure': {'value': 75, 'unit': '$M', 'description': 'Liability Exposure', 'priority': None},
+                'customer_churn_rate_annual': {'value': 8, 'unit': '%', 'description': 'Customer Churn Rate', 'priority': None},
+                'office_temperature': {'value': 22, 'unit': 'C', 'description': 'Office Temperature', 'priority': None},
+            },
+        }
+        elevated = _audit_phase2c_auto_priority(company, items, patch)
+        assert elevated == 2
+        assert company['metrics']['liability_exposure']['priority'] == 'High'
+        assert company['metrics']['customer_churn_rate_annual']['priority'] == 'High'
+        # Control: irrelevant metric NOT elevated
+        assert company['metrics']['office_temperature']['priority'] != 'High'
+
+    def test_auto_priority_does_not_overwrite_existing_high(self):
+        from core.admin_agents import _audit_phase2c_auto_priority
+        items, patch = [], {'company': {}, 'module': {}}
+        company = {
+            'current_problems': ['Liability of $75M is critical.'],
+            'metrics': {
+                'liability_exposure': {'value': 75, 'unit': '$M', 'description': 'Liability Exposure', 'priority': 'High'},
+            },
+        }
+        elevated = _audit_phase2c_auto_priority(company, items, patch)
+        assert elevated == 0  # already High → no change
+
+
+class TestAgent3Improvements:
+    """Agent 3 improvements 3.1 (dissenter rotation) + 3.2 (supporter briefs)."""
+
+    def test_dissenter_rotation_balances_load(self):
+        from core.admin_agents import _compute_act_structure, _assign_dissenters_per_round, _check_coverage_requirements
+        board = [
+            {'name': 'A', 'role': 'CEO', 'expertise': 'Strategy'},
+            {'name': 'B', 'role': 'CFO', 'expertise': 'Finance'},
+            {'name': 'C', 'role': 'CRO', 'expertise': 'Risk'},
+            {'name': 'D', 'role': 'CTO', 'expertise': 'Technology'},
+            {'name': 'E', 'role': 'CMO', 'expertise': 'Marketing'},
+            {'name': 'F', 'role': 'Independent Director', 'expertise': 'Governance'},
+        ]
+        acts = _compute_act_structure(5)
+        cov = _check_coverage_requirements({'topics': [], 'learning_objectives': []}, 5)
+        assignments = _assign_dissenters_per_round(acts, board, cov)
+        assert len(assignments) == 5
+        # No round is empty
+        for rnum, ds in assignments.items():
+            assert len(ds) >= 2
+        # Every member dissents at least once (closes Agent-W1 over-reliance bug)
+        all_dissenters = {n for ds in assignments.values() for n in ds}
+        assert all_dissenters == {m['name'] for m in board}
+
+    def test_dissenter_rotation_no_consecutive_repeats(self):
+        from core.admin_agents import _compute_act_structure, _assign_dissenters_per_round, _check_coverage_requirements
+        board = [
+            {'name': f'M{i}', 'role': 'Director', 'expertise': 'Strategy'} for i in range(8)
+        ]
+        acts = _compute_act_structure(5)
+        cov = _check_coverage_requirements({'topics': [], 'learning_objectives': []}, 5)
+        assignments = _assign_dissenters_per_round(acts, board, cov)
+        # No member appears in two consecutive rounds
+        prev = set()
+        for rnum in sorted(assignments.keys()):
+            current = set(assignments[rnum])
+            assert not (current & prev), \
+                f"Round {rnum} re-uses dissenters from round {rnum-1}: {current & prev}"
+            prev = current
+
+    def test_dissenter_rotation_idempotent(self):
+        """Same input must produce same output (deterministic, no LLM)."""
+        from core.admin_agents import _compute_act_structure, _assign_dissenters_per_round, _check_coverage_requirements
+        board = [{'name': f'M{i}', 'role': 'CFO', 'expertise': 'Finance'} for i in range(5)]
+        acts = _compute_act_structure(4)
+        cov = _check_coverage_requirements({'topics': [{'name': 'X'}, {'name': 'Y'}], 'learning_objectives': []}, 4)
+        a1 = _assign_dissenters_per_round(acts, board, cov)
+        a2 = _assign_dissenters_per_round(acts, board, cov)
+        assert a1 == a2
+
+    def test_support_briefs_validation_drops_dissenters(self):
+        from core.admin_agents import _validate_support_briefs
+        briefs = [
+            {'member': 'Alice', 'angle': 'Good supporter angle'},
+            {'member': 'Bob', 'angle': 'BOB IS DISSENTER - should be dropped'},
+        ]
+        result = _validate_support_briefs(briefs, dissenters_for_round=['Bob'], board_member_names={'Alice', 'Bob'})
+        assert len(result) == 1
+        assert result[0]['member'] == 'Alice'
+
+    def test_support_briefs_validation_drops_hallucinated_names(self):
+        from core.admin_agents import _validate_support_briefs
+        briefs = [
+            {'member': 'Real Person', 'angle': 'good'},
+            {'member': 'Hallucinated Name', 'angle': 'fake'},
+        ]
+        result = _validate_support_briefs(briefs, dissenters_for_round=[], board_member_names={'Real Person'})
+        assert len(result) == 1
+        assert result[0]['member'] == 'Real Person'
+
+    def test_support_briefs_validation_dedupes(self):
+        from core.admin_agents import _validate_support_briefs
+        briefs = [
+            {'member': 'Alice', 'angle': 'first angle'},
+            {'member': 'Alice', 'angle': 'second angle (duplicate member)'},
+            {'member': 'Bob', 'angle': 'second person'},
+        ]
+        result = _validate_support_briefs(briefs, dissenters_for_round=[], board_member_names={'Alice', 'Bob'})
+        assert len(result) == 2
+        members = {r['member'] for r in result}
+        assert members == {'Alice', 'Bob'}
+
+
+class TestCohortAnalytics:
+    """X.1 — Closed feedback loop: cohort aggregator + recommendation engine."""
+
+    def _mock_round(self, rnum, score=85.0, time_s=400, force=False,
+                    vocab=None, missed=None, persuaded=None, unpersuaded=None):
+        return {
+            'round_number': rnum,
+            'score': score,
+            'time_taken_seconds': time_s,
+            'force_submitted': force,
+            'vocabulary_score': vocab,
+            'vocabulary_missed': missed or [],
+            'vocabulary_invoked': [],
+            'vocabulary_misused': [],
+            'dissenters_persuaded': persuaded or [],
+            'dissenters_unpersuaded': unpersuaded or [],
+            'board_consultations': 1,
+            'committee_consultations': 1,
+        }
+
+    def test_recommendations_too_easy_round(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        insights = {
+            'per_round': {
+                1: {'avg_score': 95.0, 'std_dev_score': 4.0, 'force_submit_rate': 0.05,
+                    'avg_time_seconds': 300, 'avg_vocab_score': 85.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        types = [r['type'] for r in recs]
+        assert 'too_easy' in types
+        easy = next(r for r in recs if r['type'] == 'too_easy')
+        assert easy['round'] == 1
+        assert easy['severity'] == 'high'
+
+    def test_recommendations_too_hard_round(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        insights = {
+            'per_round': {
+                3: {'avg_score': 45.0, 'std_dev_score': 12.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 600, 'avg_vocab_score': 50.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        assert any(r['type'] == 'too_hard' for r in recs)
+
+    def test_recommendations_time_pressure_tight(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        insights = {
+            'per_round': {
+                2: {'avg_score': 80.0, 'std_dev_score': 8.0, 'force_submit_rate': 0.55,
+                    'avg_time_seconds': 200, 'avg_vocab_score': 70.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        assert any(r['type'] == 'time_pressure_tight' for r in recs)
+
+    def test_recommendations_low_vocabulary(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        insights = {
+            'per_round': {
+                2: {'avg_score': 80.0, 'std_dev_score': 8.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 400, 'avg_vocab_score': 35.0,
+                    'top_missed_vocab': [('Principle of Prudence', 8), ('AS 5', 5)],
+                    'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        vocab_recs = [r for r in recs if r['type'] == 'low_vocabulary_engagement']
+        assert len(vocab_recs) == 1
+        assert 'Principle of Prudence' in vocab_recs[0]['directive']
+
+    def test_recommendations_score_plateau(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        # 3 consecutive rounds at ~85 → plateau (matches feedback PDF B14/B15)
+        insights = {
+            'per_round': {
+                2: {'avg_score': 85.0, 'std_dev_score': 3.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 400, 'avg_vocab_score': 70.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+                3: {'avg_score': 85.0, 'std_dev_score': 3.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 400, 'avg_vocab_score': 70.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+                4: {'avg_score': 85.0, 'std_dev_score': 3.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 400, 'avg_vocab_score': 70.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        plateau = [r for r in recs if r['type'] == 'score_plateau']
+        assert len(plateau) == 1
+        assert plateau[0]['round'] is None  # spans rounds
+        # The directive must mention the ceiling-breaker pattern
+        assert 'forward-looking' in plateau[0]['directive']
+        assert 'multi-tier communication' in plateau[0]['directive']
+
+    def test_recommendations_stuck_dissenter(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        insights = {
+            'per_round': {
+                3: {'avg_score': 80.0, 'std_dev_score': 8.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 400, 'avg_vocab_score': 70.0, 'top_missed_vocab': [],
+                    'unpersuaded_dissenters': {'Marcus Webb': 5}, 'persuaded_dissenters': {'Marcus Webb': 1}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        stuck = [r for r in recs if r['type'] == 'stuck_dissenter']
+        assert len(stuck) == 1
+        assert 'Marcus Webb' in stuck[0]['message']
+
+    def test_no_recommendations_when_healthy(self):
+        from core.cohort_analytics import derive_calibration_recommendations
+        # Avg 75-80, low force-submit, healthy variance — no recs expected
+        insights = {
+            'per_round': {
+                1: {'avg_score': 78.0, 'std_dev_score': 10.0, 'force_submit_rate': 0.05,
+                    'avg_time_seconds': 350, 'avg_vocab_score': 70.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+                2: {'avg_score': 75.0, 'std_dev_score': 9.0, 'force_submit_rate': 0.10,
+                    'avg_time_seconds': 400, 'avg_vocab_score': 65.0,
+                    'top_missed_vocab': [], 'unpersuaded_dissenters': {}, 'persuaded_dissenters': {}},
+            },
+        }
+        recs = derive_calibration_recommendations(insights)
+        assert len(recs) == 0, f"Healthy cohort produced recommendations: {recs}"
+
+    def test_format_insights_for_prompt_truncates(self):
+        from core.cohort_analytics import format_insights_for_prompt
+        insights = {
+            'simulation_name': 'X', 'n_sessions': 10, 'lookback_days': 90,
+            'avg_final_score': 80, 'median_final_score': 80, 'score_std_dev': 5,
+            'completion_rate': 0.9,
+            'per_round': {i: {'avg_score': 80, 'force_submit_rate': 0.1,
+                              'avg_time_seconds': 400, 'avg_vocab_score': 70} for i in range(1, 6)},
+        }
+        recs = [{'severity': 'high', 'directive': 'X' * 5000}]
+        text = format_insights_for_prompt(insights, recs, max_chars=500)
+        assert len(text) <= 500
+        assert 'truncated' in text
+
+    def test_aggregator_returns_none_below_threshold(self):
+        """Cold-start safety: <5 sessions → no insights."""
+        from unittest.mock import patch
+        from core.cohort_analytics import aggregate_cohort_insights
+        with patch('core.cohort_analytics.get_records_by_simulation') as mock_get:
+            mock_get.return_value = [
+                {'status': 'completed', 'completed_at': '2026-04-01T00:00:00+00:00',
+                 'final_score': 80, 'rounds': []}
+                for _ in range(3)  # below MIN_SESSIONS_FOR_INSIGHTS=5
+            ]
+            assert aggregate_cohort_insights('TestSim') is None
+
+    def test_aggregator_excludes_old_sessions(self):
+        """Sessions older than max_age_days are filtered out."""
+        from unittest.mock import patch
+        from core.cohort_analytics import aggregate_cohort_insights
+        from datetime import datetime, timezone, timedelta
+        old_date = (datetime.now(timezone.utc) - timedelta(days=200)).isoformat()
+        recent_date = (datetime.now(timezone.utc) - timedelta(days=10)).isoformat()
+        with patch('core.cohort_analytics.get_records_by_simulation') as mock_get:
+            mock_get.return_value = (
+                # 3 old sessions (should be excluded)
+                [{'status': 'completed', 'completed_at': old_date, 'final_score': 80, 'rounds': []} for _ in range(3)] +
+                # 6 recent (should be kept) — above MIN_SESSIONS=5
+                [{'status': 'completed', 'completed_at': recent_date, 'final_score': 75,
+                  'rounds': [{'round_number': 1, 'score': 75}]}
+                 for _ in range(6)]
+            )
+            insights = aggregate_cohort_insights('TestSim', max_age_days=90)
+            assert insights is not None
+            assert insights['n_sessions'] == 6  # only recent
+
+    def test_aggregator_computes_per_round_stats(self):
+        """End-to-end: aggregator produces per-round avg + std_dev + vocab."""
+        from unittest.mock import patch
+        from core.cohort_analytics import aggregate_cohort_insights
+        from datetime import datetime, timezone
+        recent = datetime.now(timezone.utc).isoformat()
+        records = [
+            {'status': 'completed', 'completed_at': recent, 'final_score': 80,
+             'rounds': [
+                 {'round_number': 1, 'score': s, 'force_submitted': False,
+                  'time_taken_seconds': 400, 'vocabulary_score': 70,
+                  'vocabulary_missed': ['AS 5'] if s < 75 else []},
+             ]}
+            for s in (70, 75, 80, 85, 90, 95)
+        ]
+        with patch('core.cohort_analytics.get_records_by_simulation') as mock_get:
+            mock_get.return_value = records
+            insights = aggregate_cohort_insights('TestSim')
+            assert insights is not None
+            r1 = insights['per_round'][1]
+            assert r1['n_attempts'] == 6
+            assert r1['avg_score'] == 82.5  # mean(70..95 by 5)
+            assert r1['avg_vocab_score'] == 70.0
+            # 'AS 5' was missed in 1 of 6 sessions (the score=70 one)
+            missed_terms = dict(r1['top_missed_vocab'])
+            assert missed_terms.get('AS 5') == 1
+
+
+class TestAgent3CohortIntegration:
+    """X.1 wiring — run_planning_agent accepts pre-computed insights."""
+
+    def test_run_planning_agent_accepts_cohort_insights(self):
+        """The signature must accept a pre-computed cohort_insights dict
+        so callers can bypass Firestore (testing, custom snapshots).
+        """
+        import inspect
+        from core.admin_agents import run_planning_agent
+        sig = inspect.signature(run_planning_agent)
+        assert 'cohort_insights' in sig.parameters
+        assert 'use_cohort_feedback' in sig.parameters
+        # use_cohort_feedback should default to True (auto-fetch is the default behavior)
+        assert sig.parameters['use_cohort_feedback'].default is True
+
+    def test_planning_prompt_embeds_cohort_block(self):
+        """Cohort block must appear in the LLM prompt when insights are provided."""
+        from core.admin_agents import _build_narrative_planning_prompt
+        prompt = _build_narrative_planning_prompt(
+            company_data={'company_name': 'X', 'company_overview': '', 'board_members': [], 'current_problems': []},
+            module_data={'module_name': 'M', 'subject_area': '', 'overview': '', 'topics': []},
+            simulation_config={'total_rounds': 3},
+            act_structure=[{'round_number': i, 'act': 1, 'act_label': 'Orientation', 'difficulty': 'easy'} for i in (1, 2, 3)],
+            tension_pairs=[],
+            coverage_requirements={},
+            cohort_insights_block="OBSERVED COHORT PERFORMANCE: 12 sessions; avg 86/100. CALIBRATION: Increase difficulty for Round 1.",
+        )
+        assert 'OBSERVED COHORT PERFORMANCE' in prompt
+        assert 'CALIBRATION' in prompt
+
+    def test_planning_prompt_omits_cohort_block_when_empty(self):
+        """No cohort data → block is omitted (no empty 'OBSERVED' section)."""
+        from core.admin_agents import _build_narrative_planning_prompt
+        prompt = _build_narrative_planning_prompt(
+            company_data={'company_name': 'X', 'company_overview': '', 'board_members': [], 'current_problems': []},
+            module_data={'module_name': 'M', 'subject_area': '', 'overview': '', 'topics': []},
+            simulation_config={'total_rounds': 3},
+            act_structure=[{'round_number': i, 'act': 1, 'act_label': 'Orientation', 'difficulty': 'easy'} for i in (1, 2, 3)],
+            tension_pairs=[],
+            coverage_requirements={},
+            cohort_insights_block="",
+        )
+        assert 'OBSERVED COHORT PERFORMANCE' not in prompt
+
+
+class TestAgent1Improvements:
+    """Agent 1 improvements 1.2 (duplicate names) + 1.3 (value contradictions) in raw text."""
+
+    def test_phase0_detects_duplicate_role_in_raw_text(self):
+        from core.admin_agents import _agent1_phase0_raw_text_scan
+        # Kenji Tanaka with two different titles in same PDF
+        raw = """
+        Section 1: Leadership
+        Our CTO is Kenji Tanaka, a renowned AI architect with 15 years of experience.
+        Section 2: Board
+        We welcome Kenji Tanaka, Independent Director, who brings regulatory depth.
+        Additional padding text to satisfy the 200-char minimum threshold for Phase 0.
+        """ * 2
+        flags = _agent1_phase0_raw_text_scan(raw)
+        dup_flags = [f for f in flags if f['type'] == 'raw_text_duplicate_role']
+        assert len(dup_flags) >= 1
+        assert 'Kenji Tanaka' in dup_flags[0]['message']
+
+    def test_phase0_detects_value_contradiction(self):
+        from core.admin_agents import _agent1_phase0_raw_text_scan
+        raw = """
+        Total revenue of $850M was reported for FY2024 in the certified statements.
+        Our reported total revenue of $1.2B, including non-recurring items.
+        Operating expenses came in at $620M for the period.
+        Padding text to ensure the input crosses the 200-char threshold for Phase 0 scanning.
+        """ * 2
+        flags = _agent1_phase0_raw_text_scan(raw)
+        val_flags = [f for f in flags if f['type'] == 'raw_text_value_contradiction']
+        assert len(val_flags) >= 1
+        assert 'revenue' in val_flags[0]['message'].lower()
+
+    def test_phase0_no_false_positive_consistent_pdf(self):
+        from core.admin_agents import _agent1_phase0_raw_text_scan
+        raw = """
+        Our CEO is Amelia Thorne, who leads the executive team.
+        The CFO David Chen joined in 2021 and oversees finance.
+        Total revenue was $1.2B for FY2024, with net profit margin of 12%.
+        Padding text to reach minimum scan threshold for Phase 0 raw text scanning.
+        """ * 2
+        flags = _agent1_phase0_raw_text_scan(raw)
+        # No duplicates, no contradictions → 0 flags
+        assert len(flags) == 0, f"False positives: {flags}"
+
+    def test_phase0_skips_short_text(self):
+        from core.admin_agents import _agent1_phase0_raw_text_scan
+        # Below 200-char threshold → returns empty
+        flags = _agent1_phase0_raw_text_scan("Tiny text.")
+        assert flags == []
+
+
+# ===========================================================================
 # 5. TIMER LIFECYCLE — Bug #7
 # ===========================================================================
 class TestTimerLifecycle:

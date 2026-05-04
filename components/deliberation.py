@@ -100,13 +100,19 @@ def display_deliberation_phase(llm: object, data: Dict,
     # Display summary counts
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Supporting", len(approving), delta_color="normal")
+        st.metric("Supporting", len(approving), delta_color="normal",
+                  help="Board members who support your decision from the start.")
     with col2:
-        st.metric("Opposing", len(opposing), delta_color="inverse")
+        st.metric("Opposing", len(opposing), delta_color="inverse",
+                  help="Board members still opposing — engage them in debate to reduce their conviction or convert them.")
     with col3:
-        st.metric("Neutral", len(neutral))
+        st.metric("Neutral", len(neutral),
+                  help="Board members without a strong stance either way.")
     with col4:
-        st.metric("Convinced", len(convinced), delta_color="normal")
+        st.metric("Convinced", len(convinced), delta_color="normal",
+                  help="Initially-opposing members you fully turned to support. "
+                       "Increments only when a member's stance flips (not just when their conviction drops). "
+                       "Watch the per-member conviction bars below to see partial persuasion.")
 
     st.markdown("---")
 

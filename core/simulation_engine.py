@@ -164,26 +164,75 @@ Address {player_role['name']} directly."""
     return _call_llm(llm, full_prompt)
 
 
+# Unit-conversion table for canonicalizing LLM-returned units to the metric's stored unit.
+# Ratio = (returned_unit_factor / stored_unit_factor). E.g. if metric stored as $M and
+# LLM returns $B, multiply change by 1000 to convert.
+_UNIT_SCALE_FACTORS = {
+    # Currency / scale (relative to base 1)
+    'B': 1_000_000_000, '$B': 1_000_000_000, '₹B': 1_000_000_000, '€B': 1_000_000_000, '£B': 1_000_000_000,
+    'M': 1_000_000, '$M': 1_000_000, '₹M': 1_000_000, '€M': 1_000_000, '£M': 1_000_000,
+    'K': 1_000, '$K': 1_000, '₹K': 1_000, '€K': 1_000, '£K': 1_000,
+    'Cr': 10_000_000, '₹Cr': 10_000_000,    # 1 crore = 10M
+    'L':  100_000,    '₹L':  100_000,        # 1 lakh = 100K
+    'TB': 1_000_000_000_000, 'GB': 1_000_000_000, 'MB': 1_000_000,
+}
+
+
+def _convert_unit(change: float, returned_unit: str, stored_unit: str) -> float:
+    """Convert a numeric change from returned_unit scale to stored_unit scale.
+
+    If units match (or either is empty/non-scale), return change unchanged.
+    If both are in _UNIT_SCALE_FACTORS, scale by ratio. Otherwise return as-is.
+    """
+    if not returned_unit or not stored_unit:
+        return change
+    r, s = returned_unit.strip(), stored_unit.strip()
+    if r == s:
+        return change
+    rf = _UNIT_SCALE_FACTORS.get(r)
+    sf = _UNIT_SCALE_FACTORS.get(s)
+    if rf is None or sf is None:
+        return change
+    try:
+        return change * (rf / sf)
+    except (TypeError, ZeroDivisionError):
+        return change
+
+
 def calculate_metric_impacts(llm: object, company_data: Dict,
                               scenario: str, decision: str, score: int) -> Dict:
-    """Calculate the impact of a decision on company metrics."""
+    """Calculate the impact of a decision on company metrics.
+
+    Each requested impact has an explicit unit field that MUST match the metric's
+    stored unit. Mismatched units are auto-converted server-side; non-numeric
+    (categorical) metrics are excluded from the request and ignored if returned.
+    """
     metrics = company_data['metrics']
 
+    # Exclude categorical metrics from impact prediction — they have no numeric semantics
+    numeric_keys = [
+        k for k, v in metrics.items()
+        if not v.get('categorical_value') and not v.get('non_numeric')
+    ]
+
     metrics_context = "\n".join([
-        f"- {key}: {metrics[key].get('description', key)} = {metrics[key].get('value', 0)} {metrics[key].get('unit', '')} (Priority: {metrics[key].get('priority', 'Normal')})"
-        for key in metrics.keys()
+        f"- {key}: {metrics[key].get('description', key)} = "
+        f"{metrics[key].get('value', 0)} {metrics[key].get('unit', '')} "
+        f"(Priority: {metrics[key].get('priority') or 'Normal'})"
+        for key in numeric_keys
     ])
 
+    # Format requires explicit unit field. The unit MUST match the metric's stored unit.
     metric_keys_format = "\n".join([
-        f"- {key}: [change as number, e.g., +5 or -3 or 0] | [brief reason]"
-        for key in metrics.keys()
+        f'- {key}: <change_in_same_unit_as_above> {metrics[key].get("unit", "")} | <brief_reason>'
+        for key in numeric_keys
     ])
 
     impact_prompt = f"""You are a business analyst evaluating the impact of a board decision on company metrics.
 
 COMPANY: {company_data['company_name']}
 
-CURRENT METRICS:
+CURRENT METRICS (the unit shown for each metric is the canonical unit — your impact MUST be in this same unit):
 {metrics_context}
 
 SCENARIO:
@@ -200,15 +249,23 @@ Based on this exact decision, analyze the realistic impact on company metrics. C
 3. Short-term vs long-term implications
 4. Whether the decision actually addresses the scenario's core problem
 
-Provide metric impacts in this EXACT format (use these exact metric keys):
+UNIT DISCIPLINE — CRITICAL:
+For EACH metric below, the change MUST be expressed in the EXACT same unit as the metric's current value.
+- If the metric is "1200 $M" (1.2 billion in millions), a 5% drop is "-60 $M" — NOT "-0.06 $B" and NOT "-100".
+- If the metric is "72 %", a 3-point drop is "-3 %" — NOT "-0.03" and NOT "-3.0%".
+- If the metric is "8 count", a +1 incident is "1 count" — NOT "1.0" and NOT "+1 incidents".
+- A change of 0 is fine (and expected) for metrics the decision does not affect.
+- Changes larger than 10% of the metric's current value are RARE — require strong justification.
+
+Provide metric impacts in this EXACT format (one line per metric, use these EXACT keys and units):
 METRIC_IMPACTS:
 {metric_keys_format}
 
 IMPACT_SUMMARY: [2-3 sentence summary of overall business impact]
 
-Be realistic - not every decision affects all metrics. Use 0 for unaffected metrics.
+Be realistic — not every decision affects all metrics. Use 0 for unaffected metrics.
 A decision can have mixed impacts: positive on some metrics, negative on others.
-Focus on the logical consequences of the decision, not on whether it seems "good" or "bad" overall."""
+Focus on logical consequences of the decision, not on whether it seems "good" or "bad" overall."""
 
     content = _call_llm(llm, impact_prompt)
 
@@ -223,22 +280,61 @@ Focus on the logical consequences of the decision, not on whether it seems "good
 
             for line in impacts_section.strip().split("\n"):
                 line = line.strip()
-                if line.startswith("-") and ":" in line and "|" in line:
-                    parts = line[1:].strip().split(":", 1)
-                    if len(parts) == 2:
-                        metric_key = parts[0].strip()
-                        value_reason = parts[1].strip().split("|")
-                        if len(value_reason) >= 2:
-                            try:
-                                change_str = value_reason[0].strip().replace("+", "")
-                                change = float(change_str)
-                                reason = value_reason[1].strip()
-                                impacts[metric_key] = change
-                                reasons[metric_key] = reason
-                            except ValueError:
-                                pass
+                if not (line.startswith("-") and ":" in line and "|" in line):
+                    continue
+                parts = line[1:].strip().split(":", 1)
+                if len(parts) != 2:
+                    continue
+                metric_key = parts[0].strip()
+                # Skip metrics not in the canonical numeric set (defends against LLM hallucinated keys)
+                if metric_key not in numeric_keys:
+                    continue
+                value_reason = parts[1].strip().split("|", 1)
+                if len(value_reason) < 2:
+                    continue
+                value_part = value_reason[0].strip()
+                reason = value_reason[1].strip()
+
+                # Parse "<number> <unit>" — unit token is whatever follows the first numeric token
+                tokens = value_part.replace("+", "").split(None, 1)
+                if not tokens:
+                    continue
+                try:
+                    change = float(tokens[0])
+                except ValueError:
+                    continue
+                returned_unit = tokens[1].strip() if len(tokens) > 1 else ""
+                stored_unit = (metrics[metric_key].get('unit') or '').strip()
+
+                # Server-side unit reconciliation — convert if LLM used a different scale
+                converted = _convert_unit(change, returned_unit, stored_unit)
+                if converted != change:
+                    logger.warning(
+                        "Metric %s: LLM returned %s %s, converted to %s %s (canonical)",
+                        metric_key, change, returned_unit, converted, stored_unit
+                    )
+                    change = converted
+
+                # Sanity guard against grossly oversized changes (catches lingering hallucinations)
+                stored_val = metrics[metric_key].get('value')
+                try:
+                    stored_val_f = float(stored_val) if stored_val is not None else 0.0
+                except (TypeError, ValueError):
+                    stored_val_f = 0.0
+                # If the absolute change exceeds 50% of the current value AND the metric is non-zero,
+                # clamp to ±50% — apply_metric_impacts will further clamp via its per-round caps.
+                if stored_val_f != 0 and abs(change) > abs(stored_val_f) * 0.5:
+                    clamped = (abs(stored_val_f) * 0.5) * (1 if change > 0 else -1)
+                    logger.warning(
+                        "Metric %s: change %s exceeds 50%% of current %s — clamped to %s",
+                        metric_key, change, stored_val_f, clamped
+                    )
+                    change = clamped
+
+                impacts[metric_key] = change
+                reasons[metric_key] = reason
         except Exception:
-            pass
+            logger.exception("Failed to parse METRIC_IMPACTS section")
 
     impact_summary = ""
     if "IMPACT_SUMMARY:" in content:
@@ -320,7 +416,27 @@ def evaluate_decision(llm: object, company_data: Dict,
                       module_data: Dict, scenario: str,
                       decision: str, round_config: Dict,
                       player_role: Dict) -> Dict:
-    """Evaluate user's decision and provide feedback."""
+    """Evaluate user's decision and provide feedback.
+
+    Includes a Module Vocabulary sub-tracker that scores explicit invocation of the
+    module's key_terms — making M6/Ind-AS pedagogy visible and rewarded independently
+    of board persuasion outcomes.
+    """
+    # Build the module vocabulary block — leverages key_terms extracted by Agent 1 (PDF
+    # glossary recovery) and ensured-present by Agent 2 (audit's Phase 3 generation).
+    key_terms = module_data.get('key_terms', {}) or {}
+    if isinstance(key_terms, dict) and key_terms:
+        # Include up to 25 terms to keep prompt size bounded
+        term_lines = "\n".join(
+            f"  - {term}: {definition}" for term, definition in list(key_terms.items())[:25]
+        )
+        vocabulary_block = (
+            "MODULE VOCABULARY (the canonical concepts this round tests — invoke these by name in the decision):\n"
+            f"{term_lines}\n"
+        )
+    else:
+        vocabulary_block = ""
+
     evaluation_prompt = f"""You are a STRICT and RIGOROUS corporate governance evaluator. Your role is to provide HONEST, ACCURATE assessments.
 DO NOT give undeserved praise. If a decision is poor, say so clearly. Be direct about mistakes and their consequences.
 
@@ -338,6 +454,7 @@ Learning Objectives:
 RELEVANT TOPICS:
 {chr(10).join(f"- {topic['name']}: {topic['description']}" for topic in module_data['topics'][:5])}
 
+{vocabulary_block}
 SCENARIO PRESENTED:
 {scenario}
 
@@ -362,6 +479,7 @@ CRITICAL EVALUATION CRITERIA:
 3. Does the decision violate any governance principles or laws?
 4. Were stakeholder interests properly balanced?
 5. Is the decision appropriate for the player's role as {player_role['role']}?
+6. Did the decision invoke the module's canonical vocabulary (above) — by name or correct paraphrase?
 
 Provide your evaluation in this EXACT format:
 SCORE: [0-100] (Be HONEST - if decision is poor, give a low score)
@@ -373,6 +491,14 @@ SCORE_REASONING: [Explain SPECIFICALLY why you gave this score. Show points as X
 - Strategic Thinking: [points]/20 - [strengths/weaknesses in approach]
 - Role Alignment: [points]/15 - [appropriate for their position?]
 Total: [sum]/100]
+
+MODULE_VOCABULARY_SCORE: [0-100] (Independent of the main score — purely measures application of MODULE VOCABULARY above. 100 = invoked all relevant terms by name with correct usage; 0 = no module vocabulary visible. Penalize misuse: e.g. if module forbids a term and the player used it.)
+
+VOCABULARY_INVOKED: [Comma-separated list of vocabulary terms (from MODULE VOCABULARY above) that the decision INVOKED CORRECTLY — by name or unambiguous paraphrase. Empty list "[]" if none.]
+
+VOCABULARY_MISSED: [Comma-separated list of vocabulary terms that were RELEVANT to this scenario but the decision DID NOT invoke. Empty list "[]" if all relevant terms were used or vocabulary is empty.]
+
+VOCABULARY_MISUSED: [Comma-separated list of terms the decision used INCORRECTLY (e.g. used "extraordinary item" when Ind AS forbids it). Empty list "[]" if none.]
 
 STRENGTHS: [What was done well - if little was done well, say "Limited strengths identified" and explain why]
 
@@ -485,6 +611,51 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
         except Exception:
             pass
 
+    # Extract Module Vocabulary fields (P1-5/P1-6 — independent M6-correctness axis)
+    def _extract_section(label: str, stop_markers: List[str]) -> str:
+        if label not in content:
+            return ""
+        try:
+            section = content.split(label, 1)[1]
+            for marker in stop_markers:
+                if marker in section:
+                    section = section.split(marker, 1)[0]
+                    break
+            return section.strip()
+        except Exception:
+            return ""
+
+    def _parse_term_list(raw: str) -> List[str]:
+        """Parse a comma-separated term list like 'Term A, Term B' or '[Term A, Term B]'."""
+        if not raw:
+            return []
+        raw = raw.strip().strip('[]').strip()
+        if not raw or raw.lower() in ('none', 'n/a', 'empty', '[]'):
+            return []
+        return [t.strip() for t in raw.split(',') if t.strip()]
+
+    vocab_score_raw = _extract_section(
+        "MODULE_VOCABULARY_SCORE:",
+        ["VOCABULARY_INVOKED:", "VOCABULARY_MISSED:", "STRENGTHS:"]
+    )
+    try:
+        vocabulary_score = int(''.join(filter(str.isdigit, vocab_score_raw[:10]))) if vocab_score_raw else 0
+        vocabulary_score = min(100, max(0, vocabulary_score))
+    except (ValueError, TypeError):
+        vocabulary_score = 0
+
+    vocabulary_invoked = _parse_term_list(_extract_section(
+        "VOCABULARY_INVOKED:",
+        ["VOCABULARY_MISSED:", "VOCABULARY_MISUSED:", "STRENGTHS:"]
+    ))
+    vocabulary_missed = _parse_term_list(_extract_section(
+        "VOCABULARY_MISSED:",
+        ["VOCABULARY_MISUSED:", "STRENGTHS:"]
+    ))
+    vocabulary_misused = _parse_term_list(_extract_section(
+        "VOCABULARY_MISUSED:", ["STRENGTHS:"]
+    ))
+
     # Calculate metric impacts
     metric_impacts = calculate_metric_impacts(llm, company_data, scenario, decision, score)
 
@@ -500,7 +671,12 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
         "encouragement": encouragement,
         "decision": decision,
         "scenario": scenario,
-        "metric_impacts": metric_impacts
+        "metric_impacts": metric_impacts,
+        # Module Application axis (P1-5, P1-6) — independent of board persuasion
+        "vocabulary_score": vocabulary_score,
+        "vocabulary_invoked": vocabulary_invoked,
+        "vocabulary_missed": vocabulary_missed,
+        "vocabulary_misused": vocabulary_misused,
     }
 
 

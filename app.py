@@ -2905,7 +2905,7 @@ def display_final_summary(data: Dict):
                     col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
 
                     with col1:
-                        priority_badge = "🔴 " if initial.get('priority') == 'High' else ""
+                        priority_badge = "🔴 " if str(initial.get('priority') or '').strip().lower() == 'high' else ""
                         st.markdown(f"**{priority_badge}{initial['description']}**")
 
                     with col2:
@@ -3278,7 +3278,10 @@ def simulation_page():
             # HIGH PRIORITY METRICS SECTION - Always visible at top
             st.header("🔴 High Priority Metrics")
 
-            high_priority_metrics = {k: v for k, v in metrics.items() if v.get('priority') == 'High'}
+            high_priority_metrics = {
+                k: v for k, v in metrics.items()
+                if str(v.get('priority') or '').strip().lower() == 'high'
+            }
 
             if high_priority_metrics:
                 for key, metric in high_priority_metrics.items():
