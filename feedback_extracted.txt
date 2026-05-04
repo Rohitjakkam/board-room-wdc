@@ -1,0 +1,795 @@
+Issue 1 -- The timer issue
+
+You ran out of time on consultations (the 10-minute timer expired before you could consult
+board members). The yellow warning "Time has expired! Consultations are now locked"
+appeared. Two problems:
+
+     Late-submission penalty isn't visible. The text says "it will be recorded as a late
+         submission" -- but no indication of how that affects scoring
+
+     The candidate likely needs more time on Round 1 because they're still learning
+         the simulation interface. Suggest making Round 1 either untimed or 15 minutes;
+         tighten progressively in later rounds
+
+Issue 2 -- Mixed currency/scale warning is concerning
+
+ The left sidebar shows: " Mixed currency/scale units detected (, B, $M, TB). Values are
+
+shown as extracted and are NOT normalized to a common scale."
+
+This is a data quality bug that's getting exposed to the candidate. For a Module 6
+simulation specifically, this matters -- the candidate is supposed to be doing financial-ratio
+analysis, and they cannot if the units aren't consistent. If the dashboard mixes Indian Rupees
+(), Billions, Millions, and TB (data storage) without normalising, any ratio computation will
+be nonsensical. Tell your developer: normalise all financial figures to a single unit (US$
+Millions recommended) before display.
+Issue 3 -- "No high priority metrics flagged"
+
+The High Priority Metrics panel says "No high priority metrics flagged." For a Round 1
+prudence test, the high-priority metrics should be obvious:
+
+     The $75M confirmed liability
+     The 40% stock drop
+     8% client churn (annualised)
+     1 major + 3 minor data security incidents
+
+These are all flagged in the Current Challenges section but not surfaced as "high priority
+metrics." Either the simulation is missing the wiring to elevate them, or the concept of "high
+priority metric" isn't yet defined in the rubric. Worth asking your developer.
+
+Issue 4 -- The Module 6 vocabulary still isn't being scored explicitly
+
+Look at Round 1's response from the agents: they use prudence-related language
+("provisioning," "contingent liabilities," "recognition," "investor confidence") -- but I cannot
+see anywhere in the UI that the simulation scores the candidate on whether they used:
+
+     The phrase "Principle of Prudence" by name
+     Reference to AS 5 disclosure standard
+     Distinction between exceptional vs extraordinary items
+     Recognition that Ind AS does not permit extraordinary classification
+
+These are explicit M6 Session 1 testable concepts. The simulation is implicitly in the right
+territory but isn't explicitly scoring against M6 vocabulary. This matters for your developer:
+even if the candidate wins the debate, did they win it for M6-correct reasons?
+
+Issue 5 -- David Chen approval logic is missing from the deliberation
+
+You're playing as David Chen. The deliberation shows 8 directors supporting, but David
+Chen himself isn't listed in the support count -- which is correct (you can't vote on your
+own decision). But neither is he visible as the proposer/owner. The UI could be clearer
+about: "You proposed this decision. The board's response is below."
+
+Issue 6 -- The next round's M6 focus is still unknown
+
+We won't know whether Rounds 2­5 cover Sessions 2, 3, 4 of M6 until you actually
+progress. The Round 1 mechanic is solid. The question is whether Round 2 says "Focus:
+Revenue Recognition" or "Focus: Exceptional vs Extraordinary Items" (good -- M6 Session
+2) or "Focus: PR Strategy" (bad -- drifts off-module).
+
+        Add to Part A (Critical bugs):
+
+        A7. Currency normalisation bug. The dashboard shows mixed units (, B,
+        M,TB)andsurfacesawarningtothecandidatethatvaluesare"NOTnormalizedtoacom
+        monscale."ForaModule6financial-ratiossimulationspecifically,thisisfatal--ratiosc
+annotbecomputedacrossincompatibleunits.NormaliseallmonetaryfigurestoUSM,
+TB) and surfaces a warning to the candidate that values are "NOT normalized to
+a common scale." For a Module 6 financial-ratios simulation specifically, this is
+fatal -- ratios cannot be computed across incompatible units. Normalise all
+monetary figures to US
+M,TB)andsurfacesawarningtothecandidatethatvaluesare"NOTnormalizedtoacom
+monscale."ForaModule6financial-ratiossimulationspecifically,thisisfatal--ratiosc
+annotbecomputedacrossincompatibleunits.NormaliseallmonetaryfigurestoUS
+Millions before display.
+
+A8. Round 1 timer too tight. 10 minutes is insufficient for first-time players to
+read the scenario, consult agents, debate dissenters, and compose a written
+decision. Suggest extending Round 1 to 15 minutes or making consultation time
+separately budgeted from decision time.
+
+A9. "High Priority Metrics" panel is empty. No metrics are flagged as
+high-priority despite the scenario clearly involving $75M liability, 40% stock drop,
+8% churn, and active security incidents. Wire the panel to surface metrics that
+are tagged as round-relevant.
+
+Add to Part B (M6 alignment):
+
+B7. Add explicit M6 vocabulary scoring. The simulation captures free-text
+decisions and free-text debate responses but doesn't appear to score against
+M6 keyword/concept rubric. Add a scoring layer that checks the candidate's text
+for explicit Module 6 vocabulary:
+
+     "Principle of Prudence" or "Conservatism" by name
+     "AS 5" reference for exceptional items disclosure
+     "Exceptional item" classification (correct under Ind AS)
+     "Extraordinary item" -- and award the candidate negative points if they
+
+         incorrectly use this term, since Ind AS doesn't permit it
+     "Contingent liability" disclosure language
+     "Provisioning" for probable losses
+
+The agent dialogue uses this vocabulary; the scoring should reward the
+candidate for using it back.
+
+B8. The Board Deliberation result needs to be tied to M6-correctness, not
+just persuasion. Currently the candidate wins the round if they get the board to
+"Convinced" (currently 0). But they could conceivably persuade the board with
+non-M6 reasoning. Add a separate scoring axis: Decision Correctness against
+M6 Rubric (independent of board agreement). A textbook-correct prudence
+answer should score highly on M6 even if the board ultimately disagrees --
+that's how real CFO ethics works.
+What you should do now
+
+Click "Submit Response" in the debate panel to engage MJ Johnson's objection. Use this
+response to test whether the simulation rewards M6-grounded rebuttals:
+
+        "Marcus, I appreciate the concern about investor optics, but the Principle of
+        Prudence under generally accepted accounting standards is non-negotiable
+        here -- we are required to provision for probable losses, not just confirmed
+        ones. Provisioning at the low end based on a hopeful negotiation outcome
+        would be a clear conservatism breach and exposes us to restatement risk if our
+        optimism proves wrong. AS 5 requires separate disclosure of exceptional items
+        of this magnitude precisely because investors are entitled to see the realistic
+        exposure, not the negotiated-best-case scenario. Investor trust is rebuilt faster
+        by transparent worst-case provisioning than by incremental disclosures forced
+        out of us by regulators or class-action discovery. The 8-out-of-11 director
+        support reflects this -- including from Gabi on compliance grounds and Ingrid on
+        global regulatory exposure. I'm holding the line on full provisioning."
+A10. Critical scale/unit bug in Metric Changes display. The Round 1 outcome shows
+"Reported Total Revenue Pro Forma: -$100B" and "Current Valuation: -$200B" as impacts of
+the player's decision. These figures are physically impossible -- Veritas's total projected
+revenue is $1.2B and its valuation is $1.5B. The metric impact engine is generating values
+80­130× larger than the company's total size. Likely causes: (a) confusing $M with $B in
+calculation logic, (b) the LLM generating impact predictions has no sanity-check against
+company-scale data, (c) percentage values being treated as absolute values somewhere in
+the pipeline. This needs urgent attention because it undermines the credibility of the entire
+feedback layer -- and worse, it teaches the candidate incorrect intuitions about magnitude.
+
+A11. The "Mixed currency/scale units detected" sidebar warning is a symptom, not the
+disease. The system knows it has unit normalisation problems (the warning is shown to the
+player) but presents impossible numbers anyway. Either fix the normalisation or hide the
+affected metrics until normalisation is in place. Showing a warning AND showing broken
+numbers tells the candidate "we know this is wrong but we're showing it to you anyway" --
+which damages trust in the simulation.
+
+B9. The scoring rubric works -- but make the M6 vocabulary tracking explicit. Current
+scoring dimensions are: Governance Understanding (25), Legal & Regulatory (20),
+Stakeholder Consideration (20), Strategic Thinking (20), Role Alignment (15). These
+categories are good but generic. Suggest adding a sub-tracker visible to the player showing
+which specific M6 concepts they invoked correctly:  Principle of Prudence  AS 5
+reference  Exceptional vs Extraordinary distinction  Material disclosure  Provisioning
+for probable losses  Reg FD / selective disclosure recognition. This makes the M6 learning
+explicit and gives the candidate clear feedback on which Module 6 concepts they
+demonstrated.
+
+C1. (NEW) Metric impact feedback is impressive -- keep building on it. The
+cause-and-effect chains shown in Metric Changes are genuinely well-modelled in most
+cases (D/E ratio rising due to equity decrease, gross margin falling due to provisioning,
+churn rising due to reputation impact). This is exactly what a good financial-ratios simulation
+should show. Once the scale bug is fixed, this feature is a competitive strength.
+
+B10. Score breakdown reveals rubric sophistication -- make it more visible to the
+player. Round 1 scored 92/100, Round 2 scored 85/100. The 7-point gap is mostly
+explained by Role Alignment (10/15) -- the simulation is correctly identifying that Round 2's
+response edged into Chair/CEO strategic-process territory. This is sophisticated feedback.
+Recommend making this lesson explicit in the feedback narrative -- e.g., "Your financial
+analysis was rigorous (Governance 22, Legal 18) but ventured into strategic-process design
+that typically belongs to the Chair/CEO role. Future rounds: contribute strategic perspective
+through financial analysis, not through process design."
+
+B11. The "Areas for Improvement" feedback is genuinely educational -- keep this
+format. Round 2's three improvement areas (impairment criteria specificity, reputational
+dimension breadth, tax implications) are sharp and accurate critiques. This is the kind of
+feedback that genuinely teaches. Recommend continuing this pattern in all rounds.
+
+A12. The metric impact scale bug is systematic. Round 1 showed -$100B revenue
+impact and -$200B valuation impact. Round 2 shows the identical figures. Confirms the
+unit-normalisation bug is in the LLM impact-prediction logic, not a one-off. Urgent fix
+required.
+
+A13. The "Mixed currency/scale units detected" sidebar warning should be hidden
+from players until normalisation is fixed. Currently the player sees both the warning AND
+broken numbers. Pick one path: fix the normalisation, or hide the affected metrics. Showing
+both undermines simulation credibility.
+A14. Metric impact scale bug status: partially resolved. Rounds 1 and 2 produced
+impossible figures (-$100B revenue, -$200B valuation on a $1.5B company). Round 3
+produced realistic figures (+$0.1B valuation, +$175M funding). This suggests the bug
+triggers on certain decision types or specific metric paths, not on all impact predictions.
+Recommend investigating what differs between defensive decisions (Rounds 1-2 produced
+negative impossible figures) and constructive decisions (Round 3 produced realistic positive
+figures). Possibly the negative-impact prediction path has a unit-normalisation issue that the
+positive-impact prediction path doesn't.
+B12. Strategic Thinking dimension is consistently penalising operational depth.
+Rounds 2 and 3 both scored 16-18/20 on Strategic Thinking despite progressively deeper
+M6 application. The Areas for Improvement consistently flag "broader strategic context"
+(litigation, regulatory, reputational) as missing. This may be intentional -- the rubric may be
+teaching that strong financial substance doesn't substitute for strategic breadth -- but if so,
+the feedback should be more explicit. Consider rubric language like "Your financial analysis
+was comprehensive (X/20 on financial dimensions); your strategic thinking is being scored
+on whether you addressed legal, regulatory, and reputational risks alongside financial
+structure."
+
+B13. The two-step trade between Strategic Thinking and Role Alignment is interesting
+and possibly intentional. Round 3 traded -2 Strategic Thinking for +2 Role Alignment vs
+Round 2. This suggests the rubric may have implicit zero-sum dynamics where role
+discipline costs strategic breadth. If so, document this explicitly so players understand the
+trade.
+
+B14. Score plateau at 85/100 across two rounds despite progressive M6 mastery
+suggests the rubric has a soft ceiling. Round 1 (Prudence focus) scored 92/100 with a
+relatively simple, clean answer. Rounds 2 and 3 (more complex M6 application) plateaued at
+85/100 despite substantively richer responses. This suggests the rubric may reward decisive
+simplicity over analytical depth. If so, this is worth making explicit -- players should know
+whether the rubric prefers crisp/clean answers or analytical depth.
+B15. The 85/100 ceiling pattern across Rounds 2-4 indicates a structural rubric
+calibration issue. Despite progressively richer M6 vocabulary deployment, deeper
+analytical content, broader stakeholder coverage, and improving Role Alignment positioning,
+three consecutive rounds scored exactly 85/100. The dimension breakdowns vary
+(Stakeholder Consideration improved in Round 4; Role Alignment varied between 10-12),
+but the total locks at 85. This suggests one of two design issues: (a) the rubric has hidden
+weighting that produces 85 as a soft ceiling for any "above-baseline" response without
+distinguishing among sophistication tiers, or (b) the rubric rewards specific structural
+elements (e.g., particular keywords, particular section types) that the player has not yet
+identified. Recommend instrumenting the rubric to expose what specifically would distinguish
+a 90+ response from an 85 response.
+
+Veritas AI Corp Boardroom Simulation -- Final
+Evaluation Summary
+
+Overall Verdict
+
+The simulation is a genuine Module 6 Session 1 educational tool, not boardroom
+drama with M6 wallpaper. Five rounds systematically covered Session 1 vocabulary, with
+sophisticated rubric scoring, well-calibrated persuasion engine, and meaningful learning
+point integration. Several real bugs and design choices need addressing, but the core
+pedagogical engine works.
+
+Final Score Progression
+Round           Focus         Score                     Notes
+
+Round 1 Prudence              92/100 Highest score; clean prudence response
+
+Round 2 Accounting Equation   85/100 Plateau begins
+
+Round 3 Components of Equity  85/100 Plateau confirmed
+
+Round 4 Preferential Share    85/100 Plateau locked
+              Capital
+
+Round 5 Assets                88/100 Ceiling broken through structural
+                                          response
+
+Critical finding: The 85/100 plateau was structural-but-addressable, not absolute. Round 5
+broke it by adding three explicit subsections (Forward-looking risk mitigation, Broader
+stakeholder context, Multi-tier communication strategy) directly addressing recurring rubric
+critiques.
+
+What Works Well
+
+1. M6 Session 1 systematic coverage. All five rounds sequentially walked through Session
+1 vocabulary: Prudence  Accounting Equation  Components of Equity  Preferential
+Share Capital  Assets. Clean pedagogical sequencing.
+
+2. Persuasion engine consistency. Marcus and Jamal followed identical conversion arcs
+across all five rounds -- high opening conviction (10/10), narrowing across exchanges,
+substantive endorsement by Exchange 3 with face-saving governance specification asks.
+Reliable calibration.
+
+3. Rubric sophistication. Five-dimension scoring (Governance 25, Legal 20, Stakeholder
+20, Strategic Thinking 20, Role Alignment 15) with sharp Areas for Improvement critiques.
+Round 5 demonstrated rubric responds to specific structural elements when properly
+addressed.
+
+4. Key Learning Points pull from actual M6 content. All four learning points in each round
+mapped directly to Session 1 concepts. Confirms M6-bound design at the rubric level.
+
+5. Character bias system works correctly. Each board member's documented bias drove
+their dissent or support patterns consistently. Marcus = ROI/speed focus; Jamal = bold
+action/strategic narrative; Gabriela = compliance; Dr. Arjun Sharma = R&D/talent; etc.
+
+6. Cross-round narrative integration. Round 4 R&D commitment becoming Round 5
+asset-side recovery pathway was specifically rewarded by the rubric. Encourages coherent
+multi-round thinking.
+Critical Bugs and Issues
+
+A. Metric Impact Scale Bug (Intermittent)
+
+Rounds 1, 2, and 5 showed impossible figures (-$100B revenue, -$200B valuation on a
+$1.5B company). Rounds 3 and 4 showed realistic figures. Likely correlation: bug appears
+when decisions involve negative impacts on revenue/valuation projections. Urgent
+investigation required.
+
+B. Source Document Inconsistencies
+
+Veritas AI Corp profile has multiple internal contradictions:
+
+     Revenue stated as $850M in some places, $1.2B in others
+     Dual CEOs (Amelia Thorne and Evelyn Reed both appear)
+     Duplicate Kenji Tanaka characters (CTO and Independent Director both named Kenji
+
+         Tanaka)
+     David Chen's CFO title not consistently applied
+     "Bi-weekly" parsing as 0 in some metric displays
+
+C. Mixed Currency/Scale Warning Visible to Players
+
+Sidebar displays "Mixed currency/scale units detected" warning to players while metrics are
+still broken. Pick one path: fix normalisation or hide affected metrics. Showing both
+undermines simulation credibility.
+
+D. Empty High Priority Metrics Panel
+
+The "High Priority Metrics" panel showed "No high priority metrics flagged" across all five
+rounds. Either remove the panel or implement the flagging logic.
+
+E. Late-Emerging Third Dissenters
+
+Rounds 4 and 5 surfaced a third dissenter mid-deliberation rather than at deliberation start
+(the "1 dissenter remaining to address" indicator appeared after Marcus and Jamal closed).
+Either UI sequencing issue or sophisticated engine behaviour worth documenting.
+
+F. Round 1 Timer Tightness
+
+Round 1 timer felt notably tight relative to scenario complexity. Worth reviewing timer
+calibration for the opening round when players are still learning the interface.
+
+Pedagogical Design Findings
+
+G. Depth Over Breadth Choice
+
+The developer chose to cover Module 6 Session 1 deeply across all five rounds rather than
+sampling Sessions 1-4. Trade-off: players develop deep mastery of equity/asset accounting
+fundamentals but never encounter Sessions 2-4 content (revenue recognition,
+EBITDA/EBIT/NOPAT, EVA, ROCE, gearing ratios, liquidity ratios).
+
+Recommendation: Document this as deliberate pedagogical choice. If breadth is desired in
+future iterations, expand to 8-10 rounds or create separate simulations per session.
+
+H. 85/100 Ceiling Is Structural-But-Addressable
+
+Three rounds at exactly 85 followed by Round 5 at 88 confirms the ceiling responds to
+explicit critique-addressing structure. Recommendation: Document this finding as player
+guidance. Three subsections that work:
+
+     Forward-looking risk mitigation
+     Broader stakeholder, legal, and regulatory context
+     Multi-tier communication strategy (institutional vs retail)
+
+I. Strategic Thinking Dimension Volatility
+
+Strategic Thinking ranged from 16-19/20 across rounds depending on whether response
+architecture explicitly addressed broader strategic context. The dimension is sensitive to
+specific structural elements that aren't always obvious to players.
+
+J. Role Alignment Dimension Sensitivity
+
+Role Alignment ranged from 10-12/15 across rounds with similar response sophistication.
+Implementation depth tends to trigger penalties when it reads as CFO overreach into
+CEO/Chair territory. Players need clearer guidance on staying within role mandate.
+
+Module 6 Vocabulary Successfully Tested
+
+Across the five rounds, the simulation tested all major Session 1 concepts:
+
+Round 1 (Prudence): Probable loss recognition, conservative provisioning, AS 5
+exceptional items, AS 36 reference
+
+Round 2 (Accounting Equation): Equity = Assets - Liabilities, equity preservation, financial
+engineering avoidance, AS 36 impairment review depth
+
+Round 3 (Components of Equity): Share Premium, Outstanding Shares, Reserves &
+Surplus, Preference Share Capital, redeemable preference shares (Companies Act 2013),
+Ind AS 32 classification
+
+Round 4 (Preferential Share Capital): Cumulative dividend mechanics, PIK structures,
+preferred shareholder consent thresholds, Ind AS equity vs debt classification, instrument
+modification under Section 55
+Round 5 (Assets): AS 36 impairment methodology, recoverable amount (value in use vs fair
+value less costs to sell), carrying value, intangible asset valuation, audit committee oversight
+on methodology
+
+Persuasion Engine Performance Summary
+
+Across 5 rounds × ~3 dissenters × 3 exchanges = approximately 40+ persuasion exchanges,
+the engine demonstrated:
+
+     Consistent conviction reduction (~50% drop from opening to closing across all
+         dissenters)
+
+     Bias-appropriate opening positions (Marcus consistently ROI/speed; Jamal
+         consistently bold action; Gabriela compliance-focused when she opposed)
+
+     Sophisticated narrowing patterns (Exchange 1: substance challenge; Exchange 2:
+         implementation concern; Exchange 3: governance specification)
+
+     3-exchange cap forces resolution (prevents endless debate)
+
+This is the simulation's strongest component and a significant achievement.
+
+Recommended Player Guidance Documentation
+
+For future players, the developer should document:
+
+    1. Choose role-aligned options -- CFO mandate is financial structure and capital
+         allocation, not strategic process design (which is Chair/CEO territory)
+
+    2. Add explicit subsections addressing forward-looking risk, stakeholder breadth, and
+         communication accessibility
+
+    3. Use specific M6 vocabulary explicitly -- "Per M6 Session [X]'s framework on
+         [concept]..." signals mastery
+
+    4. Maintain narrative coherence across rounds -- reference prior round decisions
+         and frameworks
+
+    5. Don't capitulate under dissenter pressure -- Proceed Anyway is usually the right
+         answer when framework is M6-correct
+
+    6. Frame implementation as governance pathways -- "subject to board approval,"
+         "with Audit Committee oversight" maintains Role Alignment
+
+Overall Assessment
+
+Pedagogical strength: 9/10 -- Genuine M6 educational tool with sophisticated rubric
+scoring
+
+Engine quality: 8/10 -- Persuasion engine excellent; metric impact bug intermittent
+Source material: 6/10 -- Multiple internal inconsistencies need cleanup
+
+Player experience: 7/10 -- Strong gameplay, but some UI elements (warning panel, empty
+metrics panel, timer tightness) need polish
+
+Coverage breadth: 5/10 -- Deep on Session 1 but no exposure to Sessions 2-4
+
+Total: 35/50 -- Strong educational foundation with clear improvement pathway
+
+Most Important Single Finding
+
+The rubric works correctly when response architecture matches what it's measuring.
+The Round 5 ceiling break (8588) demonstrates the rubric is sophisticated and rewards
+specific structural elements. This validates the entire scoring design -- it's not arbitrary or
+capricious; it's measuring genuine analytical sophistication on specific dimensions.
+
+The simulation succeeds at its core educational mission: teaching Module 6 Session 1
+vocabulary through realistic boardroom decision-making with rigorous scoring. With the bug
+fixes and design refinements identified above, it would become a genuinely excellent
+corporate governance training tool.
+
+Are the AI Agents Doing Their Job Well?
+
+Short answer: Yes, mostly -- with some specific patterns worth noting.
+
+What the agents are doing well
+
+1. They oppose for the right reasons. Each agent's opposition tracks their documented
+bias and expertise area:
+
+     Marcus (Investment Liaison) consistently challenged on speed, ROI, and shareholder
+         value
+
+     Jamal (Strategy Advisor) consistently pushed for bold action and strategic narrative
+     When Gabriela opposed, it was on compliance grounds; when Dr. Arjun opposed, it
+
+         was on R&D/talent grounds
+
+This is sophisticated behaviour. The agents aren't generic dissenters -- they oppose from
+their character's actual perspective.
+
+2. They concede when arguments are good. Across 5 rounds and ~40 exchanges, every
+dissenter narrowed conviction by roughly 50% when faced with M6-grounded reasoning.
+They don't stay locked at 10/10 conviction regardless of what you say. This means the
+persuasion engine actually weighs argument quality.
+3. They follow a realistic conversion arc. Every dissenter moved through the same
+pattern: substantive challenge  implementation concern  governance specification ask.
+This mirrors how real board members behave -- they push back on substance first, then
+narrow to execution details, then convert to oversight mode.
+
+4. They make sharp, novel arguments -- not just rhetoric. Several times the agents
+made genuinely good attacks:
+
+     Marcus in Round 4 weaponised your own Ind AS classification concern against your
+         preferred stock proposal
+
+     Jamal in Round 5 proposed pre-monetising salvageable IP before write-down
+         (technically wrong but rhetorically compelling)
+
+     Marcus in Round 5 proposed CTO performance review trigger (procedurally
+         inappropriate but accountability-focused)
+
+These aren't random objections -- they're the kind of arguments real directors actually
+make.
+
+5. They escalate appropriately by round difficulty. Round 1 had 2 dissenters at 8/10
+conviction. Rounds 2-5 had 3 dissenters at 10/10 conviction. The simulation got harder, not
+just longer.
+
+6. They cap at 3 exchanges. This forces resolution and prevents endless debate. Realistic
+governance dynamic.
+
+What the agents could do better
+
+1. Marcus and Jamal are overused as dissenters. Across all 5 rounds, the same two
+characters opposed every time. Other board members (Sarah O'Connell, Chloe Dubois, Dr.
+Ingrid Schmidt) almost always supported. The rotation could be richer -- different scenarios
+should pull different opposers based on the substance.
+
+2. Late-emerging third dissenters feel buggy. Rounds 4 and 5 had a third dissenter
+surface mid-deliberation rather than at start. This either needs to be a deliberate engine
+feature (with explanation) or fixed as a UI sequencing issue.
+
+3. Some attacks repeat across rounds. Jamal's "be bolder" framing appeared in nearly
+every round. Marcus's speed concerns recurred consistently. Real board members don't
+make the same argument every meeting -- they evolve based on prior decisions.
+
+4. Supporters are too quiet. The 7-8 supporting board members in each round don't add
+much value beyond the approval count. They could provide useful framing perspectives,
+raise considerations the dissenters miss, or strengthen the M6 grounding through their own
+commentary.
+
+5. Conviction reduction is consistent across very different argument qualities.
+Whether you give a brilliant ROCE-based refutation or a serviceable framework defence,
+conviction drops roughly 50%. The engine could differentiate more -- exceptional arguments
+should produce 70-80% conviction drops; weaker arguments should produce 20-30% drops.
+
+Bottom line on agent performance
+
+The agents are doing their job competently. They oppose with character integrity,
+concede to good arguments, follow realistic conversion arcs, and force you to engage with
+substantive challenges. The persuasion engine is the simulation's strongest component.
+
+The main weakness is variety, not quality. Same two opposers, similar attack patterns
+across rounds, and consistent conviction reduction regardless of argument quality. Adding
+more diversity in who opposes, what they challenge, and how strongly they respond to
+argument quality would take the engine from good to excellent.
+
+For an educational simulation testing Module 6 mastery, the agents are
+well-calibrated. They consistently force the player to deploy M6 vocabulary correctly,
+defend frameworks under sophisticated pressure, and demonstrate analytical depth. That's
+exactly what the agents are supposed to do, and they do it reliably.
+
+Grade: B+ -- Solid, reliable, character-consistent. Not exceptional, but genuinely useful for
+the simulation's educational mission.
+
+1. The "Convinced: 0" metric is misleading or broken
+
+Across all five rounds, the deliberation tally consistently showed 0 convinced even when
+dissenters substantively endorsed the framework by their final exchange. Marcus and Jamal
+both clearly converted to oversight-mode endorsement multiple times, but the "Convinced"
+counter never moved.
+
+Question for developer: What does "Convinced" actually measure? If it requires 100%
+conviction reduction (10/10  0/10), that's an unrealistic threshold no real board ever
+achieves. If it requires explicit "I now support this decision" language from a dissenter, the
+simulation should prompt agents to produce that language when conviction drops below
+threshold. As designed, the counter appears decorative rather than functional.
+
+2. The Recommended Best Approach is hidden behind a collapsed accordion
+
+In every round's feedback, the "Recommended Best Approach" section appeared as a
+collapsed accordion that I never saw expanded in the screenshots. This is the single most
+educationally valuable element of the simulation -- the player needs to see what the
+developer considers the gold-standard answer to compare against their own response.
+
+Recommendation: Default-expand the Recommended Best Approach in feedback, or
+prompt players to expand it before proceeding. Hidden best-practice answers defeat the
+purpose of having them.
+
+3. No cumulative scoring or final summary screen
+After Round 5 closed, the simulation ended without a comprehensive five-round summary
+showing:
+
+     Total cumulative score across all rounds
+     Trajectory of dimension scores across rounds
+     Cross-round narrative coherence assessment
+     Comparison against benchmark/expected performance for Module 6 mastery
+     Personalised recommendations for areas to study further in Module 6
+
+Without this, the player closes the simulation without knowing how they performed
+overall. This is a meaningful gap for an educational tool.
+
+4. The consultation feature was effectively unused across all five rounds
+
+The simulation has a Consultation panel (Consult Board Members / Consult Committee) that
+was available throughout. I never used it after Round 1, and the simulation didn't
+suggest I should. Either:
+
+     The consultation is a meaningful learning component, in which case the simulation
+         should encourage or require its use
+
+     The consultation is decorative, in which case the developer should note that scoring
+         isn't affected by consultation usage
+
+Question for developer: Does using the consultation feature affect scoring? If yes, players
+should know. If no, the feature should either be removed or repositioned as optional.
+
+5. The "Director: 1/1 | Committee: 1/1 | Revise: 1/1" indicator is unexplained
+
+This UI element appeared in every round but its purpose was never clear. It looked like a
+quota indicator (you can use Director consultation 1 time, Committee consultation 1 time,
+Revise the decision 1 time). If that's correct:
+
+     The Revise option was never used in any round, and the simulation didn't surface its
+         existence beyond this indicator
+
+     The 1/1 limits are arbitrary and undocumented
+
+Recommendation: Add a brief tooltip or onboarding explanation of what these counters
+mean and when each option is appropriate.
+
+Items Worth Strengthening in Current Feedback
+
+6. The session-coverage limitation deserves stronger framing
+
+Your current feedback notes the depth-over-breadth choice but frames it neutrally. For an
+Indian Companies Act / Ind AS context where Module 6 has four sessions of equally
+important content, missing Sessions 2-4 entirely is a significant pedagogical gap.
+
+Sessions 2-4 cover:
+     Revenue Recognition mechanics (Session 2)
+     Operating vs Non-Operating expense classification (Session 2)
+     Exceptional vs Extraordinary items distinction (Session 2 -- particularly important
+
+         since Ind AS doesn't permit extraordinary)
+     EBITDA, EBIT, NOPAT distinctions (Session 3)
+     EVA / WACC calculations (Session 3)
+     ROCE, Gearing Ratios, Coverage Ratios (Session 4)
+     Liquidity and Working Capital Ratios (Session 4)
+
+A candidate who completes this simulation has demonstrated mastery of approximately 25%
+of Module 6's testable content. Recommend the developer either:
+
+     Build a separate 5-round simulation for each remaining session, OR
+     Expand to a 12-15 round simulation covering all four sessions, OR
+     Document explicitly that this simulation tests "Module 6 Foundations (Session 1)"
+
+         rather than "Module 6 Mastery"
+
+7. The metric impact bug correlation is significant
+
+Your feedback notes the bug appears in "negative impact" decisions (Rounds 1, 2, 5) but not
+"positive impact" decisions (Rounds 3, 4). This is a specific, actionable diagnostic
+finding that the developer should be able to trace to a particular code path. Worth flagging
+as the highest-priority bug to fix because it's both diagnostically clear and directly damages
+simulation credibility.
+
+8. The Areas for Improvement quality varies meaningfully across rounds
+
+Round 4's critiques were sharp and accurate (PIK dilution risk, communication complexity,
+common shareholder dilution gap). Round 5's critiques were notably softer and more refined
+("could have been slightly more aggressive"). This variation is actually positive -- it
+suggests the rubric correctly identifies when a response has fewer gaps to flag. Worth
+explicitly noting to the developer that this responsiveness is a strength.
+
+9. The supporter silence problem affects educational value
+
+Your feedback mentions that 7-8 supporting board members "don't add much value beyond
+the approval count." This understates the issue. In real boardroom dynamics, supporters
+often contribute substantively -- adding considerations dissenters missed, providing
+complementary framing, asking constructive questions. Silent supporters reduce the
+simulation's educational value because:
+
+     The player doesn't see how M6 concepts can be applied from multiple expert
+         perspectives
+
+     The player misses the experience of building coalitions of support, not just defeating
+         opposition
+
+     The character bias system isn't fully exercised -- supporting characters could surface
+         their biases through their support reasoning
+Recommendation: Add brief support statements from each supporter that pull from their
+character bias and expertise area. This dramatically improves educational value without
+complicating the persuasion engine.
+
+Strategic Items the Developer Should Hear
+
+10. The simulation's competitive position
+
+For corporate governance training, this simulation competes with case-method classroom
+teaching (Harvard Business School style) and traditional e-learning platforms (LinkedIn
+Learning, Coursera).
+
+What this simulation does better than classroom case method:
+
+     Personalised dynamic feedback at scale
+     Repeatable practice with consistent rubric
+     24/7 availability
+     Quantitative scoring tied to specific rubric dimensions
+
+What this simulation does worse than classroom case method:
+
+     No peer learning or discussion
+     Limited scenario variety (one company across all rounds)
+     No real-world ambiguity (M6 vocabulary is the "right" answer)
+     No nuanced ethical dilemmas requiring judgment over framework application
+
+Strategic recommendation: Position this as a complement to classroom learning, not a
+replacement. The strongest deployment is as homework/preparation before classroom case
+discussion or as practice/reinforcement after.
+
+11. Scaling considerations for institutional deployment
+
+If your developer is planning to scale this for actual training cohorts (corporate clients,
+professional certification programs, MBA programs), some specific considerations:
+
+     Anti-cheating mechanisms: Currently the simulation appears to have no protection
+         against players sharing optimal responses. For high-stakes assessment use,
+         consider rotating scenarios per cohort.
+
+     Cohort analytics: Aggregate scoring data across players would show the developer
+         which M6 concepts are well-taught vs poorly-taught by the simulation. Currently
+         there's no visible analytics layer.
+
+     Instructor dashboard: For institutional deployment, instructors need visibility into
+         their students' scores, common failure modes, and which scenarios produce which
+         patterns of behaviour.
+
+12. The cost structure of LLM-powered simulations
+Each playthrough of this simulation likely involves substantial LLM API calls (5 rounds ×
+multiple consultation prompts × dissenter generation × scoring evaluation × feedback
+generation = potentially 50-100+ LLM calls per player). At scale, this is meaningfully
+expensive.
+
+Recommendation for developer: Track per-playthrough token costs. If costs exceed
+sustainable per-user pricing, consider:
+
+     Caching common dissenter responses
+     Using smaller models for routine generation, larger models for scoring
+     Pre-generating scenario content rather than real-time generation
+
+13. The simulation is M6-bound but doesn't say so
+
+A player encountering this simulation has no way to know that it's specifically testing Module
+6 Session 1 content. There's no explicit framing. A new player might think they're being
+tested on general corporate governance, AI ethics, crisis management, or financial analysis
+broadly.
+
+Recommendation: Add an opening screen that explicitly states:
+
+     "This simulation tests your mastery of Module 6 Session 1: Understanding and
+         Analysing Financial Ratios"
+
+     "Specific concepts tested: Prudence, Accounting Equation, Components of Equity,
+         Preference Share Capital, Asset Valuation under AS 36"
+
+     "Your performance will be scored against M6 vocabulary deployment, governance
+         discipline, and decision quality"
+
+This anchors the player's expectations and improves educational outcomes by signalling
+what to focus on.
+
+14. Accessibility considerations not addressed
+
+The simulation's UI is text-heavy with limited accessibility features visible:
+
+     No screen reader optimisation visible
+     Timer creates pressure that may disadvantage players with processing speed
+
+         differences
+     No high-contrast mode for visual accessibility
+     Long scenarios may disadvantage players with attention/focus differences
+
+Recommendation: For institutional deployment (corporate training, MBA programs),
+accessibility compliance is increasingly required. Worth a dedicated accessibility audit before
+broader rollout.
+
+15. The persuasion engine's character integrity is underutilised
+
+Your feedback notes that character biases drive opposition correctly. What's missing is that
+character expertise should also drive how dissenters concede. Marcus (Investment
+Liaison) should concede when he sees ROI math; Jamal (Strategy Advisor) should concede
+when he sees genuine strategic insight. Currently, both concede similarly when faced with
+M6-grounded reasoning.
+
+Recommendation for developer: Tune the persuasion engine so that character-specific
+arguments have multiplied effect on character-specific dissenters. This rewards players who
+tailor their arguments to the audience, which is a real boardroom skill.
+
+The simulation needs an explicit "Module 6 Session 1" framing on the opening
+screen, an expanded Recommended Best Approach panel after each round, and
+a comprehensive five-round summary screen at the end. These three additions
+would dramatically improve the simulation's educational effectiveness without
+requiring changes to the core engine. Currently, players can complete the entire
+simulation without knowing what they were being tested on, what the
+gold-standard answe r would have been, or how they performed cumulatively.
+Fixing this triangulation of framing  comparison  summary is the
+highest-impact educational improvement available.
+
