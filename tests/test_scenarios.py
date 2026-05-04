@@ -991,6 +991,71 @@ class TestAgent3Improvements:
         assert members == {'Alice', 'Bob'}
 
 
+class TestMediumPriorityFollowups:
+    """Cross-check #2 follow-up — 4 medium-priority feedback items
+    (late-emerging dissenter UX, proposer banner, Best Approach UX, consultation signal)."""
+
+    # ── M1: Dissenter queue panel + ordering invariant ─────────────────
+
+    def test_dissenter_order_is_deterministic(self):
+        """Stances dict preserves insertion order (Python 3.7+) — so dissenters never
+        'appear' mid-deliberation. Verifies the data invariant the queue panel relies on."""
+        # Simulated stance dict in the order generate_member_stances() builds it
+        stances = {
+            'Marcus Webb':      {'stance': 'OPPOSE', 'conviction_level': 8, 'convinced_in_round': None},
+            'Jamal Ortiz':      {'stance': 'OPPOSE', 'conviction_level': 7, 'convinced_in_round': None},
+            'Sarah Chen':       {'stance': 'OPPOSE', 'conviction_level': 6, 'convinced_in_round': None},
+            'Linda Tan':        {'stance': 'APPROVE', 'conviction_level': 8, 'convinced_in_round': None},
+        }
+        # Re-order via the same comprehension used in deliberation.py
+        all_oppose = [(n, s) for n, s in stances.items() if s['stance'] in ('OPPOSE', 'CONVINCED')]
+        # Order must be exactly insertion order — never sorted, never reshuffled
+        assert [n for n, _ in all_oppose] == ['Marcus Webb', 'Jamal Ortiz', 'Sarah Chen']
+        # Length stays stable as members get convinced (CONVINCED still in all_oppose)
+        stances['Marcus Webb']['stance'] = 'CONVINCED'
+        stances['Marcus Webb']['convinced_in_round'] = 1
+        all_oppose_after = [(n, s) for n, s in stances.items() if s['stance'] in ('OPPOSE', 'CONVINCED')]
+        assert len(all_oppose_after) == len(all_oppose)
+        assert [n for n, _ in all_oppose_after] == ['Marcus Webb', 'Jamal Ortiz', 'Sarah Chen']
+
+    # ── M3: Best Approach default-expanded ─────────────────────────────
+
+    def test_best_approach_always_default_expanded(self):
+        """The recommended best approach must default to expanded for ALL scores —
+        was previously gated to score < 60, hiding the highest-leverage learning element."""
+        from pathlib import Path
+        src = Path('pages/simulation.py').read_text(encoding='utf-8')
+        # Find the best_approach expander block and verify it uses expanded=True (not a conditional)
+        idx = src.find('💡 Recommended Best Approach')
+        assert idx != -1, "Best Approach expander not found"
+        # Window around it should contain expanded=True (literal), NOT expanded=expanded
+        window = src[idx:idx + 600]
+        assert 'expanded=True' in window, f"Best Approach not always expanded:\n{window}"
+        # Defensive: the old conditional pattern should be gone
+        # (this test will fail if anyone re-introduces `expanded = score < 60`)
+        assert 'expanded = score < 60' not in src
+
+    # ── M4: Consultation usage signal ──────────────────────────────────
+
+    def test_consultation_caption_explains_scoring_link(self):
+        """Quota caption must tell players consultation usage feeds Board Effectiveness."""
+        from pathlib import Path
+        src = Path('pages/simulation.py').read_text(encoding='utf-8')
+        # Caption near the quota indicator must mention scoring impact
+        assert 'Consultation Alignment' in src or 'consultation alignment' in src.lower()
+        # And specifically mention Board Effectiveness
+        assert 'Board Effectiveness' in src
+
+    # ── M2: Proposer banner ────────────────────────────────────────────
+
+    def test_deliberation_banner_names_player_as_proposer(self):
+        """Deliberation header must explicitly state 'You proposed this decision'."""
+        from pathlib import Path
+        src = Path('components/deliberation.py').read_text(encoding='utf-8')
+        assert 'You proposed this decision' in src, \
+            "Proposer banner missing — feedback Issue 5 not addressed"
+
+
 class TestCohortAnalytics:
     """X.1 — Closed feedback loop: cohort aggregator + recommendation engine."""
 

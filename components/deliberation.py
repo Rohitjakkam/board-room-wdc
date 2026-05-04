@@ -81,17 +81,23 @@ def display_deliberation_phase(llm: object, data: Dict,
     # Get current state
     member_stances = st.session_state.get(stances_key, {})
 
-    # Display section header
+    # Display section header — names the player as the proposer (closes feedback Issue 5)
     st.markdown("### 🏛️ Board Deliberation")
-    st.markdown("""
+    st.markdown(f"""
     <div class="deliberation-header">
-        <strong>The board is reviewing your decision.</strong> Members will share their perspectives based on their expertise.
+        <strong>You proposed this decision as {player_role.get('name', '')}
+        ({player_role.get('role', '')}).</strong> The board is reviewing it now.
+        Members will share their perspectives based on their expertise — engage the dissenters
+        to either persuade them or move forward with their objections noted.
     </div>
     """, unsafe_allow_html=True)
 
     # Categorize members by stance
     approving = [(n, s) for n, s in member_stances.items() if s['stance'] == 'APPROVE']
-    # Include CONVINCED so index-based current_dissenter tracking stays stable after stance flip
+    # Include CONVINCED so index-based current_dissenter tracking stays stable after stance flip.
+    # IMPORTANT: this list is the canonical dissenter queue, computed deterministically once at
+    # generate_member_stances time. Preserves insertion order (Python 3.7+) so dissenters
+    # never "appear" mid-deliberation — they're always visible in the queue panel below.
     all_oppose = [(n, s) for n, s in member_stances.items() if s['stance'] in ('OPPOSE', 'CONVINCED')]
     opposing = [(n, s) for n, s in all_oppose if s.get('convinced_in_round') is None]
     neutral = [(n, s) for n, s in member_stances.items() if s['stance'] == 'NEUTRAL']
@@ -113,6 +119,41 @@ def display_deliberation_phase(llm: object, data: Dict,
                   help="Initially-opposing members you fully turned to support. "
                        "Increments only when a member's stance flips (not just when their conviction drops). "
                        "Watch the per-member conviction bars below to see partial persuasion.")
+
+    # Dissenter queue panel — addresses feedback E / Agent-W2 by surfacing the FULL
+    # dissenter list from deliberation start. Previously, waiting dissenters were buried
+    # in collapsed expanders, creating the illusion that a "third dissenter appeared
+    # mid-deliberation" when the queue advanced past the second.
+    if all_oppose:
+        current_idx = st.session_state.get(current_dissenter_key, 0)
+        total_d = len(all_oppose)
+        queue_chips = []
+        for idx, (name, stance) in enumerate(all_oppose):
+            if stance.get('convinced_in_round') is not None:
+                # Done — converted
+                bg, fg, mark = "#d4edda", "#155724", "✓ "
+            elif idx < current_idx:
+                # Done — addressed (max exchanges or skipped)
+                bg, fg, mark = "#e2e3e5", "#383d41", "◾ "
+            elif idx == current_idx:
+                # In progress
+                bg, fg, mark = "#fff3cd", "#856404", "▶ "
+            else:
+                # Upcoming
+                bg, fg, mark = "#f8d7da", "#721c24", ""
+            queue_chips.append(
+                f'<span style="background:{bg};color:{fg};padding:0.25rem 0.6rem;'
+                f'border-radius:14px;font-size:0.82rem;margin:0.15rem;display:inline-block;">'
+                f'{mark}[{idx + 1}/{total_d}] {name}</span>'
+            )
+        st.markdown(
+            f'<div style="margin: 0.6rem 0;">'
+            f'<small style="color:#666;">📋 <strong>Dissenter queue ({total_d} total)</strong> — '
+            f'addressed in order. ▶ = current · ✓ = convinced · ◾ = previously addressed:</small><br>'
+            f'{"".join(queue_chips)}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown("---")
 

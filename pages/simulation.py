@@ -188,13 +188,14 @@ def run_simulation_round(llm: object, data: Dict,
         committee_left = max(0, 1 - st.session_state[committee_consult_key])
         revision_left = max(0, 1 - st.session_state[revision_key])
         st.markdown(f"""
-        <div class="consultation-counter" title="One-shot quotas per round. Director: ask one board member privately. Committee: ask one committee for collective input. Revise: rewrite your decision once after submission.">
+        <div class="consultation-counter" title="One-shot quotas per round. Director: ask one board member privately. Committee: ask one committee for collective input. Revise: rewrite your decision once after submission. Consultation usage feeds your Board Effectiveness score (consultation alignment, 25 pts).">
             👥 Director: {board_left}/1 | 🏛️ Committee: {committee_left}/1 | ✏️ Revise: {revision_left}/1
         </div>
         """, unsafe_allow_html=True)
         st.caption(
             "ℹ️ Each round you can use **1 Director** consult, **1 Committee** consult, "
-            "and **1 Revise** of your decision. Hover the counter for details."
+            "and **1 Revise**. Consultations feed the **Consultation Alignment** sub-score "
+            "(25 pts of Board Effectiveness) — using them and following the advice raises this score."
         )
 
     with col3:
@@ -794,8 +795,18 @@ def run_simulation_round(llm: object, data: Dict,
             st.info(evaluation['learning_points'])
 
         if evaluation.get('best_approach'):
-            expanded = score < 60
-            with st.expander("💡 Recommended Best Approach" + (" - PLEASE REVIEW" if score < 60 else ""), expanded=expanded):
+            # Default-expanded for any score (closes feedback Item #2). The Best Approach
+            # is the highest-leverage learning element — hiding it behind a click was
+            # defeating its educational purpose. Players who scored well still benefit
+            # from comparing their reasoning against the gold-standard answer.
+            label = "💡 Recommended Best Approach"
+            if score < 60:
+                label += " — PLEASE REVIEW"
+            elif score < 75:
+                label += " — see how a stronger answer would look"
+            else:
+                label += " — compare with your reasoning"
+            with st.expander(label, expanded=True):
                 st.markdown(evaluation['best_approach'])
 
         if score < 60 and evaluation.get('critical_feedback'):
