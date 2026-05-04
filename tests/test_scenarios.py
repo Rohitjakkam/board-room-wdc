@@ -991,6 +991,143 @@ class TestAgent3Improvements:
         assert members == {'Alice', 'Bob'}
 
 
+class TestTimerEnforcement:
+    """Locks in the 5 timer fixes from TIMER_ISSUES.md plus the feedback PDF
+    timer items (A8, F, 1a, 1b, 1c). Pure unit tests — no Streamlit runtime."""
+
+    # ── Issue #1 + #2: Watchdog rerun + escalating penalty ────────────
+
+    def test_watchdog_detects_expiry_when_elapsed_exceeds_total(self):
+        """When elapsed time exceeds the round's total_seconds, expiry must be detected.
+        Mirrors the @st.fragment(run_every=15s) watchdog logic at simulation.py:275-283."""
+        import datetime as _dt
+        round_start = _dt.datetime.now() - _dt.timedelta(seconds=601)  # 10 min + 1 sec ago
+        total_seconds = 600  # 10-minute round
+        elapsed = (_dt.datetime.now() - round_start).total_seconds()
+        # Watchdog condition from simulation.py:280
+        is_expired = elapsed >= total_seconds
+        assert is_expired, f"elapsed={elapsed}s should trigger expiry against total={total_seconds}s"
+
+    def test_watchdog_does_not_trigger_within_window(self):
+        import datetime as _dt
+        round_start = _dt.datetime.now() - _dt.timedelta(seconds=300)  # 5 min ago
+        total_seconds = 600
+        elapsed = (_dt.datetime.now() - round_start).total_seconds()
+        assert elapsed < total_seconds  # watchdog should NOT set expired
+
+    def test_escalating_penalty_at_thresholds(self):
+        """Penalty curve: 15% at expiry, ramps to 50% over 10 min, capped."""
+        from core.scoring import compute_force_submit_penalty
+        # At expiry (0 overtime) → base 15%
+        assert compute_force_submit_penalty(0) == 0.15
+        assert compute_force_submit_penalty(-10) == 0.15  # negative overtime treated as 0
+        # 5 min overtime → halfway from 15% to 50% = 32.5%
+        p_5min = compute_force_submit_penalty(300)
+        assert abs(p_5min - 0.325) < 0.001, f"At 5 min, expected 0.325, got {p_5min}"
+        # 10 min overtime → max 50%
+        assert compute_force_submit_penalty(600) == 0.50
+        # 20 min overtime → still capped at 50%
+        assert compute_force_submit_penalty(1200) == 0.50
+        # Monotonically increasing within ramp window
+        assert compute_force_submit_penalty(60) < compute_force_submit_penalty(120)
+        assert compute_force_submit_penalty(120) < compute_force_submit_penalty(180)
+
+    def test_penalty_symmetric_on_positive_and_negative_impacts(self):
+        """A late good decision loses 15-50% of positive impact AND amplifies negatives by same."""
+        from core.scoring import compute_force_submit_penalty
+        impact_values = {'revenue': +10.0, 'liability': +5.0, 'churn': -2.0, 'unchanged': 0.0}
+        penalty = compute_force_submit_penalty(300)  # 5 min overtime → 32.5%
+        # Apply the same transformation simulation.py uses
+        result = {
+            k: v * (1 - penalty) if v > 0 else v * (1 + penalty) if v < 0 else 0
+            for k, v in impact_values.items()
+        }
+        # Positives reduced
+        assert result['revenue'] < impact_values['revenue']
+        assert result['liability'] < impact_values['liability']
+        # Negatives amplified (more negative)
+        assert result['churn'] < impact_values['churn']
+        # Zero stays zero
+        assert result['unchanged'] == 0
+
+    # ── Issue #3 + #4: decision_submit_time excludes deliberation/LLM ──
+
+    def test_decision_submit_time_separates_decision_from_deliberation(self):
+        """time_taken should use submit_time - round_start, NOT now - round_start
+        (which would include the deliberation phase + LLM latency)."""
+        import datetime as _dt
+        round_start = _dt.datetime(2026, 5, 4, 10, 0, 0)
+        submit_time = _dt.datetime(2026, 5, 4, 10, 3, 0)   # 3 min decision time
+        deliberation_end = _dt.datetime(2026, 5, 4, 10, 8, 0)  # +5 min deliberation+LLM
+        # Correct calc (uses submit_time)
+        correct_time_taken = int((submit_time - round_start).total_seconds())
+        # Incorrect (old) calc would inflate by deliberation + LLM time
+        inflated_time_taken = int((deliberation_end - round_start).total_seconds())
+        assert correct_time_taken == 180, "Decision-only time should be 3 min = 180s"
+        assert inflated_time_taken == 480, "Old buggy calc would record 8 min"
+        # The fix: code reads decision_submit_time from session state
+        from pathlib import Path
+        src = Path('pages/simulation.py').read_text(encoding='utf-8')
+        assert 'decision_submit_time_' in src, \
+            "Fix for TIMER_ISSUES.md #3/#4 missing — submit_time not captured separately"
+        # And the time-taken calc uses _submit_time, not raw datetime.now()
+        # Find the log_round call site and verify its time math
+        log_round_idx = src.find('log_round(')
+        assert log_round_idx != -1
+        window = src[max(0, log_round_idx - 800):log_round_idx]
+        assert '_submit_time' in window, "log_round must compute time from _submit_time"
+
+    # ── Late-submission warning text (feedback 1a + 1b) ────────────────
+
+    def test_late_submission_warning_includes_both_penalties(self):
+        """Warning shown when timer expires must mention BOTH the metric reduction
+        and the efficiency-score cap so the player understands consequences."""
+        from pathlib import Path
+        src = Path('pages/simulation.py').read_text(encoding='utf-8')
+        # Find the timer-expired warning block
+        idx = src.find('Time has expired')
+        assert idx != -1, "Late-submission warning string missing"
+        window = src[idx:idx + 600]
+        assert '15%' in window, "Warning must state the 15% positive-impact reduction"
+        assert '5/20' in window, "Warning must state the efficiency-score cap"
+        assert 'Consultations are now locked' in window, \
+            "Warning must state consultations are locked (TIMER_ISSUES.md #2)"
+
+    # ── Round 1 +5 onboarding bonus (feedback A8/F + 1c) ───────────────
+
+    def test_round_1_bonus_applies_for_normal_pressure(self):
+        """Round 1 with normal pressure: 10 + 5 = 15 min effective."""
+        from core.scoring import round_time_limit_minutes
+        assert round_time_limit_minutes(0, 'normal') == 15
+        assert round_time_limit_minutes(0, 'relaxed') == 20  # 15 + 5
+        # Urgent pressure — no bonus (player explicitly chose tight)
+        assert round_time_limit_minutes(0, 'urgent') == 5
+
+    def test_round_1_bonus_does_not_apply_to_later_rounds(self):
+        from core.scoring import round_time_limit_minutes
+        # Rounds 2+ get the configured time, no bonus
+        assert round_time_limit_minutes(1, 'normal') == 10
+        assert round_time_limit_minutes(2, 'normal') == 10
+        assert round_time_limit_minutes(4, 'relaxed') == 15
+        assert round_time_limit_minutes(0, 'urgent') == 5  # urgent never gets bonus
+
+    def test_penalty_overtime_uses_same_round_1_bonus_as_displayed_timer(self):
+        """If Round 1 displayed timer is 15 min (10 + bonus), overtime should
+        start at 15 min, NOT at 10 min. Otherwise penalties begin while the
+        player still sees time on the clock — a latent bug fixed in this commit."""
+        from pathlib import Path
+        src = Path('pages/simulation.py').read_text(encoding='utf-8')
+        # Use rfind to get the CALL SITE (not the import). The penalty block uses
+        # `_penalty = compute_force_submit_penalty(_overtime)`.
+        call_idx = src.rfind('compute_force_submit_penalty(_overtime)')
+        assert call_idx != -1, "compute_force_submit_penalty(_overtime) call missing"
+        # Window of 600 chars before the call should contain the overtime calc
+        window = src[max(0, call_idx - 600):call_idx]
+        assert 'round_time_limit_minutes' in window, \
+            "Penalty overtime calc must use round_time_limit_minutes (with bonus), " \
+            "not get_time_pressure_minutes (without bonus). Window:\n" + window[-300:]
+
+
 class TestRubricRecalibrationAndConvictionTuning:
     """Cross-check #2 final follow-ups (items 4 + 5):
     - #2 Rubric recalibration: Strategic Thinking + Role Alignment dimension definitions

@@ -19,6 +19,7 @@ from core.simulation_engine import (
 from core.scoring import (
     calculate_board_effectiveness_score, generate_game_goals,
     calculate_goal_progress, get_time_pressure_minutes,
+    compute_force_submit_penalty, round_time_limit_minutes,
 )
 from components.dashboard import display_company_dashboard, display_current_problems, display_module_info
 from components.board_members import display_board_members_for_selection, display_board_members
@@ -162,12 +163,9 @@ def run_simulation_round(llm: object, data: Dict,
         st.session_state[timer_key] = datetime.now()
 
     time_pressure = round_config.get('time_pressure', 'normal')
-    time_limit_minutes = get_time_pressure_minutes(time_pressure)
-    # Round 1 onboarding bonus: first-time players need extra time to learn the interface,
-    # consult the board, debate dissenters, and compose a written decision (feedback A8/F).
-    # Adds 5 min to whatever time_pressure was configured for round 1 only.
-    if state.current_round == 0 and time_pressure != 'urgent':
-        time_limit_minutes += 5
+    # round_time_limit_minutes() encapsulates the Round 1 +5 onboarding bonus
+    # (closes feedback A8/F). Pure function — testable.
+    time_limit_minutes = round_time_limit_minutes(state.current_round, time_pressure)
 
     eval_key = f"evaluation_{state.current_round}"
     decision_submitted = eval_key in st.session_state
@@ -642,11 +640,16 @@ def run_simulation_round(llm: object, data: Dict,
                     current_metrics = st.session_state.get('current_metrics', company_data['metrics'].copy())
                     impact_values = impacts.get('impacts', {})
                     if force_submitted:
-                        # Escalating penalty: 15% base, grows to 50% over 10 min overtime
+                        # Escalating penalty (TIMER_ISSUES.md #2): 15% at expiry,
+                        # ramps to 50% at +10 min overtime. Uses the same Round 1
+                        # bonus calc as the timer itself so overtime is measured
+                        # relative to the TRUE limit the player saw.
                         _round_start = st.session_state.get(f"round_start_time_{state.current_round}")
-                        _total_secs = get_time_pressure_minutes(round_config.get('time_pressure', 'normal')) * 60
+                        _total_secs = round_time_limit_minutes(
+                            state.current_round, round_config.get('time_pressure', 'normal')
+                        ) * 60
                         _overtime = max(0, (datetime.now() - _round_start).total_seconds() - _total_secs) if _round_start else 0
-                        _penalty = min(0.50, 0.15 + (_overtime / 600) * 0.35)
+                        _penalty = compute_force_submit_penalty(_overtime)
                         impact_values = {
                             k: v * (1 - _penalty) if v > 0 else v * (1 + _penalty) if v < 0 else 0
                             for k, v in impact_values.items()

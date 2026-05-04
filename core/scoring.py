@@ -261,6 +261,41 @@ def get_time_pressure_minutes(time_pressure: str) -> int:
     return TIME_PRESSURE_MINUTES.get(time_pressure, 10)
 
 
+# Late-submission penalty thresholds. Closes TIMER_ISSUES.md #2 (flat penalty
+# regardless of overtime). Penalty starts at 15% on first second of overtime
+# and grows linearly to 50% at 10 minutes overtime, then capped.
+_PENALTY_BASE = 0.15
+_PENALTY_MAX = 0.50
+_PENALTY_RAMP_SECONDS = 600  # 10 min from base to max
+
+
+def compute_force_submit_penalty(overtime_seconds: float) -> float:
+    """Return the late-submission penalty fraction (0.15-0.50) for given overtime.
+
+    Used to scale metric impacts when the player submits after timer expiry.
+    Symmetric: positive impacts get reduced by this fraction, negative impacts
+    amplified by the same fraction (so a bad late decision is more costly than
+    a bad on-time decision).
+    """
+    if overtime_seconds <= 0:
+        return _PENALTY_BASE  # 15% even immediately at expiry
+    growth = (overtime_seconds / _PENALTY_RAMP_SECONDS) * (_PENALTY_MAX - _PENALTY_BASE)
+    return min(_PENALTY_MAX, _PENALTY_BASE + growth)
+
+
+def round_time_limit_minutes(round_index: int, time_pressure: str) -> int:
+    """Time limit for a given round, applying the Round 1 onboarding bonus.
+
+    Round 1 (round_index == 0) gets +5 min over the configured time_pressure
+    when pressure is not 'urgent', so first-time players have room to learn
+    the interface. Closes feedback PDF A8/F.
+    """
+    base = get_time_pressure_minutes(time_pressure)
+    if round_index == 0 and time_pressure != "urgent":
+        return base + 5
+    return base
+
+
 def calculate_overall_grade(initial_metrics: Dict, final_metrics: Dict, avg_decision_score: float,
                             avg_board_effectiveness: float = None) -> Dict:
     """Calculate overall simulation grade based on metric changes, decision scores, and board effectiveness."""
