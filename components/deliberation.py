@@ -278,7 +278,11 @@ def display_deliberation_phase(llm: object, data: Dict,
                                         'player_response': player_response,
                                         'llm_evaluation': result['evaluation'],
                                         'response_score': result['score'],
-                                        'stance_changed': result['stance_changed']
+                                        'stance_changed': result['stance_changed'],
+                                        # Persist updated_conviction so the next exchange's
+                                        # prompt can read the prior baseline and apply the
+                                        # calibration bands relative to it (item #1 fix).
+                                        'updated_conviction': result.get('updated_conviction'),
                                     }
                                     st.session_state[debate_history_key].append(exchange_record)
 

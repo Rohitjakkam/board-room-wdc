@@ -991,6 +991,155 @@ class TestAgent3Improvements:
         assert members == {'Alice', 'Bob'}
 
 
+class TestRubricRecalibrationAndConvictionTuning:
+    """Cross-check #2 final follow-ups (items 4 + 5):
+    - #2 Rubric recalibration: Strategic Thinking + Role Alignment dimension definitions
+    - #1 Argument-quality conviction tuning: 4-axis assessment + calibration bands
+    """
+
+    # ── #2 Rubric recalibration ───────────────────────────────────────
+
+    def test_evaluation_prompt_defines_strategic_thinking_explicitly(self):
+        """Strategic Thinking dimension must explicitly state operational depth is NOT a deduction."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import evaluate_decision
+        mock_llm = MagicMock()
+        mock_llm.generate_content.return_value.text = "SCORE: 80\nSCORE_REASONING: ok\nSTRENGTHS: ok\nAREAS_FOR_IMPROVEMENT: ok\nKEY_LEARNING_POINTS: ok\nBEST_APPROACH: ok\nENCOURAGEMENT: ok"
+        # Trigger evaluation to capture the prompt sent to the LLM
+        evaluate_decision(
+            llm=mock_llm,
+            company_data={'company_name': 'X', 'company_overview': '', 'metrics': {}, 'board_members': []},
+            module_data={'module_name': 'M', 'learning_objectives': [], 'topics': [], 'key_terms': {}},
+            scenario='s', decision='d',
+            round_config={'difficulty': 'medium'},
+            player_role={'name': 'P', 'role': 'CFO', 'expertise': 'Finance'},
+        )
+        # First call to mock was evaluate_decision; second was metric impacts. Check first call's prompt.
+        first_prompt = mock_llm.generate_content.call_args_list[0][0][0]
+        # Strategic Thinking must explicitly mention depth IS NOT a deduction
+        assert 'Operational depth is NOT a deduction' in first_prompt
+        assert 'forward-looking risk mitigation' in first_prompt
+        assert 'multi-tier communication strategy' in first_prompt
+
+    def test_evaluation_prompt_defines_role_alignment_explicitly(self):
+        """Role Alignment must distinguish in-role-via-governance from unilateral overreach."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import evaluate_decision
+        mock_llm = MagicMock()
+        mock_llm.generate_content.return_value.text = "SCORE: 80\nSCORE_REASONING: ok\nSTRENGTHS: ok\nAREAS_FOR_IMPROVEMENT: ok\nKEY_LEARNING_POINTS: ok\nBEST_APPROACH: ok\nENCOURAGEMENT: ok"
+        evaluate_decision(
+            llm=mock_llm,
+            company_data={'company_name': 'X', 'company_overview': '', 'metrics': {}, 'board_members': []},
+            module_data={'module_name': 'M', 'learning_objectives': [], 'topics': [], 'key_terms': {}},
+            scenario='s', decision='d',
+            round_config={'difficulty': 'medium'},
+            player_role={'name': 'P', 'role': 'CFO', 'expertise': 'Finance'},
+        )
+        first_prompt = mock_llm.generate_content.call_args_list[0][0][0]
+        assert 'governance pathway' in first_prompt
+        assert 'subject to board approval' in first_prompt
+        assert 'unilateral' in first_prompt.lower()
+        # Cross-disciplinary thinking through own-role lens must NOT be penalised
+        assert 'cross-disciplinary' in first_prompt.lower() or 'lens-of-own-role' in first_prompt.lower() or 'in-role' in first_prompt.lower()
+
+    def test_dimension_weights_unchanged(self):
+        """Recalibration must NOT change the 25/20/20/20/15 weights — only the descriptions."""
+        from pathlib import Path
+        src = Path('core/simulation_engine.py').read_text(encoding='utf-8')
+        # Find the SCORE_REASONING block and verify each dimension still has its original max
+        assert '/25 - [what was right/wrong]' in src       # Governance Understanding
+        assert '/20 - [what was right/wrong]' in src       # Legal/Regulatory
+        assert '/20 - [who was helped/harmed]' in src      # Stakeholder
+        # Strategic Thinking should still be /20 (recalibrated description, same weight)
+        assert 'Strategic Thinking: [points]/20' in src
+        # Role Alignment should still be /15 (recalibrated description, same weight)
+        assert 'Role Alignment: [points]/15' in src
+
+    # ── #1 Argument-quality conviction tuning ───────────────────────────
+
+    def test_debate_prompt_includes_4_axis_assessment(self):
+        """Debate evaluation prompt must explicitly score on 4 axes:
+        specificity, evidence, character-relevance, stakeholder breadth."""
+        from core.llm import get_debate_evaluation_prompt
+        prompt = get_debate_evaluation_prompt(
+            member={'name': 'Marcus Webb', 'role': 'Investment Liaison',
+                    'expertise': 'Investor Relations', 'personality': 'ROI-focused'},
+            company_data={'company_name': 'X', 'board_members': [{'name': 'Marcus Webb', 'role': 'IL'}]},
+            original_counter_opinion='Cost is too high',
+            player_response='AS 36 impairment requires...',
+            debate_history=[],
+            player_role={'name': 'CFO', 'role': 'CFO'},
+        )
+        # All 4 dimensions present
+        assert 'SPECIFICITY' in prompt
+        assert 'EVIDENCE' in prompt
+        assert 'CHARACTER-RELEVANCE' in prompt
+        assert 'STAKEHOLDER BREADTH' in prompt
+
+    def test_debate_prompt_includes_calibration_bands(self):
+        """Conviction-drop calibration must include all 5 bands so LLM doesn't default to ~50%."""
+        from core.llm import get_debate_evaluation_prompt
+        prompt = get_debate_evaluation_prompt(
+            member={'name': 'X', 'role': 'CFO', 'expertise': 'Finance', 'personality': 'p'},
+            company_data={'company_name': 'C', 'board_members': []},
+            original_counter_opinion='objection', player_response='response',
+            debate_history=[], player_role={'name': 'P', 'role': 'CEO'},
+        )
+        assert 'Exceptional argument' in prompt
+        assert 'Strong argument' in prompt
+        assert 'Adequate argument' in prompt
+        assert 'Weak argument' in prompt
+        assert 'Poor' in prompt
+        # Conviction may RISE on poor arguments (defensive entrenchment) — explicit
+        assert 'RISE' in prompt
+        assert 'do NOT default to a ~50%' in prompt or 'do NOT default to a ~50% drop' in prompt
+
+    def test_debate_prompt_passes_prior_conviction_baseline(self):
+        """Prompt must convey prior conviction so the LLM moves FROM a known baseline."""
+        from core.llm import get_debate_evaluation_prompt
+        # Debate history with a prior updated_conviction
+        history = [
+            {'dissenter_argument': 'X', 'player_response': 'Y', 'updated_conviction': 6},
+        ]
+        prompt = get_debate_evaluation_prompt(
+            member={'name': 'X', 'role': 'CFO', 'expertise': 'Finance', 'personality': 'p'},
+            company_data={'company_name': 'C', 'board_members': []},
+            original_counter_opinion='o', player_response='r',
+            debate_history=history, player_role={'name': 'P', 'role': 'CEO'},
+        )
+        # Prompt should explicitly tell the LLM the START conviction (6) for this exchange
+        assert 'conviction at the START of this exchange is 6/10' in prompt
+
+    def test_debate_prompt_first_exchange_states_opening_baseline(self):
+        """First exchange (no history) should still state where conviction starts."""
+        from core.llm import get_debate_evaluation_prompt
+        prompt = get_debate_evaluation_prompt(
+            member={'name': 'X', 'role': 'CFO', 'expertise': 'Finance', 'personality': 'p'},
+            company_data={'company_name': 'C', 'board_members': []},
+            original_counter_opinion='o', player_response='r',
+            debate_history=[], player_role={'name': 'P', 'role': 'CEO'},
+        )
+        assert 'first exchange' in prompt
+        assert '7-10' in prompt  # opening conviction range
+
+    def test_debate_prompt_character_specific_persuasion_examples(self):
+        """The CHARACTER-RELEVANCE dimension must give role-specific persuasion examples."""
+        from core.llm import get_debate_evaluation_prompt
+        prompt = get_debate_evaluation_prompt(
+            member={'name': 'Marcus', 'role': 'Investment Liaison',
+                    'expertise': 'Investor Relations', 'personality': 'ROI'},
+            company_data={'company_name': 'C', 'board_members': []},
+            original_counter_opinion='o', player_response='r',
+            debate_history=[], player_role={'name': 'P', 'role': 'CFO'},
+        )
+        # Character-specific persuasion examples must be listed
+        assert 'Investment Liaison' in prompt
+        assert 'ROI math' in prompt
+        assert 'Strategy Advisor' in prompt
+        assert 'CRO' in prompt
+        assert 'CHRO' in prompt
+
+
 class TestMediumPriorityFollowups:
     """Cross-check #2 follow-up — 4 medium-priority feedback items
     (late-emerging dissenter UX, proposer banner, Best Approach UX, consultation signal)."""

@@ -184,6 +184,19 @@ def get_debate_evaluation_prompt(member: Dict, company_data: Dict,
 
     board_roster = chr(10).join(f"- {m['name']} | {m['role']}" for m in company_data.get('board_members', []))
 
+    # Pre-compute the previous conviction so the LLM has a clear baseline to move from.
+    # Last entry in debate_history holds the most recent state; default to opening conviction.
+    _prior_conv = None
+    for _h in reversed(debate_history):
+        if isinstance(_h, dict) and _h.get('updated_conviction') is not None:
+            _prior_conv = _h['updated_conviction']
+            break
+    prior_conv_str = (
+        f"Your conviction at the START of this exchange is {_prior_conv}/10."
+        if _prior_conv is not None
+        else "This is the first exchange — your conviction starts at the level you set in your initial counter-opinion (typically 7-10)."
+    )
+
     return f"""You are {member['name']}, {member['role']} at {company_data['company_name']}.
 
 BOARD MEMBERS (reference ONLY these people — do not invent names or roles):
@@ -200,21 +213,54 @@ You OPPOSED a decision and raised this counter-opinion:
 DEBATE HISTORY SO FAR:
 {history_text if history_text else "This is the first exchange."}
 
+{prior_conv_str}
+
 {player_role['name']} ({player_role['role']}) NOW RESPONDS:
 "{player_response}"
 
-Evaluate this response considering:
-1. Does it address your specific concerns?
-2. Is the reasoning sound and well-supported?
-3. Does it account for your area of expertise ({member['expertise']})?
-4. Would {member['name']} be convinced by this argument?
+ARGUMENT-QUALITY ASSESSMENT (apply these dimensions as {member['name']} would judge them):
+
+1. SPECIFICITY — does the response cite specific frameworks/standards/numbers, or is it generic?
+   (e.g. "AS 36 impairment test, recoverable amount = max(value-in-use, fair-value-less-costs-to-sell)"
+   is specific; "we should be careful about valuation" is generic.)
+
+2. EVIDENCE — does it back claims with quantified data or only narrative assertion?
+   (e.g. "$75M provision against $1.2B revenue = 6.25% of top line, well within prudence guidance"
+   is evidenced; "this is the right amount" is narrative.)
+
+3. CHARACTER-RELEVANCE — does it address YOUR ({member['name']}'s) specific expertise concern,
+   or does it ignore your domain? You ({member['expertise']} expertise) should be MOVED MORE by
+   arguments grounded in your domain than by generic appeals. For example: an Investment Liaison
+   is moved by ROI math; a Strategy Advisor is moved by genuine strategic insight; a CRO is moved
+   by quantified risk mitigation; a CHRO is moved by talent/people impact analysis.
+
+4. STAKEHOLDER BREADTH — does it consider second-order consequences and named stakeholders,
+   or is it single-axis?
+
+CONVICTION-DROP CALIBRATION (use these bands strictly — do not default to a moderate drop):
+
+  Exceptional argument (all 4 dimensions strong, character-relevance especially):
+    drop conviction by 6-8 points · likely STANCE_CHANGED: YES if conviction reaches ≤2
+
+  Strong argument (3 of 4 dimensions strong):
+    drop by 3-5 points · STANCE_CHANGED: NO unless conviction reaches ≤2
+
+  Adequate argument (2 of 4 dimensions, or generic-but-correct):
+    drop by 1-3 points · STANCE_CHANGED: NO
+
+  Weak argument (1 of 4 dimensions, or rhetorical without substance):
+    drop by 0-1 points · STANCE_CHANGED: NO
+
+  Poor / dismissive / character-misreading:
+    conviction may HOLD or even RISE by 1 point (defensive entrenchment) ·
+    your follow-up should call out the gap directly. STANCE_CHANGED: NO.
 
 Respond in this EXACT format:
-EVALUATION: [2-3 sentences assessing the response quality]
-RESPONSE_SCORE: [0-100, how effective the response was]
-UPDATED_CONVICTION: [1-10, your conviction level NOW after hearing this response. It should decrease if the argument was partially persuasive, even if you are not fully convinced yet]
+EVALUATION: [2-3 sentences. Name which of the 4 dimensions were strong/weak. Explain WHY this argument moved (or didn't move) you specifically as {member['name']} given your {member['expertise']} expertise.]
+RESPONSE_SCORE: [0-100, how effective the response was per the 4-dimension assessment above]
+UPDATED_CONVICTION: [1-10, applying the calibration bands above. Move from your prior conviction by the band-appropriate magnitude — do NOT default to a ~50% drop regardless of quality.]
 STANCE_CHANGED: [YES/NO - has this response fully convinced you to change your stance?]
-FOLLOW_UP: [If STANCE_CHANGED is NO: Your follow-up challenge or continued objection. If YES: Your acknowledgment of their point and why you now support the decision]
+FOLLOW_UP: [If STANCE_CHANGED is NO: Your follow-up challenge or continued objection — call out which of the 4 dimensions was weakest. If YES: Your acknowledgment of which dimension persuaded you and why you now support the decision]
 
 Remember to stay in character as {member['name']}."""
 

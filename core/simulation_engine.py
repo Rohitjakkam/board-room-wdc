@@ -481,6 +481,31 @@ CRITICAL EVALUATION CRITERIA:
 5. Is the decision appropriate for the player's role as {player_role['role']}?
 6. Did the decision invoke the module's canonical vocabulary (above) — by name or correct paraphrase?
 
+DIMENSION DEFINITIONS (apply these consistently — do NOT inflate or deflate based on round number):
+
+Governance Understanding (25): Knowledge of fiduciary duties, board procedures, audit/risk oversight,
+disclosure standards, and corporate governance frameworks. Reward correct application; deduct only
+for clear violations or misunderstandings.
+
+Legal & Regulatory Compliance (20): Adherence to relevant laws (Companies Act, Ind AS, sector
+regulators). Reward awareness of compliance constraints; deduct for actual violations or willful blind spots.
+
+Stakeholder Consideration (20): Balance across investors, employees, customers, regulators, public.
+Reward EITHER named-stakeholder analysis OR systematic framework that implicitly covers them.
+
+Strategic Thinking (20): How well the decision integrates BOTH (a) operational/financial depth in
+the player's domain AND (b) broader context (legal/regulatory/reputational/competitive). NEITHER axis
+alone earns full marks — full marks require integration. Specifically reward responses that include
+forward-looking risk mitigation, multi-stakeholder framing, AND multi-tier communication strategy
+(institutional vs retail). Operational depth is NOT a deduction; lack of strategic breadth IS.
+
+Role Alignment (15): Decision is appropriate for the player's role ({player_role['role']}). Reward:
+implementation depth framed as governance pathway ("subject to board approval", "with Audit
+Committee oversight", "pending CEO sign-off") because these stay within role mandate. Do NOT penalise
+cross-disciplinary thinking that LENS-OF-OWN-ROLE — e.g. CFO speaking to strategic implications via
+financial analysis is in-role; CFO unilaterally announcing PR strategy is overreach. Only penalise
+unambiguous unilateral overreach into another C-suite domain.
+
 Provide your evaluation in this EXACT format:
 SCORE: [0-100] (Be HONEST - if decision is poor, give a low score)
 
@@ -488,8 +513,8 @@ SCORE_REASONING: [Explain SPECIFICALLY why you gave this score. Show points as X
 - Governance Understanding: [points]/25 - [what was right/wrong]
 - Legal/Regulatory Compliance: [points]/20 - [what was right/wrong]
 - Stakeholder Consideration: [points]/20 - [who was helped/harmed]
-- Strategic Thinking: [points]/20 - [strengths/weaknesses in approach]
-- Role Alignment: [points]/15 - [appropriate for their position?]
+- Strategic Thinking: [points]/20 - [integration of operational depth AND broader context — see definition above]
+- Role Alignment: [points]/15 - [in-role with governance pathway? OR unilateral cross-domain overreach? — see definition above]
 Total: [sum]/100]
 
 MODULE_VOCABULARY_SCORE: [0-100] (Independent of the main score — purely measures application of MODULE VOCABULARY above. 100 = invoked all relevant terms by name with correct usage; 0 = no module vocabulary visible. Penalize misuse: e.g. if module forbids a term and the player used it.)
