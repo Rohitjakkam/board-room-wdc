@@ -15,6 +15,58 @@ from core.data_manager import (
 from core.admin_agents import run_audit_agent, run_planning_agent
 
 
+# Widget key prefixes used by Audit-tab list editors. Keys are positionally
+# indexed (`member_name_0`, `committee_chair_3`, etc.), so when the
+# underlying list shifts (different simulation loaded, agent inserts a new
+# board member, user deletes a row) Streamlit's cached widget state stays
+# pinned to the OLD position and shows stale data — header reads live data
+# while the input retains the previous simulation's value.
+#
+# `_clear_audit_widget_state()` wipes these keys at every structural change
+# point so widgets re-initialise from current data on the next render.
+_AUDIT_WIDGET_KEY_PREFIXES = (
+    # Board members
+    'member_name_', 'member_role_', 'member_expertise_', 'member_tenure_',
+    'member_personality_', 'del_member_',
+    # Committees
+    'committee_name_', 'committee_type_', 'committee_purpose_',
+    'committee_members_', 'committee_chair_', 'del_committee_',
+    # Problems
+    'problem_', 'del_problem_',
+    # Module learning objectives
+    'obj_', 'del_obj_',
+    # Module topics
+    'topic_name_', 'topic_desc_', 'topic_app_', 'del_topic_',
+    # Module frameworks
+    'fw_name_', 'fw_desc_', 'fw_scenario_', 'del_fw_',
+    # Module assessment criteria
+    'crit_', 'del_crit_',
+    # Round configuration (planning tab)
+    'round_type_', 'round_difficulty_', 'round_time_',
+    'round_focus_', 'round_custom_focus_',
+)
+
+
+def _clear_audit_widget_state() -> int:
+    """Remove all positional Audit-tab widget keys from session state.
+
+    Call this whenever audit_data is loaded fresh OR mutated structurally
+    (agent patches that append/reorder list items). Without this, Streamlit's
+    cached widget values display the previous simulation's data even after
+    the underlying list has changed — manifests as section headers showing
+    one name while the form fields show another.
+
+    Returns the count of keys cleared (for logging / tests).
+    """
+    stale_keys = [
+        k for k in list(st.session_state.keys())
+        if isinstance(k, str) and any(k.startswith(p) for p in _AUDIT_WIDGET_KEY_PREFIXES)
+    ]
+    for k in stale_keys:
+        del st.session_state[k]
+    return len(stale_keys)
+
+
 def manage_simulations_page():
     """Page for managing saved sessions, auditing data, and configuring simulation rounds."""
     if not st.session_state.get("admin_authenticated"):
@@ -97,6 +149,9 @@ def manage_simulations_page():
                                 st.session_state.audit_data = data
                                 st.session_state.audit_loaded_doc_id = session['doc_id']
                                 st.session_state.audit_modified = False
+                                # Clear stale widget state from any previously-loaded simulation so
+                                # the new data renders correctly in the Audit tab editors.
+                                _clear_audit_widget_state()
                                 st.success("Data loaded! Switch to 'Audit Data' tab to review and edit.")
                                 st.rerun()
         else:
@@ -146,6 +201,8 @@ def manage_simulations_page():
                             st.session_state.audit_data = data
                             st.session_state.audit_loaded_doc_id = doc_id
                             st.session_state.audit_modified = False
+                            # Clear stale widget state — same fix as the Sessions-tab loader.
+                            _clear_audit_widget_state()
                             st.success("Session loaded for auditing!")
                             st.rerun()
 
@@ -1659,6 +1716,11 @@ def _apply_agent2_patch(patch: dict, audit_context: dict = None) -> bool:
             "summary":          audit_context.get("summary", {}),
             "items_applied":    len(audit_context.get("items", [])),
         }
+
+    # Agent 2 may have appended board members / committees / problems, shifting
+    # list indices. Wipe positional widget keys so the editors re-render against
+    # the new structure instead of the pre-patch layout.
+    _clear_audit_widget_state()
 
     return True
 

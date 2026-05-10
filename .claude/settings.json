@@ -14,7 +14,13 @@
       "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestAgent1Improvements tests/test_scenarios.py::TestAgent2Improvements tests/test_scenarios.py::TestAgent3Improvements -v)",
       "Bash(.venv/Scripts/python -m pytest tests/ -q)",
       "Bash(git commit -m ' *)",
-      "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestRubricRecalibrationAndConvictionTuning -v)"
+      "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestRubricRecalibrationAndConvictionTuning -v)",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(.venv/Scripts/python -c \"import reportlab; print\\('reportlab', reportlab.__version__\\)\")",
+      "Bash(.venv/Scripts/python generate_flags_pdf.py)",
+      "Bash(pdftotext agent2_flags_analysis.pdf -)",
+      "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestAuditWidgetStateCleanup -v)",
+      "Bash(git reset *)"
     ]
   }
 }

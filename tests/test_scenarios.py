@@ -991,6 +991,156 @@ class TestAgent3Improvements:
         assert members == {'Alice', 'Bob'}
 
 
+class TestAuditWidgetStateCleanup:
+    """Audit-tab editor bug — Streamlit positional widget keys retained stale
+    values from previous simulation, showing wrong names in form fields while
+    section headers showed correct names. Fixed via _clear_audit_widget_state()
+    called at every load + agent-patch site."""
+
+    def test_clear_removes_known_audit_widget_keys(self):
+        from unittest.mock import patch
+        from pages.manage_simulations import _clear_audit_widget_state, _AUDIT_WIDGET_KEY_PREFIXES
+        # Build a fake session_state with stale audit widget values + unrelated keys
+        fake_state = {
+            'member_name_0': 'Eleanor Vance',          # stale — should clear
+            'member_role_2': 'CTO',                    # stale — should clear
+            'committee_name_1': 'Audit',               # stale — should clear
+            'committee_chair_0': 'Sarah Kim',          # stale — should clear
+            'problem_3': 'High churn',                 # stale — should clear
+            'topic_name_5': 'Prudence',                # stale — should clear
+            'fw_desc_2': 'A framework',                # stale — should clear
+            'crit_1': 'Analyse decisions',             # stale — should clear
+            'round_difficulty_4': 'hard',              # stale — should clear
+            'audit_data': {'company_data': {}},        # NOT stale — should survive
+            'admin_authenticated': True,               # NOT stale — should survive
+            'audit_loaded_doc_id': 'sim_xyz',          # NOT stale — should survive
+            'memberhip_count': 5,                      # NOT a widget key (no underscore-int suffix match) — should survive
+        }
+        with patch('pages.manage_simulations.st.session_state', fake_state):
+            cleared = _clear_audit_widget_state()
+        assert cleared == 9, f"Expected 9 stale keys cleared, got {cleared}"
+        # Audit-data and unrelated state preserved
+        assert 'audit_data' in fake_state
+        assert 'admin_authenticated' in fake_state
+        assert 'audit_loaded_doc_id' in fake_state
+        assert 'memberhip_count' in fake_state
+        # All widget keys gone
+        assert 'member_name_0' not in fake_state
+        assert 'committee_chair_0' not in fake_state
+        assert 'round_difficulty_4' not in fake_state
+
+    def test_clear_handles_empty_session_state(self):
+        """No keys to clear → returns 0, no exception."""
+        from unittest.mock import patch
+        from pages.manage_simulations import _clear_audit_widget_state
+        fake_state = {}
+        with patch('pages.manage_simulations.st.session_state', fake_state):
+            cleared = _clear_audit_widget_state()
+        assert cleared == 0
+
+    def test_clear_handles_non_string_keys(self):
+        """Defensive — Streamlit can accept tuple/int keys; we should ignore them."""
+        from unittest.mock import patch
+        from pages.manage_simulations import _clear_audit_widget_state
+        fake_state = {
+            42: 'int key',
+            ('tuple', 'key'): 'tuple key',
+            'member_name_0': 'should clear',
+        }
+        with patch('pages.manage_simulations.st.session_state', fake_state):
+            cleared = _clear_audit_widget_state()
+        assert cleared == 1
+        assert 42 in fake_state
+        assert ('tuple', 'key') in fake_state
+
+    def test_audit_widget_key_prefixes_cover_all_observed_widgets(self):
+        """Regression guard — the prefix list must cover all key= patterns
+        currently in pages/manage_simulations.py audit/planning editors."""
+        import re
+        from pathlib import Path
+        from pages.manage_simulations import _AUDIT_WIDGET_KEY_PREFIXES
+        src = Path('pages/manage_simulations.py').read_text(encoding='utf-8')
+        # Find every f"...{i}" key= pattern (ignoring matches inside the prefix tuple itself)
+        # Pattern: key=f"PREFIX_{i}" or similar — capture the prefix
+        key_re = re.compile(r'key=f"([a-z_]+_)\{i\}"')
+        observed_prefixes = set(key_re.findall(src))
+        prefix_set = set(_AUDIT_WIDGET_KEY_PREFIXES)
+        # Every observed prefix must be in our cleanup list (otherwise we'll miss it on cleanup)
+        missing = observed_prefixes - prefix_set
+        assert not missing, (
+            f"Widget key prefixes used in code but NOT in _AUDIT_WIDGET_KEY_PREFIXES: {missing}. "
+            f"Add them to the cleanup list or stale state will leak between simulations."
+        )
+
+    # ── Consistency-checker false-positive fix (screenshot bug) ────────
+
+    def test_company_name_not_flagged_as_person(self):
+        """Cognito Finance Inc / Veritas AI Corp / etc. should NOT be flagged
+        when they appear in company_overview — they're the company name itself."""
+        from core.admin_agents import _check_person_name_consistency
+        company = {
+            'company_name': 'Cognito Finance Inc',
+            'board_members': [{'name': 'Dr. Alistair Finch', 'role': 'CEO'}],
+            'company_overview': 'Cognito Finance Inc is a leading fintech company...',
+            'current_problems': ['Cognito Finance Inc faces regulatory pressure'],
+            'initial_scenario': 'The board of Cognito Finance Inc convenes...',
+        }
+        flags = _check_person_name_consistency(company, {})
+        # No flags should mention the company name
+        for f in flags:
+            assert 'Cognito Finance Inc' not in f['message'], \
+                f"Company name flagged as person: {f['message']}"
+
+    def test_corporate_suffix_tokens_not_flagged(self):
+        """Candidates containing Inc, Corp, LLC, Ltd, Group, etc. are not people."""
+        from core.admin_agents import _check_person_name_consistency
+        company = {
+            'company_name': 'Helix Therapeutics',
+            'board_members': [{'name': 'Sarah Kim', 'role': 'CFO'}],
+            'company_overview': (
+                'Helix Therapeutics partnered with Anthropic Inc and Genesis Holdings. '
+                'Subsidiary Mercury Ventures handles distribution.'
+            ),
+            'current_problems': [],
+        }
+        flags = _check_person_name_consistency(company, {})
+        for f in flags:
+            msg = f['message']
+            for forbidden in ('Anthropic Inc', 'Genesis Holdings', 'Mercury Ventures'):
+                assert forbidden not in msg, f"Corporate entity '{forbidden}' flagged as person: {msg}"
+
+    def test_known_city_not_flagged_as_person(self):
+        """Single-word city names like 'Dublin' or 'Mumbai' must not match against
+        coincidentally letter-overlapping board surnames."""
+        from core.admin_agents import _check_person_name_consistency
+        company = {
+            'company_name': 'GlobalTech Inc',
+            'board_members': [{'name': 'Chloe Dubois', 'role': 'CMO'}],
+            'company_overview': 'GlobalTech Inc is headquartered in Dublin with operations across Mumbai and Singapore.',
+            'current_problems': [],
+        }
+        flags = _check_person_name_consistency(company, {})
+        for f in flags:
+            msg = f['message']
+            for city in ('Dublin', 'Mumbai', 'Singapore'):
+                assert city not in msg, f"City '{city}' flagged as person: {msg}"
+
+    def test_real_person_mismatch_still_flagged(self):
+        """The fix must not break the original B-iv use case: a real person
+        named differently in narrative vs board roster should still be flagged."""
+        from core.admin_agents import _check_person_name_consistency
+        company = {
+            'company_name': 'Acme Corp',
+            'board_members': [{'name': 'Sara Marshell', 'role': 'CFO'}],
+            'current_problems': ['Sarah Marshall flagged a $75M liability after the Q2 audit.'],
+            'company_overview': '',
+        }
+        flags = _check_person_name_consistency(company, {})
+        # The "Sarah Marshall" vs "Sara Marshell" mismatch must still surface
+        assert any('Sarah Marshall' in f['message'] for f in flags), \
+            "Real person-name mismatch must still be flagged after the fix"
+
+
 class TestTimerEnforcement:
     """Locks in the 5 timer fixes from TIMER_ISSUES.md plus the feedback PDF
     timer items (A8, F, 1a, 1b, 1c). Pure unit tests — no Streamlit runtime."""

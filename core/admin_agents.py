@@ -1863,6 +1863,54 @@ def _check_dup_persons_and_dual_incumbents(
     return flags
 
 
+# Tokens that frequently appear in capitalised candidate names but are NOT
+# people: company-name suffixes, common location words, well-known cities.
+# Filtering these eliminates the noisy "Cognito Finance Inc → Dr. Alistair
+# Finch (75%)" / "Dublin → Chloe Dubois (66%)" false-positive pattern.
+_NON_PERSON_TOKENS = {
+    # Corporate suffixes
+    "inc", "corp", "corporation", "llc", "ltd", "limited", "plc", "gmbh",
+    "sa", "ag", "co", "company", "group", "holdings", "ventures", "partners",
+    "associates", "industries", "international", "global", "worldwide",
+    "enterprises", "solutions", "systems", "services", "technologies",
+    "pvt",
+    # Department / org units that get capitalised
+    "board", "committee", "council", "directors",
+    # Common city / country words that pass the regex (not exhaustive — we
+    # rely on the company_name + suffix check for the heavy lifting)
+    "dublin", "london", "mumbai", "delhi", "bangalore", "singapore",
+    "tokyo", "berlin", "paris", "madrid", "boston", "york", "francisco",
+    "geneva", "zurich", "dubai", "bombay", "kolkata", "chennai", "pune",
+    "hyderabad", "amsterdam", "frankfurt", "milan", "shanghai",
+}
+
+
+def _looks_like_company_or_location(candidate: str, company_name: str) -> bool:
+    """Return True if the candidate is almost certainly NOT a person name.
+
+    Catches:
+    - The company name itself ("Cognito Finance Inc")
+    - Anything containing a corporate suffix (Inc, Corp, LLC, Ltd, ...)
+    - Single-word capitalised tokens matching a known city / department
+    """
+    if not candidate:
+        return True
+    cand_l = candidate.strip().lower()
+    if not cand_l:
+        return True
+    # Exact-match the company name (case insensitive, whitespace-collapsed)
+    if company_name and cand_l == " ".join(company_name.lower().split()):
+        return True
+    # Substring: full company name appears inside the candidate (rare but possible)
+    if company_name and " ".join(company_name.lower().split()) in cand_l:
+        return True
+    tokens = cand_l.split()
+    # Any token is a corporate suffix or known city/department word → not a person
+    if any(t in _NON_PERSON_TOKENS for t in tokens):
+        return True
+    return False
+
+
 def _check_person_name_consistency(
     company_data: Dict, module_data: Dict,
 ) -> List[Dict]:
@@ -1870,12 +1918,18 @@ def _check_person_name_consistency(
 
     Catches the feedback PDF B-iv case ("David Chen called CFO in board but
     'Mr. Chen' in problems") via fuzzy matching.
+
+    Filters out company-name self-references and common location/city words
+    that previously produced false positives ("Cognito Finance Inc → Dr.
+    Alistair Finch (75%)", "Dublin → Chloe Dubois (66%)").
     """
     flags = []
     members = [m for m in company_data.get("board_members", []) if isinstance(m, dict)]
     board_names_lower = {(m.get("name") or "").strip().lower() for m in members if m.get("name")}
     if not board_names_lower:
         return flags
+
+    company_name = (company_data.get("company_name") or "").strip()
 
     # Title-prefix names like "Mr. Chen" or "Dr. Sharma" are common — extract the surname token
     text_sources = [
@@ -1897,6 +1951,9 @@ def _check_person_name_consistency(
             cand_lower = cand.lower()
             # Skip very short single tokens (likely common nouns capitalised at sentence start)
             if " " not in cand and len(cand) < 5:
+                continue
+            # NEW: skip company names + corporate suffixes + common cities / dept words
+            if _looks_like_company_or_location(cand, company_name):
                 continue
             # Exact match
             if cand_lower in board_names_lower:
