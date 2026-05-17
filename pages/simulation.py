@@ -554,21 +554,58 @@ def run_simulation_round(llm: object, data: Dict,
             # Blur autofocus and remove focus styling so no option appears pre-selected
             st.components.v1.html("""<script>
                 document.activeElement&&document.activeElement.blur();
-                // Remove :focus and :focus-visible outlines from option buttons on load
                 setTimeout(function(){
                     document.querySelectorAll('button[kind="secondary"]').forEach(function(b){b.blur();});
                 }, 100);
             </script>""", height=0)
+
             option_cols = st.columns(2)
             for idx, opt in enumerate(options):
                 with option_cols[idx % 2]:
-                    _is_selected = has_selected_option and st.session_state[f"selected_option_{state.current_round}"].get('letter') == opt['letter']
-                    _prefix = '✅' if _is_selected else '○'
+                    _is_selected = (has_selected_option
+                                    and st.session_state[f"selected_option_{state.current_round}"].get('letter') == opt['letter'])
+                    # Calibration badge — only render for new-format options that
+                    # carry it (old-format options have calibration=None).
+                    calibration = opt.get('calibration')
+                    badge = ''
+                    if calibration:
+                        _badge_colors = {
+                            'unanimous': ('#d4edda', '#155724'),
+                            'mild_dissent': ('#fff3cd', '#856404'),
+                            'controversial': ('#f8d7da', '#721c24'),
+                            'highly_controversial': ('#f5c2c7', '#58151c'),
+                        }
+                        bg, fg = _badge_colors.get(calibration, ('#e2e3e5', '#383d41'))
+                        # Show opposer count if we have stance distribution
+                        sd = opt.get('stance_distribution') or {}
+                        opposers = sum(1 for v in sd.values() if v == 'OPPOSE')
+                        badge = (
+                            f'<span style="background:{bg};color:{fg};padding:2px 8px;'
+                            f'border-radius:10px;font-size:0.7rem;margin-left:8px;'
+                            f'font-weight:500;">{opposers} likely oppose</span>'
+                        )
+                    border_color = '#198754' if _is_selected else '#dee2e6'
+                    bg_color = '#f0f9f4' if _is_selected else '#ffffff'
+                    prefix = '✅ ' if _is_selected else ''
+                    # Render the option as a card with full detailed text visible.
+                    # The Select button sits below the card.
+                    st.markdown(
+                        f'<div style="background:{bg_color};border:2px solid {border_color};'
+                        f'border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.4rem;'
+                        f'min-height:170px;">'
+                        f'<div style="font-weight:600;font-size:0.95rem;color:#1f2937;'
+                        f'margin-bottom:0.5rem;">{prefix}Option {opt["letter"]}{badge}</div>'
+                        f'<div style="color:#374151;font-size:0.88rem;line-height:1.5;">'
+                        f'{opt["text"]}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
                     if st.button(
-                        f"{_prefix} Option {opt['letter']}: {opt['text']}",
+                        "✅ Selected" if _is_selected else f"Select Option {opt['letter']}",
                         key=f"option_{opt['letter']}_{state.current_round}",
                         use_container_width=True,
                         type="primary" if _is_selected else "secondary",
+                        disabled=_is_selected,
                     ):
                         st.session_state[f"selected_option_{state.current_round}"] = opt
                         st.rerun()
@@ -675,10 +712,11 @@ def run_simulation_round(llm: object, data: Dict,
                     st.session_state.metric_impact_reasons = impacts.get('reasons', {})
                     st.session_state[f"impact_summary_{state.current_round}"] = impacts.get('summary', '')
 
-                    # Compute the composite per-round score (decision + module + business impact).
-                    # Mirrors the final-grade formula but scoped to one round, so the player
-                    # sees a score that reflects actual metric movement — not just LLM rubric.
-                    # Closes client claim #3.
+                    # Compute the composite per-round score (decision + module + business
+                    # impact + board effectiveness). Mirrors the final-grade formula but
+                    # scoped to one round, so the player sees a score reflecting actual
+                    # metric movement and persuasion outcomes — not just LLM rubric.
+                    # Closes client claims #3 and #6.
                     try:
                         from core.scoring import compute_composite_round_score
                         composite = compute_composite_round_score(
@@ -686,6 +724,7 @@ def run_simulation_round(llm: object, data: Dict,
                             vocab_score=evaluation.get('vocabulary_score', 50),
                             metrics_before=current_metrics,
                             metrics_after=updated_metrics,
+                            board_effectiveness_score=effectiveness.get('deliberation_score', 50),
                         )
                         st.session_state[f"composite_score_{state.current_round}"] = composite
                         # Also store on the evaluation dict so downstream displays can use it
@@ -757,13 +796,54 @@ def run_simulation_round(llm: object, data: Dict,
         speak_button(" ".join(_feedback_parts), label="Listen to Feedback", key=f"feedback_{state.current_round}")
 
         score = evaluation['score']
-        score_color = "#28a745" if score >= 70 else "#ffc107" if score >= 50 else "#dc3545"
-
-        st.markdown(f"""
-        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; margin-bottom: 1rem;">
-            <h2 style="color: {score_color}; margin: 0;">Score: {score}/100</h2>
-        </div>
-        """, unsafe_allow_html=True)
+        # Composite is the headline (decision + business + board_eff + vocab).
+        # LLM decision score is shown as a sub-component, not the headline.
+        composite_info = (st.session_state.get(f"composite_score_{state.current_round}")
+                          or evaluation.get('composite_round_score'))
+        if composite_info:
+            headline = composite_info['composite']
+            score_color = "#28a745" if headline >= 70 else "#ffc107" if headline >= 50 else "#dc3545"
+            w = composite_info.get('weights', {})
+            mb = composite_info['metric_breakdown']
+            be = effectiveness if 'effectiveness' in dir() else st.session_state.get(f"board_effectiveness_{state.current_round}", {})
+            be_score = be.get('deliberation_score', 50) if be else 50
+            vocab_score = evaluation.get('vocabulary_score', 50)
+            st.markdown(f"""
+            <div style="padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; margin-bottom: 1rem;">
+                <div style="text-align:center;">
+                    <h2 style="color: {score_color}; margin: 0;">Round Score: {headline:.0f}/100</h2>
+                    <div style="font-size:0.8rem; color:#6b7280; margin-top:0.2rem;">
+                        Composite of decision quality, business impact, board effectiveness, and module application.
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.6rem; margin-top:0.8rem;">
+                    <div style="background:#fff; padding:0.5rem; border-radius:8px; text-align:center; border:1px solid #e5e7eb;">
+                        <div style="font-size:0.72rem; color:#6b7280;">Decision ({int(w.get('decision', 0.4)*100)}%)</div>
+                        <div style="font-size:1.1rem; font-weight:600; color:#1f2937;">{score}/100</div>
+                    </div>
+                    <div style="background:#fff; padding:0.5rem; border-radius:8px; text-align:center; border:1px solid #e5e7eb;">
+                        <div style="font-size:0.72rem; color:#6b7280;">Business Impact ({int(w.get('metric', 0.25)*100)}%)</div>
+                        <div style="font-size:1.1rem; font-weight:600; color:#1f2937;">{mb['normalized_score']:.0f}/100</div>
+                    </div>
+                    <div style="background:#fff; padding:0.5rem; border-radius:8px; text-align:center; border:1px solid #e5e7eb;">
+                        <div style="font-size:0.72rem; color:#6b7280;">Board Effectiveness ({int(w.get('board_effectiveness', 0.20)*100)}%)</div>
+                        <div style="font-size:1.1rem; font-weight:600; color:#1f2937;">{be_score:.0f}/100</div>
+                    </div>
+                    <div style="background:#fff; padding:0.5rem; border-radius:8px; text-align:center; border:1px solid #e5e7eb;">
+                        <div style="font-size:0.72rem; color:#6b7280;">Module Vocab ({int(w.get('vocab', 0.15)*100)}%)</div>
+                        <div style="font-size:1.1rem; font-weight:600; color:#1f2937;">{vocab_score}/100</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Legacy fallback when composite isn't available (old session data)
+            score_color = "#28a745" if score >= 70 else "#ffc107" if score >= 50 else "#dc3545"
+            st.markdown(f"""
+            <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; margin-bottom: 1rem;">
+                <h2 style="color: {score_color}; margin: 0;">Score: {score}/100</h2>
+            </div>
+            """, unsafe_allow_html=True)
 
         if evaluation.get('score_reasoning'):
             with st.expander("📋 Score Breakdown & Reasoning (Total: 100 pts)", expanded=True):

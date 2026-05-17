@@ -365,12 +365,14 @@ def get_time_pressure_minutes(time_pressure: str) -> int:
 
 # Composite round-score weights. Must sum to 1.0. Mirrors the final-grade
 # weighting in calculate_overall_grade so per-round and final scores are on
-# the same scale. Closes client claim #3 (round score should be a composite
-# of decision quality, module application, and business impact).
+# the same scale. Includes board-effectiveness as a 4th component (v1.4.7+)
+# so persuading the board / converting dissenters / consulting wisely is
+# reflected in the per-round score, not just the final summary.
 COMPOSITE_ROUND_WEIGHTS = {
-    'decision': 0.50,   # LLM rubric judgment of decision quality
-    'metric':   0.30,   # Per-round business impact (priority-weighted % change)
-    'vocab':    0.20,   # Module vocabulary application
+    'decision':         0.40,   # LLM rubric judgment of decision quality
+    'metric':           0.25,   # Per-round business impact (priority-weighted % change)
+    'board_effectiveness': 0.20,  # Board persuasion + consultation alignment + debate efficiency
+    'vocab':            0.15,   # Module vocabulary application
 }
 
 
@@ -440,30 +442,37 @@ def compute_composite_round_score(decision_score: float,
                                    vocab_score: float,
                                    metrics_before: Dict,
                                    metrics_after: Dict,
+                                   board_effectiveness_score: float = None,
                                    weights: Dict = None) -> Dict:
     """Compute the player-facing composite round score.
 
-    The composite combines three dimensions (decision quality, module vocabulary,
-    business impact this round) into a single 0-100 number on the same scale as
-    the final grade. This addresses client feedback that the round-level score
-    was a single noisy LLM signal that didn't reflect actual metric movement
-    or module mastery.
+    The composite combines four dimensions into a single 0-100 number on the
+    same scale as the final grade:
+      - Decision quality (LLM rubric)
+      - Module vocabulary
+      - Business impact this round (priority-weighted % metric change)
+      - Board effectiveness (persuasion + consultation + debate efficiency)
 
     Args:
         decision_score: 0-100, the LLM rubric judgment of the decision.
         vocab_score:    0-100, the module-vocabulary application score.
         metrics_before / metrics_after: metric dicts before and after this round.
-        weights:        optional override of COMPOSITE_ROUND_WEIGHTS. Must contain
-                        keys 'decision', 'metric', 'vocab' summing to 1.0.
+        board_effectiveness_score: optional 0-100 from
+            calculate_board_effectiveness_score()['deliberation_score']. If None
+            (legacy call sites before this was wired in), defaults to 50 (neutral)
+            so existing calculations keep working.
+        weights: optional override of COMPOSITE_ROUND_WEIGHTS. Must contain keys
+            'decision', 'metric', 'board_effectiveness', 'vocab' summing to 1.0.
 
     Returns:
         Dict with keys:
-            composite          — the headline 0-100 score
-            decision_component — weighted contribution from decision_score
-            metric_component   — weighted contribution from per-round metric movement
-            vocab_component    — weighted contribution from vocab_score
-            metric_breakdown   — the full compute_round_metric_score() result
-            weights            — the weights actually used (for UI display)
+            composite                — the headline 0-100 score
+            decision_component       — weighted contribution from decision_score
+            metric_component         — weighted contribution from metric movement
+            board_effectiveness_component — weighted contribution from board score
+            vocab_component          — weighted contribution from vocab_score
+            metric_breakdown         — full compute_round_metric_score() result
+            weights                  — weights actually used (for UI display)
     """
     w = dict(COMPOSITE_ROUND_WEIGHTS)
     if weights:
@@ -474,18 +483,24 @@ def compute_composite_round_score(decision_score: float,
 
     decision_score = max(0, min(100, float(decision_score)))
     vocab_score = max(0, min(100, float(vocab_score)))
+    if board_effectiveness_score is None:
+        board_effectiveness_score = 50  # neutral default for legacy callers
+    board_effectiveness_score = max(0, min(100, float(board_effectiveness_score)))
     metric_breakdown = compute_round_metric_score(metrics_before, metrics_after)
     metric_score = metric_breakdown['normalized_score']
 
-    decision_component = decision_score * w['decision']
-    metric_component   = metric_score   * w['metric']
-    vocab_component    = vocab_score    * w['vocab']
-    composite = decision_component + metric_component + vocab_component
+    decision_component        = decision_score        * w['decision']
+    metric_component          = metric_score          * w['metric']
+    board_effectiveness_component = board_effectiveness_score * w['board_effectiveness']
+    vocab_component           = vocab_score           * w['vocab']
+    composite = (decision_component + metric_component
+                 + board_effectiveness_component + vocab_component)
 
     return {
         'composite': round(composite, 1),
         'decision_component': round(decision_component, 2),
         'metric_component': round(metric_component, 2),
+        'board_effectiveness_component': round(board_effectiveness_component, 2),
         'vocab_component': round(vocab_component, 2),
         'metric_breakdown': metric_breakdown,
         'weights': w,

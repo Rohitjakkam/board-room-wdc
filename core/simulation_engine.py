@@ -45,14 +45,62 @@ def _call_llm(llm, prompt, max_retries=3):
 
 def generate_scenario(llm: object, company_data: Dict,
                       module_data: Dict, round_config: Dict, player_role: Dict,
-                      previous_rounds: List[Dict] = None) -> str:
-    """Generate a new scenario for the current round."""
+                      previous_rounds: List[Dict] = None,
+                      max_attempts: int = 2) -> str:
+    """Generate a new scenario for the current round.
+
+    Validates that the LLM produced 4 calibrated options matching the
+    distribution contract (0/2/3+/3+ opposers). Retries once with a stricter
+    addendum if validation fails. After max_attempts, returns the best-effort
+    output so the game can proceed — caller is responsible for falling back
+    to dynamic stances when calibration is missing.
+    """
     prompt = get_scenario_generator_prompt(company_data, module_data, round_config, player_role,
                                            previous_rounds=previous_rounds)
-    full_prompt = f"""You are an expert corporate governance simulation designer.
+    base_prompt = f"""You are an expert corporate governance simulation designer.
 
 {prompt}"""
-    return _call_llm(llm, full_prompt)
+
+    non_player_count = max(1, sum(
+        1 for m in company_data.get('board_members', [])
+        if m.get('name') != player_role.get('name')
+    ))
+
+    last_scenario = ''
+    last_errors: List[str] = []
+    for attempt in range(max_attempts):
+        full_prompt = base_prompt
+        if attempt > 0 and last_errors:
+            # Re-emit with a stricter calibration reminder
+            full_prompt += (
+                "\n\nPREVIOUS ATTEMPT FAILED VALIDATION:\n"
+                + "\n".join(f"- {e}" for e in last_errors)
+                + "\n\nFix these issues. Remember: EXACTLY 4 options, EXACTLY one each at "
+                "0 / 2 / 3 / 4 opposers (or 0 / 2 / 3 / 3+ if board is small). Use the OPTION "
+                "A/B/C/D | CALIBRATION format strictly."
+            )
+        last_scenario = _call_llm(llm, full_prompt)
+        try:
+            opts = parse_scenario_options(last_scenario)
+            last_errors = validate_option_calibration(opts, non_player_count)
+            if not last_errors:
+                return last_scenario
+            logger.warning(
+                "generate_scenario attempt %d/%d failed validation: %s",
+                attempt + 1, max_attempts, "; ".join(last_errors),
+            )
+        except Exception as e:
+            logger.exception("generate_scenario parse/validate error on attempt %d: %s",
+                             attempt + 1, e)
+            last_errors = [str(e)]
+
+    if last_errors:
+        logger.warning(
+            "generate_scenario: returning best-effort scenario after %d attempts "
+            "(unresolved: %s). Stances will fall back to dynamic generation.",
+            max_attempts, "; ".join(last_errors),
+        )
+    return last_scenario
 
 
 def get_board_member_response(llm: object, members: List[Dict],
@@ -804,11 +852,122 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
     }
 
 
+def build_stances_from_option(option: Dict, company_data: Dict,
+                               player_role: Dict) -> Dict[str, Dict]:
+    """Build the deterministic per-member stance map from a calibrated option.
+
+    Returns the same shape as generate_member_stances() so callers are
+    drop-in compatible. Used when the player picks one of the 4 calibrated
+    options — no LLM call needed.
+
+    Args:
+        option: A dict with 'stance_distribution' (name -> APPROVE/OPPOSE/NEUTRAL)
+                and 'counters' (name -> counter-opinion text). Produced by
+                parse_scenario_options() on a new-format scenario.
+        company_data: Source for member metadata (role, expertise, name lookup).
+        player_role: The current player — excluded from stance generation.
+
+    Returns:
+        {member_name: {member_name, member_role, member_expertise, stance,
+                       initial_reaction, counter_opinion, expertise_relevance,
+                       conviction_level, convinced_in_round, debate_exchanges}}
+    """
+    distribution = option.get('stance_distribution') or {}
+    counters = option.get('counters') or {}
+    member_lookup = {m['name']: m for m in company_data.get('board_members', [])}
+
+    # Conviction defaults — higher for OPPOSE since these are the dissenters
+    # the player must engage with. APPROVE members default to 5 (neutral support).
+    CONVICTION_OPPOSE = 7   # Strong-ish dissent — engages player in debate
+    CONVICTION_APPROVE = 5
+    CONVICTION_NEUTRAL = 4
+
+    stances: Dict[str, Dict] = {}
+    for member_name, stance in distribution.items():
+        if member_name == player_role.get('name'):
+            continue  # Skip the player
+        member = member_lookup.get(member_name)
+        if not member:
+            logger.warning(
+                "build_stances_from_option: option references unknown member %r — skipping",
+                member_name,
+            )
+            continue
+
+        counter = counters.get(member_name) if stance == 'OPPOSE' else None
+        if stance == 'OPPOSE' and not counter:
+            # Defensive: an OPPOSE without a counter wouldn't survive the
+            # generate_member_stances semantic guard. Synthesize a generic one.
+            counter = f"{member['role']} expresses concerns about this approach."
+        if stance == 'OPPOSE':
+            conviction = CONVICTION_OPPOSE
+            reaction = counter[:140]
+        elif stance == 'APPROVE':
+            conviction = CONVICTION_APPROVE
+            reaction = f"{member['role']} supports this approach."
+        else:
+            conviction = CONVICTION_NEUTRAL
+            reaction = f"{member['role']} has reservations but no firm position."
+
+        stances[member_name] = {
+            'member_name': member_name,
+            'member_role': member['role'],
+            'member_expertise': member.get('expertise', ''),
+            'stance': stance,
+            'initial_reaction': reaction,
+            'counter_opinion': counter,
+            'expertise_relevance': '',
+            'conviction_level': conviction,
+            'convinced_in_round': None,
+            'debate_exchanges': 0,
+        }
+
+    # Ensure every non-player member has a stance (default NEUTRAL if option
+    # didn't list them — defensive against partial LLM outputs).
+    for m in company_data.get('board_members', []):
+        if m['name'] == player_role.get('name'):
+            continue
+        if m['name'] not in stances:
+            logger.warning(
+                "build_stances_from_option: member %r missing from option stance "
+                "distribution — defaulting to NEUTRAL",
+                m['name'],
+            )
+            stances[m['name']] = {
+                'member_name': m['name'],
+                'member_role': m['role'],
+                'member_expertise': m.get('expertise', ''),
+                'stance': 'NEUTRAL',
+                'initial_reaction': 'No strong opinion expressed.',
+                'counter_opinion': None,
+                'expertise_relevance': '',
+                'conviction_level': CONVICTION_NEUTRAL,
+                'convinced_in_round': None,
+                'debate_exchanges': 0,
+            }
+
+    return stances
+
+
 def generate_member_stances(llm: object, company_data: Dict,
                              module_data: Dict, scenario: str,
                              player_decision: str, player_role: Dict,
-                             all_member_histories: Dict = None) -> Dict[str, Dict]:
-    """Generate each board member's stance on the player's decision."""
+                             all_member_histories: Dict = None,
+                             selected_option: Dict = None) -> Dict[str, Dict]:
+    """Generate each board member's stance on the player's decision.
+
+    If `selected_option` is provided AND it carries a valid stance_distribution,
+    use the deterministic pre-baked stances (saves one LLM call per round and
+    matches the calibrated difficulty contract). Otherwise — for free-form
+    decisions or old-format scenarios — fall back to LLM-based generation.
+    """
+    # Fast path: deterministic stances from a calibrated option
+    if selected_option and selected_option.get('stance_distribution'):
+        logger.debug(
+            "generate_member_stances: using pre-baked stances from option %s",
+            selected_option.get('letter'),
+        )
+        return build_stances_from_option(selected_option, company_data, player_role)
     logger.debug(f"generate_member_stances called with {len(company_data.get('board_members', []))} board members")
 
     stances = {}
@@ -994,13 +1153,130 @@ def evaluate_consultation_alignment(llm: object, consultations: List[Dict],
     }
 
 
-def parse_scenario_options(scenario: str) -> List[Dict]:
-    """Parse options from scenario text."""
-    options = []
-    lines = scenario.split('\n')
+_OPTION_BLOCK_RE = None  # Compiled lazily — keeps import-time cost down
 
+
+def _parse_stances_line(line: str) -> Dict[str, str]:
+    """Parse 'Name1=APPROVE, Name2=OPPOSE, ...' into a dict.
+    Tolerant of stray whitespace and case variations in the stance value."""
+    result = {}
+    if not line:
+        return result
+    for token in line.split(','):
+        if '=' not in token:
+            continue
+        name, stance = token.split('=', 1)
+        name = name.strip().strip('"').strip("'")
+        stance = stance.strip().upper()
+        if stance not in ('APPROVE', 'OPPOSE', 'NEUTRAL'):
+            continue
+        if name:
+            result[name] = stance
+    return result
+
+
+def _parse_counters_line(line: str) -> Dict[str, str]:
+    """Parse 'Name1: text | Name2: text | ...' into {name: counter_text}.
+    The literal token '(none)' or empty input returns {}."""
+    result = {}
+    if not line or line.strip().lower() in ('(none)', 'none', 'n/a', ''):
+        return result
+    for chunk in line.split('|'):
+        chunk = chunk.strip()
+        if ':' not in chunk:
+            continue
+        name, counter = chunk.split(':', 1)
+        name = name.strip().strip('"').strip("'")
+        counter = counter.strip()
+        if name and counter:
+            result[name] = counter
+    return result
+
+
+def parse_scenario_options(scenario: str) -> List[Dict]:
+    """Parse options from scenario text.
+
+    Supports two formats:
+
+    1. NEW (v1.4.7+) — calibrated, with pre-baked stance distribution:
+           OPTION A | CALIBRATION: unanimous
+           ACTION: [text]
+           STANCES: Name1=APPROVE, ...
+           COUNTERS: Name1: text | Name2: text
+
+       Returned dict keys: letter, text, calibration, stance_distribution, counters
+
+    2. OLD — bare letter lines (A) text, B) text, ...). Returned dict keys:
+           letter, text  (no stance metadata — caller falls back to dynamic LLM stances).
+
+    The parser tries NEW format first; on failure (zero blocks matched) it
+    falls back to OLD format. This preserves backward compat with checkpointed
+    scenarios from earlier sessions.
+    """
+    import re
+
+    options: List[Dict] = []
+
+    # ── NEW format: blocks like 'OPTION A | CALIBRATION: ...' ──
+    block_pattern = re.compile(
+        r'(?ms)^\s*OPTION\s+([A-D])\s*(?:\|\s*CALIBRATION:\s*(\w+))?\s*\n'
+        r'(?:\s*ACTION:\s*(.*?))?'
+        r'(?=^\s*OPTION\s+[A-D]|^\s*IMPACT_SUMMARY:|^\s*$\Z|\Z)'
+    )
+    # The above is awkward — easier to split on ^OPTION X lines and parse each chunk
+    # Split on the OPTION header line and process each chunk
+    blocks = re.split(r'(?m)^\s*OPTION\s+([A-D])\s*(?:\|\s*CALIBRATION:\s*(\w+))?\s*$',
+                      scenario)
+    # blocks = [preamble, letter1, calib1, content1, letter2, calib2, content2, ...]
+    if len(blocks) >= 4:  # at least one block produced
+        i = 1
+        while i + 2 < len(blocks):
+            letter = blocks[i]
+            calibration = (blocks[i + 1] or '').strip().lower() or None
+            content = blocks[i + 2] or ''
+            i += 3
+
+            action_text = ''
+            stances = {}
+            counters = {}
+
+            # Within this block, look for ACTION:, STANCES:, COUNTERS:
+            for field, regex in (
+                ('action',   r'(?ms)^\s*ACTION:\s*(.*?)(?=^\s*(?:STANCES|COUNTERS):|\Z)'),
+                ('stances',  r'(?m)^\s*STANCES:\s*(.+?)$'),
+                ('counters', r'(?m)^\s*COUNTERS:\s*(.+?)$'),
+            ):
+                m = re.search(regex, content)
+                if not m:
+                    continue
+                val = m.group(1).strip()
+                if field == 'action':
+                    action_text = val
+                elif field == 'stances':
+                    stances = _parse_stances_line(val)
+                elif field == 'counters':
+                    counters = _parse_counters_line(val)
+
+            if action_text or stances:
+                options.append({
+                    'letter': letter,
+                    'text': action_text,
+                    'calibration': calibration,
+                    'stance_distribution': stances,
+                    'counters': counters,
+                })
+
+    if options:
+        if len(options) < 4:
+            logger.warning(
+                f"parse_scenario_options (new format): only {len(options)} option(s) "
+                "parsed (expected 4). Scenario may be malformed."
+            )
+        return options
+
+    # ── OLD format fallback: bare 'A)' / 'A.' line markers ──
     current_option = None
-    for line in lines:
+    for line in scenario.split('\n'):
         line = line.strip()
         for letter in ['A', 'B', 'C', 'D']:
             if line.startswith(f"{letter})") or line.startswith(f"{letter}."):
@@ -1015,11 +1291,67 @@ def parse_scenario_options(scenario: str) -> List[Dict]:
 
     if 0 < len(options) < 4:
         logger.warning(
-            f"parse_scenario_options: only {len(options)} option(s) parsed (expected 4). "
-            "Scenario may be malformed or LLM did not follow the OPTIONS TO CONSIDER format."
+            f"parse_scenario_options (old format): only {len(options)} option(s) parsed "
+            "(expected 4). Scenario may be malformed or LLM did not follow the "
+            "OPTIONS TO CONSIDER format."
         )
 
     return options
+
+
+def validate_option_calibration(options: List[Dict], expected_non_player_count: int) -> List[str]:
+    """Check a parsed option list against the calibrated-distribution contract.
+
+    Returns a list of human-readable validation errors. An empty list means
+    the calibration is valid and the scenario can be used as-is. A non-empty
+    list signals the caller (generate_scenario) to retry with a stricter prompt.
+
+    Expected distribution (per client claim):
+      - 1 option with 0 OPPOSE (unanimous)
+      - 1 option with exactly 2 OPPOSE (mild_dissent)
+      - 2 options with >=3 OPPOSE (controversial / highly_controversial)
+    """
+    errors: List[str] = []
+
+    if len(options) != 4:
+        errors.append(f"Expected exactly 4 options, got {len(options)}")
+        return errors  # downstream checks rely on 4 options
+
+    # Each option needs a stance distribution sized to the non-player member count
+    opposer_counts: List[int] = []
+    for opt in options:
+        sd = opt.get('stance_distribution') or {}
+        if len(sd) < max(1, expected_non_player_count):
+            errors.append(
+                f"Option {opt.get('letter')} has stances for {len(sd)} member(s); "
+                f"expected {expected_non_player_count}"
+            )
+        opposer_counts.append(sum(1 for v in sd.values() if v == 'OPPOSE'))
+
+    if len(opposer_counts) != 4:
+        return errors
+
+    # Sorted opposer counts should match the calibrated profile:
+    #   0 (unanimous), 2 (mild), and two values >=3 (controversial / highly)
+    sorted_counts = sorted(opposer_counts)
+    if sorted_counts[0] != 0:
+        errors.append(
+            f"No option with 0 opposers (unanimous). Got opposer counts {sorted_counts}"
+        )
+    if sorted_counts[1] != 2:
+        errors.append(
+            f"No option with exactly 2 opposers (mild_dissent). Got {sorted_counts}"
+        )
+    if sorted_counts[2] < 3:
+        errors.append(
+            f"Third option needs >=3 opposers (controversial). Got {sorted_counts}"
+        )
+    if sorted_counts[3] < 3:
+        errors.append(
+            f"Fourth option needs >=3 opposers (highly_controversial). Got {sorted_counts}"
+        )
+
+    return errors
 
 
 def parse_scenario_sections(scenario: str) -> Dict:

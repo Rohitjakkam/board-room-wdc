@@ -35,7 +35,8 @@
       "Bash(curl -s http://localhost:8765/)",
       "Bash(curl -s -o /dev/null http://localhost:8765/)",
       "Bash(.venv/Scripts/python.exe -m pytest tests/test_client_claim_fixes.py::TestMemberChipHover -v)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8765/_stcore/health)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8765/_stcore/health)",
+      "Bash(.venv/Scripts/python.exe audit_complete_requirements.py)"
     ]
   }
 }

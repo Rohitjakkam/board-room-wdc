@@ -406,16 +406,25 @@ def display_final_summary(data: Dict):
             with st.expander(f"{score_emoji} Round {round_num + 1}: Score {round_score:.0f}/100 | Difficulty: {round_config.get('difficulty', 'N/A').title()}", expanded=False):
                 if composite_info:
                     mb = composite_info['metric_breakdown']
+                    weights = composite_info.get('weights', {})
+                    # Read weights for display so this stays in sync with COMPOSITE_ROUND_WEIGHTS
+                    w_dec = int(weights.get('decision', 0.4) * 100)
+                    w_met = int(weights.get('metric', 0.25) * 100)
+                    w_be  = int(weights.get('board_effectiveness', 0.20) * 100)
+                    w_voc = int(weights.get('vocab', 0.15) * 100)
+                    be_score = (composite_info.get('board_effectiveness_component', 0)
+                                / max(weights.get('board_effectiveness', 0.20), 0.01))
                     st.markdown(f"""
                     <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
                         <strong>Focus Area:</strong> {round_config.get('focus_area', 'General')}<br>
                         <strong>Time Pressure:</strong> {round_config.get('time_pressure', 'normal').title()}<br>
                         <strong>Composite Score:</strong> <span style="color: {score_color}; font-weight: bold;">{round_score:.0f}/100</span>
                         <div style="font-size:12px; color:#555; margin-top:6px;">
-                            <strong>Decision Quality (50%):</strong> {decision_score}/100 → {composite_info['decision_component']:.1f} pts<br>
-                            <strong>Module Vocabulary (20%):</strong> {evaluation.get('vocabulary_score', 50)}/100 → {composite_info['vocab_component']:.1f} pts<br>
-                            <strong>Business Impact (30%):</strong> {mb['normalized_score']:.0f}/100 → {composite_info['metric_component']:.1f} pts
-                            <em>({mb['improvements']} metrics improved, {mb['declines']} declined this round)</em>
+                            <strong>Decision Quality ({w_dec}%):</strong> {decision_score}/100 → {composite_info['decision_component']:.1f} pts<br>
+                            <strong>Business Impact ({w_met}%):</strong> {mb['normalized_score']:.0f}/100 → {composite_info['metric_component']:.1f} pts
+                            <em>({mb['improvements']} metrics improved, {mb['declines']} declined this round)</em><br>
+                            <strong>Board Effectiveness ({w_be}%):</strong> {be_score:.0f}/100 → {composite_info.get('board_effectiveness_component', 0):.1f} pts<br>
+                            <strong>Module Vocabulary ({w_voc}%):</strong> {evaluation.get('vocabulary_score', 50)}/100 → {composite_info['vocab_component']:.1f} pts
                         </div>
                     </div>
                     """, unsafe_allow_html=True)

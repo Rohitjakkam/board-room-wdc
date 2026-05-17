@@ -430,14 +430,17 @@ def run_round(llm, company_data, module_data, round_config, player_role,
     audit['metrics_after'] = snapshot_metrics(new_metrics)
     audit['captured_warnings'] = capture.drain()
 
-    # SHADOW composite per-round score
-    round_metric = compute_per_round_metric_score(pre_apply, new_metrics)
-    audit['round_metric_score'] = round_metric
-    audit['composite_round_score'] = compute_composite_round_score(
+    # Composite per-round score — now uses the live core function which includes
+    # board_effectiveness as a 4th component (v1.4.7+).
+    from core.scoring import compute_composite_round_score as _core_composite
+    audit['composite_round_score'] = _core_composite(
         decision_score=evaluation['score'],
         vocab_score=evaluation['vocabulary_score'],
-        round_metric_score=round_metric['normalized_score'],
+        metrics_before=pre_apply,
+        metrics_after=new_metrics,
+        board_effectiveness_score=board_eff.get('deliberation_score', 50),
     )
+    audit['round_metric_score'] = audit['composite_round_score']['metric_breakdown']
 
     return audit
 

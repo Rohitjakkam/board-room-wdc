@@ -249,16 +249,20 @@ class TestCompositeRoundScore:
         assert abs(sum(COMPOSITE_ROUND_WEIGHTS.values()) - 1.0) < 1e-9
 
     def test_basic_composition(self):
+        """v1.4.7 — composite now has 4 components.
+        Weights: decision 40% + metric 25% + board_effectiveness 20% + vocab 15%.
+        Without an explicit board_effectiveness_score arg, defaults to 50 (neutral)."""
         metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
         result = compute_composite_round_score(
             decision_score=80, vocab_score=60,
             metrics_before=metrics, metrics_after=metrics,
         )
-        # 80*0.5 + 50*0.3 + 60*0.2 = 40 + 15 + 12 = 67.0
-        assert result['composite'] == 67.0
-        assert result['decision_component'] == 40.0
-        assert result['metric_component'] == 15.0
-        assert result['vocab_component'] == 12.0
+        # 80*.40 + 50*.25 + 50*.20 + 60*.15 = 32 + 12.5 + 10 + 9 = 63.5
+        assert result['composite'] == 63.5
+        assert result['decision_component'] == 32.0
+        assert result['metric_component'] == 12.5
+        assert result['board_effectiveness_component'] == 10.0
+        assert result['vocab_component'] == 9.0
 
     def test_perfect_decision_with_terrible_metric_movement_isnt_inflated(self):
         """A 100/100 decision that crashes a high-priority metric should NOT be 100 composite."""
@@ -275,15 +279,20 @@ class TestCompositeRoundScore:
         assert result['metric_component'] < 15.0
 
     def test_custom_weights(self):
+        """Custom 4-key weights (must sum to 1.0) override defaults."""
         metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
-        custom_weights = {'decision': 0.4, 'metric': 0.4, 'vocab': 0.2}
+        custom_weights = {
+            'decision': 0.4, 'metric': 0.4,
+            'board_effectiveness': 0.1, 'vocab': 0.1,
+        }
         result = compute_composite_round_score(
             decision_score=100, vocab_score=100,
             metrics_before=metrics, metrics_after=metrics,
+            board_effectiveness_score=50,
             weights=custom_weights,
         )
-        # 100*0.4 + 50*0.4 + 100*0.2 = 40 + 20 + 20 = 80.0
-        assert result['composite'] == 80.0
+        # 100*.4 + 50*.4 + 50*.1 + 100*.1 = 40 + 20 + 5 + 10 = 75.0
+        assert result['composite'] == 75.0
 
     def test_weights_must_sum_to_one(self):
         metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
@@ -404,6 +413,261 @@ ENCOURAGEMENT: ok"""
         })
         # 80 - 20*2 = 40
         assert result['vocabulary_score'] == 40
+
+
+class TestCalibratedOptions:
+    """v1.4.7 — scenario generator must produce 4 calibrated options with
+    pre-baked stance distributions. Parser + validator + deterministic
+    stance builder."""
+
+    NEW_FORMAT_SCENARIO = """SCENARIO TITLE: Test
+SITUATION: blah
+
+OPTIONS TO CONSIDER:
+
+OPTION A | CALIBRATION: unanimous
+ACTION: Convene the audit committee, engage outside counsel, and disclose proactively. This protects shareholders and demonstrates good-faith remediation. Financial impact is modest.
+STANCES: Sandra Cho=APPROVE, David Sung=APPROVE, Patricia Delgado=APPROVE, Jonathan Marsh=APPROVE
+COUNTERS: (none)
+
+OPTION B | CALIBRATION: mild_dissent
+ACTION: Defer disclosure pending investigation. Buys time but delays informing the regulator. Some board members will worry about timing.
+STANCES: Sandra Cho=OPPOSE, David Sung=APPROVE, Patricia Delgado=OPPOSE, Jonathan Marsh=APPROVE
+COUNTERS: Sandra Cho: Delayed disclosure violates Rule 21F. | Patricia Delgado: Investor reaction could materially impact valuation.
+
+OPTION C | CALIBRATION: controversial
+ACTION: Issue narrow disclosure that downplays severity. Minimizes immediate damage but risks future enforcement.
+STANCES: Sandra Cho=OPPOSE, David Sung=OPPOSE, Patricia Delgado=OPPOSE, Jonathan Marsh=APPROVE
+COUNTERS: Sandra Cho: Selective disclosure violates Reg FD. | David Sung: Regulatory risk unmitigated. | Patricia Delgado: Restatement risk dwarfs current cost.
+
+OPTION D | CALIBRATION: highly_controversial
+ACTION: Conceal entirely, delay production, threaten the whistleblower. Unlawful but might buy time.
+STANCES: Sandra Cho=OPPOSE, David Sung=OPPOSE, Patricia Delgado=OPPOSE, Jonathan Marsh=OPPOSE
+COUNTERS: Sandra Cho: Mandatory disclosure obligations are clear. | David Sung: Risk catastrophic. | Patricia Delgado: SOX 806 liability. | Jonathan Marsh: Obstruction of justice.
+"""
+
+    def test_parser_extracts_all_four_options(self):
+        from core.simulation_engine import parse_scenario_options
+        opts = parse_scenario_options(self.NEW_FORMAT_SCENARIO)
+        assert len(opts) == 4
+        assert [o['letter'] for o in opts] == ['A', 'B', 'C', 'D']
+
+    def test_parser_extracts_calibration(self):
+        from core.simulation_engine import parse_scenario_options
+        opts = parse_scenario_options(self.NEW_FORMAT_SCENARIO)
+        assert opts[0]['calibration'] == 'unanimous'
+        assert opts[1]['calibration'] == 'mild_dissent'
+        assert opts[2]['calibration'] == 'controversial'
+        assert opts[3]['calibration'] == 'highly_controversial'
+
+    def test_parser_extracts_stance_distribution(self):
+        from core.simulation_engine import parse_scenario_options
+        opts = parse_scenario_options(self.NEW_FORMAT_SCENARIO)
+        sd_a = opts[0]['stance_distribution']
+        assert len(sd_a) == 4
+        assert all(v == 'APPROVE' for v in sd_a.values())
+        sd_d = opts[3]['stance_distribution']
+        assert all(v == 'OPPOSE' for v in sd_d.values())
+        sd_b = opts[1]['stance_distribution']
+        assert sum(1 for v in sd_b.values() if v == 'OPPOSE') == 2
+
+    def test_parser_extracts_counters(self):
+        from core.simulation_engine import parse_scenario_options
+        opts = parse_scenario_options(self.NEW_FORMAT_SCENARIO)
+        assert opts[0]['counters'] == {}  # unanimous → no counters
+        assert 'Sandra Cho' in opts[1]['counters']
+        assert 'Rule 21F' in opts[1]['counters']['Sandra Cho']
+
+    def test_validator_passes_on_calibrated(self):
+        from core.simulation_engine import parse_scenario_options, validate_option_calibration
+        opts = parse_scenario_options(self.NEW_FORMAT_SCENARIO)
+        errors = validate_option_calibration(opts, expected_non_player_count=4)
+        assert errors == []
+
+    def test_validator_fails_when_no_unanimous(self):
+        from core.simulation_engine import validate_option_calibration
+        opts = [
+            {'letter': 'A', 'stance_distribution': {'X': 'APPROVE', 'Y': 'OPPOSE'}, 'counters': {}},
+            {'letter': 'B', 'stance_distribution': {'X': 'OPPOSE', 'Y': 'APPROVE'}, 'counters': {}},
+            {'letter': 'C', 'stance_distribution': {'X': 'OPPOSE', 'Y': 'OPPOSE'}, 'counters': {}},
+            {'letter': 'D', 'stance_distribution': {'X': 'OPPOSE', 'Y': 'OPPOSE'}, 'counters': {}},
+        ]
+        errors = validate_option_calibration(opts, expected_non_player_count=2)
+        assert any('0 opposers' in e for e in errors)
+
+    def test_validator_fails_when_wrong_count(self):
+        from core.simulation_engine import validate_option_calibration
+        opts = [{'letter': 'A', 'stance_distribution': {}, 'counters': {}},
+                {'letter': 'B', 'stance_distribution': {}, 'counters': {}}]
+        errors = validate_option_calibration(opts, expected_non_player_count=4)
+        assert any('Expected exactly 4' in e for e in errors)
+
+    def test_old_format_fallback(self):
+        from core.simulation_engine import parse_scenario_options
+        old_scenario = ("OPTIONS TO CONSIDER:\n"
+                        "A) Do this\n"
+                        "B) Do that\n"
+                        "C) Or this\n"
+                        "D) Maybe that\n")
+        opts = parse_scenario_options(old_scenario)
+        assert len(opts) == 4
+        assert opts[0]['text'] == 'Do this'
+        # Old format doesn't have stance metadata
+        assert opts[0].get('stance_distribution') is None or opts[0].get('stance_distribution') == {}
+
+
+class TestDeterministicStances:
+    """build_stances_from_option — deterministic per-member stance map from a
+    calibrated option. Skips the LLM call entirely."""
+
+    COMPANY = {
+        'company_name': 'TestCo',
+        'board_members': [
+            {'name': 'Sandra Cho', 'role': 'Chair of Audit', 'expertise': 'Audit'},
+            {'name': 'David Sung', 'role': 'CRO', 'expertise': 'Risk'},
+            {'name': 'Patricia Delgado', 'role': 'CFO', 'expertise': 'Finance'},
+            {'name': "Margaret 'Meg' Harlow", 'role': 'Board Director', 'expertise': 'Governance'},
+        ],
+    }
+    PLAYER = {'name': "Margaret 'Meg' Harlow", 'role': 'Board Director'}
+
+    def test_unanimous_option_produces_all_approve(self):
+        from core.simulation_engine import build_stances_from_option
+        option = {
+            'letter': 'A',
+            'stance_distribution': {
+                'Sandra Cho': 'APPROVE', 'David Sung': 'APPROVE',
+                'Patricia Delgado': 'APPROVE',
+            },
+            'counters': {},
+        }
+        stances = build_stances_from_option(option, self.COMPANY, self.PLAYER)
+        # Player is excluded
+        assert "Margaret 'Meg' Harlow" not in stances
+        # Every other member approves
+        assert all(s['stance'] == 'APPROVE' for s in stances.values())
+        assert len(stances) == 3
+
+    def test_oppose_carries_counter_opinion(self):
+        from core.simulation_engine import build_stances_from_option
+        option = {
+            'letter': 'B',
+            'stance_distribution': {
+                'Sandra Cho': 'OPPOSE', 'David Sung': 'APPROVE',
+                'Patricia Delgado': 'OPPOSE',
+            },
+            'counters': {
+                'Sandra Cho': 'Disclosure timing is premature.',
+                'Patricia Delgado': 'Financial impact is unclear.',
+            },
+        }
+        stances = build_stances_from_option(option, self.COMPANY, self.PLAYER)
+        assert stances['Sandra Cho']['stance'] == 'OPPOSE'
+        assert stances['Sandra Cho']['counter_opinion'] == 'Disclosure timing is premature.'
+        assert stances['Patricia Delgado']['stance'] == 'OPPOSE'
+        assert stances['Patricia Delgado']['counter_opinion'] == 'Financial impact is unclear.'
+        assert stances['David Sung']['stance'] == 'APPROVE'
+        # Conviction differs by stance
+        assert stances['Sandra Cho']['conviction_level'] > stances['David Sung']['conviction_level']
+
+    def test_oppose_without_counter_gets_synthetic_fallback(self):
+        from core.simulation_engine import build_stances_from_option
+        option = {
+            'letter': 'X',
+            'stance_distribution': {'Sandra Cho': 'OPPOSE'},
+            'counters': {},  # malformed — OPPOSE without counter
+        }
+        stances = build_stances_from_option(option, self.COMPANY, self.PLAYER)
+        # Synthesized fallback so the debate flow can still run
+        assert stances['Sandra Cho']['counter_opinion']
+
+    def test_missing_member_defaults_to_neutral(self):
+        from core.simulation_engine import build_stances_from_option
+        option = {
+            'letter': 'X',
+            'stance_distribution': {'Sandra Cho': 'APPROVE'},  # missing David + Patricia
+            'counters': {},
+        }
+        stances = build_stances_from_option(option, self.COMPANY, self.PLAYER)
+        # Every non-player member must have a stance
+        assert 'David Sung' in stances
+        assert 'Patricia Delgado' in stances
+        assert stances['David Sung']['stance'] == 'NEUTRAL'
+        assert stances['Patricia Delgado']['stance'] == 'NEUTRAL'
+
+    def test_player_excluded_from_distribution(self):
+        from core.simulation_engine import build_stances_from_option
+        option = {
+            'letter': 'X',
+            # Even if LLM hallucinates a stance for the player, it must be excluded
+            'stance_distribution': {
+                "Margaret 'Meg' Harlow": 'OPPOSE',
+                'Sandra Cho': 'APPROVE',
+            },
+            'counters': {},
+        }
+        stances = build_stances_from_option(option, self.COMPANY, self.PLAYER)
+        assert "Margaret 'Meg' Harlow" not in stances
+
+
+class TestCompositeRoundScore4Component:
+    """v1.4.7 — composite now includes board_effectiveness as a 4th component.
+    Weights: decision 40% + metric 25% + board_eff 20% + vocab 15%."""
+
+    def test_weights_sum_to_one(self):
+        from core.scoring import COMPOSITE_ROUND_WEIGHTS
+        assert abs(sum(COMPOSITE_ROUND_WEIGHTS.values()) - 1.0) < 1e-9
+        assert set(COMPOSITE_ROUND_WEIGHTS) == {'decision', 'metric',
+                                                  'board_effectiveness', 'vocab'}
+
+    def test_board_effectiveness_default_is_neutral(self):
+        """Legacy callers that don't pass board_effectiveness get 50 (neutral)."""
+        from core.scoring import compute_composite_round_score
+        metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
+        result = compute_composite_round_score(
+            decision_score=80, vocab_score=80,
+            metrics_before=metrics, metrics_after=metrics,
+        )
+        # 80*.40 + 50*.25 + 50*.20 + 80*.15 = 32 + 12.5 + 10 + 12 = 66.5
+        assert result['composite'] == 66.5
+        assert result['board_effectiveness_component'] == 10.0
+
+    def test_high_board_effectiveness_lifts_composite(self):
+        from core.scoring import compute_composite_round_score
+        metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
+        low_be = compute_composite_round_score(80, 80, metrics, metrics,
+                                                board_effectiveness_score=20)
+        high_be = compute_composite_round_score(80, 80, metrics, metrics,
+                                                 board_effectiveness_score=100)
+        assert high_be['composite'] > low_be['composite']
+        # Delta should be (100-20) * 0.20 = 16 points
+        assert abs((high_be['composite'] - low_be['composite']) - 16.0) < 0.01
+
+    def test_returns_all_four_components(self):
+        from core.scoring import compute_composite_round_score
+        metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
+        result = compute_composite_round_score(
+            decision_score=70, vocab_score=60,
+            metrics_before=metrics, metrics_after=metrics,
+            board_effectiveness_score=80,
+        )
+        for key in ('decision_component', 'metric_component',
+                     'board_effectiveness_component', 'vocab_component'):
+            assert key in result
+
+    def test_custom_4key_weights_accepted(self):
+        from core.scoring import compute_composite_round_score
+        metrics = {'m': {'value': 100, 'unit': '$M', 'priority': 'high'}}
+        # Heavy weight on board effectiveness
+        result = compute_composite_round_score(
+            decision_score=100, vocab_score=100,
+            metrics_before=metrics, metrics_after=metrics,
+            board_effectiveness_score=50,
+            weights={'decision': 0.25, 'metric': 0.25,
+                     'board_effectiveness': 0.40, 'vocab': 0.10},
+        )
+        # 100*.25 + 50*.25 + 50*.40 + 100*.10 = 25 + 12.5 + 20 + 10 = 67.5
+        assert result['composite'] == 67.5
 
 
 class TestMemberChipHover:

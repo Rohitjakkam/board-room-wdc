@@ -67,11 +67,24 @@ def display_deliberation_phase(llm: object, data: Dict,
         with st.spinner("Board members are reviewing your decision..."):
             scenario = st.session_state.get(f"scenario_round_{round_num}", "")
             all_member_histories = st.session_state.get('member_stance_histories', {})
-            logger.debug(f"Generating stances for scenario length: {len(scenario)}, decision length: {len(player_decision)}")
+            # If the player picked one of the calibrated options, pass it so
+            # generate_member_stances can use the pre-baked deterministic
+            # distribution (saves an LLM call + matches the calibrated
+            # difficulty contract). For free-form decisions, selected_option
+            # is None and the LLM-based path runs as before.
+            selected_option = st.session_state.get(f"selected_option_{round_num}")
+            logger.debug(
+                f"Generating stances for scenario length: {len(scenario)}, "
+                f"decision length: {len(player_decision)}, "
+                f"selected_option={selected_option.get('letter') if selected_option else 'free-form'}"
+            )
             try:
-                stances = generate_member_stances(llm, company_data, module_data,
-                                                  scenario, player_decision, player_role,
-                                                  all_member_histories=all_member_histories if all_member_histories else None)
+                stances = generate_member_stances(
+                    llm, company_data, module_data,
+                    scenario, player_decision, player_role,
+                    all_member_histories=all_member_histories if all_member_histories else None,
+                    selected_option=selected_option,
+                )
                 st.session_state[stances_key] = stances
                 logger.debug(f"Generated {len(stances)} member stances")
             except Exception as e:

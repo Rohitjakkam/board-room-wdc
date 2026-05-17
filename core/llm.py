@@ -357,6 +357,11 @@ Show consequences of earlier decisions. Escalate the complexity. Do NOT re-ask t
             + "\n".join(narrative_parts) + "\n"
         )
 
+    # Non-player members — the player isn't a stance-target since they ARE the decider
+    other_members = [m for m in company_data.get('board_members', [])
+                     if m['name'] != player_role['name']]
+    other_names_str = ', '.join(f'"{m["name"]}"' for m in other_members)
+
     return f"""You are a corporate governance simulation scenario generator.
 
 COMPANY: {company_data['company_name']}
@@ -376,6 +381,9 @@ Player's Expertise: {player_role['expertise']}
 
 BOARD MEMBERS (use ONLY these names in your scenario — do not invent names):
 {chr(10).join(f"- {m['name']} | {m['role']}" for m in company_data.get('board_members', []))}
+
+NON-PLAYER BOARD MEMBERS (the {len(other_members)} members whose stances must be calibrated per option):
+{other_names_str}
 
 ROUND CONFIGURATION:
 - Round Number: {round_config['round_number']}
@@ -404,12 +412,50 @@ STAKEHOLDERS AFFECTED: [List of affected parties]
 TIME SENSITIVITY: [How urgent is this decision — if previous rounds had High urgency and the crisis is ongoing or escalating, do NOT downgrade to Moderate or Low]
 
 OPTIONS TO CONSIDER:
-A) [First option - brief description, naming the CORRECT board member responsible for the relevant domain]
-B) [Second option - brief description]
-C) [Third option - brief description]
-D) [Fourth option - brief description]
+
+You MUST produce EXACTLY 4 options labeled A, B, C, D — no more, no less.
+Each option must follow this calibrated difficulty distribution:
+
+  OPTION A: CALIBRATION = unanimous           (0 OPPOSE — every non-player member APPROVES)
+  OPTION B: CALIBRATION = mild_dissent        (exactly 2 OPPOSE — the rest APPROVE)
+  OPTION C: CALIBRATION = controversial       (3 OPPOSE)
+  OPTION D: CALIBRATION = highly_controversial (4 OPPOSE — only one APPROVES, or all OPPOSE if {len(other_members)} <= 4)
+
+The order matters — A is the consensus-best-practice choice, D is the most contested.
+The 4 options must be GENUINELY DIFFERENT strategic approaches — not 4 variations of the same idea.
+Each ACTION must be 3-5 substantive sentences describing the specific action AND its trade-offs
+(financial, regulatory, reputational, operational). Avoid one-line generic options.
+
+For each non-player board member listed above, assign EXACTLY one of: APPROVE, OPPOSE, NEUTRAL.
+For every OPPOSE assignment, include a concrete counter-argument grounded in that member's
+expertise (e.g., the CFO opposes on financial-impact grounds, the CRO on risk-exposure grounds).
+NEUTRAL should be rare — prefer APPROVE or OPPOSE.
+
+Use this EXACT format for each option (one block per option):
+
+OPTION A | CALIBRATION: unanimous
+ACTION: [3-5 detailed sentences describing the specific action and its trade-offs]
+STANCES: Name1=APPROVE, Name2=APPROVE, Name3=APPROVE, Name4=APPROVE
+COUNTERS: (none)
+
+OPTION B | CALIBRATION: mild_dissent
+ACTION: [3-5 detailed sentences]
+STANCES: Name1=APPROVE, Name2=OPPOSE, Name3=APPROVE, Name4=OPPOSE
+COUNTERS: Name2: [their 1-2 sentence objection grounded in their expertise] | Name4: [their 1-2 sentence objection]
+
+OPTION C | CALIBRATION: controversial
+ACTION: [3-5 detailed sentences]
+STANCES: Name1=OPPOSE, Name2=OPPOSE, Name3=APPROVE, Name4=OPPOSE
+COUNTERS: Name1: [...] | Name2: [...] | Name4: [...]
+
+OPTION D | CALIBRATION: highly_controversial
+ACTION: [3-5 detailed sentences]
+STANCES: Name1=OPPOSE, Name2=OPPOSE, Name3=OPPOSE, Name4=OPPOSE
+COUNTERS: Name1: [...] | Name2: [...] | Name3: [...] | Name4: [...]
 
 IMPORTANT RULES FOR OPTIONS:
-- Each option must name only board members from the BOARD MEMBERS list above
-- Direct questions/actions to the board member whose ROLE matches the subject matter (e.g., Risk matters → CRO, Financial matters → CFO)
-- Make sure each option is distinct and represents a different strategic approach."""
+- Each STANCES line must list EVERY non-player board member exactly once.
+- Use the EXACT names from the NON-PLAYER BOARD MEMBERS list — spelling matters.
+- COUNTERS must include one objection per OPPOSE member, separated by " | ".
+- Each option must name only board members from the BOARD MEMBERS list above.
+- Direct questions/actions to the board member whose ROLE matches the subject matter (e.g., Risk → CRO, Financial → CFO)."""
