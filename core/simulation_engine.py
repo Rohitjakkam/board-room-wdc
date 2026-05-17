@@ -209,11 +209,18 @@ def calculate_metric_impacts(llm: object, company_data: Dict,
     """
     metrics = company_data['metrics']
 
-    # Exclude categorical metrics from impact prediction — they have no numeric semantics
-    numeric_keys = [
-        k for k, v in metrics.items()
-        if not v.get('categorical_value') and not v.get('non_numeric')
-    ]
+    # Exclude categorical metrics from impact prediction — they have no numeric semantics.
+    # Also exclude metrics whose stored value is a string (defends against fixtures
+    # that don't set the categorical_value/non_numeric flags explicitly — closes J1).
+    def _is_categorical(v: Dict) -> bool:
+        if v.get('categorical_value') or v.get('non_numeric'):
+            return True
+        val = v.get('value')
+        if isinstance(val, str):
+            return True
+        return False
+
+    numeric_keys = [k for k, v in metrics.items() if not _is_categorical(v)]
 
     metrics_context = "\n".join([
         f"- {key}: {metrics[key].get('description', key)} = "
@@ -245,27 +252,55 @@ DECISION MADE (model impacts for THIS decision ONLY — do not reference or assu
 
 Based on this exact decision, analyze the realistic impact on company metrics. Consider:
 1. Direct impacts from the decision
-2. Indirect/ripple effects
+2. Indirect/ripple effects (legal, regulatory, reputational, operational)
 3. Short-term vs long-term implications
 4. Whether the decision actually addresses the scenario's core problem
+5. Second-order consequences that materialize within the next reporting cycle
+
+CAUSAL CHAINS YOU MUST MODEL (apply when the decision matches the pattern):
+
+A. DECISIONS THAT CONCEAL, DENY, RETALIATE, OR EVADE REGULATORS/LAW:
+   These ALWAYS produce non-zero NEGATIVE impacts on:
+   - any metric containing fine/penalty/sanction/lawsuit/litigation (INCREASE — worse)
+   - any metric containing compliance/disclosure score (DECREASE — worse)
+   - any metric containing reputation/sentiment/trust (DECREASE — worse)
+   - any metric containing employee engagement/retention (DECREASE — whistleblower chill effect)
+   You may NOT return all zeros for these decisions. At minimum 3 metrics must move.
+
+B. DECISIONS THAT INVESTIGATE / SURFACE A KNOWN PROBLEM:
+   Do NOT penalize the metric being investigated. Surfacing a compliance gap that
+   ALREADY EXISTS is not the same as causing it. The metric reflects underlying
+   reality, not the act of measurement. Score these as NEUTRAL or POSITIVE on
+   the surfaced metric, with positive impact on long-term risk reduction.
+
+C. DECISIONS THAT DEFER / DELAY ON URGENT MATTERS:
+   Apply moderate NEGATIVE drift on revenue/customer/operational metrics (lost
+   opportunity cost) AND on the metric most directly tied to the deferred issue.
+   Do NOT return all zeros — "no decision" is itself a decision with consequences.
+
+D. DECISIONS THAT PROACTIVELY DISCLOSE / REMEDIATE / COMPLY:
+   Short-term: small negative on revenue / share price (market reaction).
+   Long-term: positive on compliance score, reduced fine/lawsuit exposure,
+   improved employee engagement and stakeholder trust.
 
 UNIT DISCIPLINE — CRITICAL:
 For EACH metric below, the change MUST be expressed in the EXACT same unit as the metric's current value.
 - If the metric is "1200 $M" (1.2 billion in millions), a 5% drop is "-60 $M" — NOT "-0.06 $B" and NOT "-100".
 - If the metric is "72 %", a 3-point drop is "-3 %" — NOT "-0.03" and NOT "-3.0%".
 - If the metric is "8 count", a +1 incident is "1 count" — NOT "1.0" and NOT "+1 incidents".
-- A change of 0 is fine (and expected) for metrics the decision does not affect.
 - Changes larger than 10% of the metric's current value are RARE — require strong justification.
 
 Provide metric impacts in this EXACT format (one line per metric, use these EXACT keys and units):
 METRIC_IMPACTS:
 {metric_keys_format}
 
-IMPACT_SUMMARY: [2-3 sentence summary of overall business impact]
+IMPACT_SUMMARY: [2-3 sentence summary of overall business impact, including any
+legal/regulatory/reputational consequences the decision triggers]
 
-Be realistic — not every decision affects all metrics. Use 0 for unaffected metrics.
 A decision can have mixed impacts: positive on some metrics, negative on others.
-Focus on logical consequences of the decision, not on whether it seems "good" or "bad" overall."""
+Use 0 ONLY for metrics with no plausible causal connection to the decision —
+NOT as a default for metrics you find hard to reason about. If the decision is
+clearly harmful (per causal chain A or C above), returning all zeros is WRONG."""
 
     content = _call_llm(llm, impact_prompt)
 
@@ -375,10 +410,17 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
             except (TypeError, ValueError):
                 continue
             raw_old = metric.get('value')
+            # Defense in depth (closes J1): never apply impacts to a metric whose
+            # stored value is non-numeric. The upstream filter in
+            # calculate_metric_impacts excludes string values, but if the LLM
+            # hallucinates an impact for a categorical metric, the previous code
+            # silently coerced "Active Review" -> 0.0 and clobbered the value.
+            if isinstance(raw_old, str) or metric.get('categorical_value') or metric.get('non_numeric'):
+                continue
             try:
                 old_value = float(raw_old) if raw_old is not None else 0
             except (TypeError, ValueError):
-                old_value = 0
+                continue  # was: old_value = 0  (silent clobber)
             unit = (metric.get('unit') or '').strip()
 
             # Clamp change to per-round caps
@@ -439,6 +481,20 @@ def evaluate_decision(llm: object, company_data: Dict,
 
     evaluation_prompt = f"""You are a STRICT and RIGOROUS corporate governance evaluator. Your role is to provide HONEST, ACCURATE assessments.
 DO NOT give undeserved praise. If a decision is poor, say so clearly. Be direct about mistakes and their consequences.
+
+HARD SCORE CEILINGS (apply BEFORE any other scoring):
+- Decisions that propose unlawful actions (obstruction of justice, retaliation against whistleblowers,
+  document destruction, intimidation, concealment from regulators): MAXIMUM SCORE = 15/100.
+- Decisions that defer/table an urgent matter without substantive engagement
+  ("let's revisit later", "circulate a memo", "table this"): MAXIMUM SCORE = 35/100.
+- One-sentence picks with no rationale provided ("I'll go with Option X"): MAXIMUM SCORE = 60/100.
+- Decisions that violate the player's role boundary (e.g. a CFO unilaterally
+  announcing a PR strategy reserved for the CEO): MAXIMUM SCORE = 55/100.
+
+If any ceiling applies, set the headline SCORE to AT MOST the ceiling value AND
+explain which ceiling was triggered in SCORE_REASONING. The dimension breakdown
+must be internally consistent with the headline score — the sum of dimensions
+should approximately equal the headline (within ±10 points).
 
 COMPANY CONTEXT:
 {company_data['company_name']}
@@ -544,14 +600,36 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
 
     content = _call_llm(llm, evaluation_prompt)
 
-    # Extract score
-    score = 50
-    if "SCORE:" in content:
+    # Extract score — use a line-anchored regex to avoid matching SCORE: as a
+    # substring of MODULE_VOCABULARY_SCORE: (which would silently grab the vocab
+    # score, defaulting to 100 — the source of grade inflation seen in audits).
+    score = None
+    import re as _re
+    score_match = _re.search(r'(?m)^\s*SCORE\s*:\s*(\d{1,3})\b', content)
+    if score_match:
         try:
-            score_line = content.split("SCORE:")[1].split("\n")[0]
-            score = int(''.join(filter(str.isdigit, score_line[:10])))
-        except Exception:
-            pass
+            score = int(score_match.group(1))
+        except (TypeError, ValueError):
+            score = None
+    if score is None:
+        # Defensive fallback: parse dimension breakdown from SCORE_REASONING
+        # (e.g. "- Governance Understanding: 12/25 ...") and sum if present.
+        dim_total = 0
+        dim_max = 0
+        for m in _re.finditer(r'(\d{1,3})\s*/\s*(\d{1,3})', content):
+            n, d = int(m.group(1)), int(m.group(2))
+            if d in (15, 20, 25) and n <= d:  # known dimension caps
+                dim_total += n
+                dim_max += d
+        if dim_max in (95, 100):  # 5 dimensions = 100; allow partial
+            score = round(dim_total * 100 / dim_max)
+            logger.warning(
+                "evaluate_decision: SCORE line missing; recovered from dimension sum (%d/%d -> %d)",
+                dim_total, dim_max, score,
+            )
+    if score is None:
+        score = 50
+        logger.warning("evaluate_decision: SCORE could not be parsed; defaulted to 50")
     score = min(100, max(0, score))
 
     # Extract score reasoning
@@ -680,6 +758,27 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
     vocabulary_misused = _parse_term_list(_extract_section(
         "VOCABULARY_MISUSED:", ["STRENGTHS:"]
     ))
+
+    # Reconcile vocab_score with the invoked/missed/misused evidence. The LLM
+    # frequently returns vocab_score=100 even when invoked=[] (the player used
+    # zero module vocabulary) — sometimes simultaneously listing terms the
+    # player SHOULD have invoked. We override the LLM's headline number based
+    # on what the evidence actually shows. Closes C1+C2 grade-inflation bug.
+    if not vocabulary_invoked:
+        if vocabulary_missed:
+            # Player failed to invoke relevant terms. Floor at the lower of the
+            # LLM's score or 30 — they get partial credit for terms being
+            # identifiable but lose most of it for not using them.
+            vocabulary_score = min(vocabulary_score, 30)
+        elif not vocabulary_misused:
+            # No invoked, no missed, no misused — LLM punted on assessment.
+            # Default to 50 (neutral) rather than trust an unsubstantiated
+            # high score. Also covers the case where no key_terms exist.
+            if vocabulary_score >= 90 or not key_terms:
+                vocabulary_score = 50
+    if vocabulary_misused:
+        # Penalize misuse explicitly (e.g. using a forbidden term).
+        vocabulary_score = max(0, vocabulary_score - 20 * len(vocabulary_misused))
 
     # Calculate metric impacts
     metric_impacts = calculate_metric_impacts(llm, company_data, scenario, decision, score)

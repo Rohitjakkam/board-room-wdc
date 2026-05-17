@@ -1,0 +1,1893 @@
+{
+  "company_name": "Sentinel Industries",
+  "timestamp": "2026-05-17T14:14:14",
+  "model": "gemini-2.0-flash-lite",
+  "total_rounds": 4,
+  "player_role": {
+    "name": "Janet Okafor",
+    "role": "Board Director",
+    "expertise": "Corporate Governance"
+  },
+  "initial_metrics": {
+    "product_defect_rate": {
+      "value": 4.2,
+      "unit": "%",
+      "priority": "high"
+    },
+    "customer_complaints": {
+      "value": 320,
+      "unit": "count",
+      "priority": "high"
+    },
+    "compliance_breaches_ytd": {
+      "value": 7,
+      "unit": "count",
+      "priority": "high"
+    },
+    "regulatory_fine_amount": {
+      "value": 5.0,
+      "unit": "$M",
+      "priority": "high"
+    },
+    "outstanding_lawsuits": {
+      "value": 3,
+      "unit": "count",
+      "priority": "high"
+    },
+    "system_downtime_pct": {
+      "value": 2.8,
+      "unit": "%",
+      "priority": "medium"
+    },
+    "total_penalties_ytd": {
+      "value": 0.85,
+      "unit": "$M",
+      "priority": "medium"
+    },
+    "total_revenue_annual": {
+      "value": 1200,
+      "unit": "$M",
+      "priority": "high"
+    },
+    "employee_engagement_score": {
+      "value": 68,
+      "unit": "%",
+      "priority": "medium"
+    },
+    "on_time_delivery_rate": {
+      "value": 89,
+      "unit": "%",
+      "priority": "medium"
+    },
+    "sec_filing_status": {
+      "value": "Active Review",
+      "unit": "",
+      "priority": "medium"
+    }
+  },
+  "final_metrics": {
+    "product_defect_rate": {
+      "value": 4.2,
+      "unit": "%",
+      "priority": "high"
+    },
+    "customer_complaints": {
+      "value": 320,
+      "unit": "count",
+      "priority": "high"
+    },
+    "compliance_breaches_ytd": {
+      "value": 7,
+      "unit": "count",
+      "priority": "high"
+    },
+    "regulatory_fine_amount": {
+      "value": 5.0,
+      "unit": "$M",
+      "priority": "high"
+    },
+    "outstanding_lawsuits": {
+      "value": 3,
+      "unit": "count",
+      "priority": "high"
+    },
+    "system_downtime_pct": {
+      "value": 2.8,
+      "unit": "%",
+      "priority": "medium"
+    },
+    "total_penalties_ytd": {
+      "value": 0.8,
+      "unit": "$M",
+      "priority": "medium"
+    },
+    "total_revenue_annual": {
+      "value": 1140.0,
+      "unit": "$M",
+      "priority": "high"
+    },
+    "employee_engagement_score": {
+      "value": 63.35,
+      "unit": "%",
+      "priority": "medium"
+    },
+    "on_time_delivery_rate": {
+      "value": 89.0,
+      "unit": "%",
+      "priority": "medium"
+    },
+    "sec_filing_status": {
+      "value": 0,
+      "unit": "",
+      "priority": "medium"
+    }
+  },
+  "initial_goals": [
+    {
+      "category": "General",
+      "metric_key": "product_defect_rate",
+      "name": "Product Defect Rate",
+      "description": "Reduce product defect rate",
+      "current": 4.2,
+      "target": 1.8,
+      "unit": "%",
+      "icon": "\ud83d\udcca",
+      "priority": "high",
+      "lower_is_better": true
+    },
+    {
+      "category": "Customer",
+      "metric_key": "customer_complaints",
+      "name": "Open Customer Complaints",
+      "description": "Reduce open customer complaints",
+      "current": 320.0,
+      "target": 307,
+      "unit": "count",
+      "icon": "\ud83d\ude0a",
+      "priority": "high",
+      "lower_is_better": true
+    },
+    {
+      "category": "Risk",
+      "metric_key": "compliance_breaches_ytd",
+      "name": "Compliance Breaches YTD",
+      "description": "Reduce compliance breaches ytd",
+      "current": 7.0,
+      "target": 5,
+      "unit": "count",
+      "icon": "\ud83d\udee1\ufe0f",
+      "priority": "high",
+      "lower_is_better": true
+    },
+    {
+      "category": "Risk",
+      "metric_key": "regulatory_fine_amount",
+      "name": "Outstanding Regulatory Fine",
+      "description": "Improve outstanding regulatory fine",
+      "current": 5.0,
+      "target": 5.2,
+      "unit": "$M",
+      "icon": "\ud83d\udee1\ufe0f",
+      "priority": "high"
+    },
+    {
+      "category": "General",
+      "metric_key": "outstanding_lawsuits",
+      "name": "Outstanding Lawsuits",
+      "description": "Improve outstanding lawsuits",
+      "current": 3.0,
+      "target": 5,
+      "unit": "count",
+      "icon": "\ud83d\udcca",
+      "priority": "high"
+    },
+    {
+      "category": "Financial",
+      "metric_key": "total_revenue_annual",
+      "name": "Total Revenue",
+      "description": "Improve total revenue",
+      "current": 1200.0,
+      "target": 1248.0,
+      "unit": "$M",
+      "icon": "\ud83d\udcb0",
+      "priority": "high"
+    },
+    {
+      "category": "General",
+      "metric_key": "system_downtime_pct",
+      "name": "System Downtime %",
+      "description": "Improve system downtime %",
+      "current": 2.8,
+      "target": 5.2,
+      "unit": "%",
+      "icon": "\ud83d\udcca",
+      "priority": "medium"
+    },
+    {
+      "category": "General",
+      "metric_key": "total_penalties_ytd",
+      "name": "Total Penalties YTD",
+      "description": "Improve total penalties ytd",
+      "current": 0.85,
+      "target": 0.88,
+      "unit": "$M",
+      "icon": "\ud83d\udcca",
+      "priority": "medium"
+    },
+    {
+      "category": "General",
+      "metric_key": "on_time_delivery_rate",
+      "name": "On-Time Delivery Rate",
+      "description": "Improve on-time delivery rate",
+      "current": 89.0,
+      "target": 91.4,
+      "unit": "%",
+      "icon": "\ud83d\udcca",
+      "priority": "medium"
+    }
+  ],
+  "final_goal_progress": [
+    {
+      "category": "General",
+      "metric_key": "product_defect_rate",
+      "name": "Product Defect Rate",
+      "description": "Reduce product defect rate",
+      "current": 4.2,
+      "target": 1.8,
+      "unit": "%",
+      "icon": "\ud83d\udcca",
+      "priority": "high",
+      "lower_is_better": true,
+      "current_value": 4.2,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "Customer",
+      "metric_key": "customer_complaints",
+      "name": "Open Customer Complaints",
+      "description": "Reduce open customer complaints",
+      "current": 320.0,
+      "target": 307,
+      "unit": "count",
+      "icon": "\ud83d\ude0a",
+      "priority": "high",
+      "lower_is_better": true,
+      "current_value": 320.0,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "Risk",
+      "metric_key": "compliance_breaches_ytd",
+      "name": "Compliance Breaches YTD",
+      "description": "Reduce compliance breaches ytd",
+      "current": 7.0,
+      "target": 5,
+      "unit": "count",
+      "icon": "\ud83d\udee1\ufe0f",
+      "priority": "high",
+      "lower_is_better": true,
+      "current_value": 7.0,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "Risk",
+      "metric_key": "regulatory_fine_amount",
+      "name": "Outstanding Regulatory Fine",
+      "description": "Improve outstanding regulatory fine",
+      "current": 5.0,
+      "target": 5.2,
+      "unit": "$M",
+      "icon": "\ud83d\udee1\ufe0f",
+      "priority": "high",
+      "current_value": 5.0,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "General",
+      "metric_key": "outstanding_lawsuits",
+      "name": "Outstanding Lawsuits",
+      "description": "Improve outstanding lawsuits",
+      "current": 3.0,
+      "target": 5,
+      "unit": "count",
+      "icon": "\ud83d\udcca",
+      "priority": "high",
+      "current_value": 3.0,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "Financial",
+      "metric_key": "total_revenue_annual",
+      "name": "Total Revenue",
+      "description": "Improve total revenue",
+      "current": 1200.0,
+      "target": 1248.0,
+      "unit": "$M",
+      "icon": "\ud83d\udcb0",
+      "priority": "high",
+      "current_value": 1140.0,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "General",
+      "metric_key": "system_downtime_pct",
+      "name": "System Downtime %",
+      "description": "Improve system downtime %",
+      "current": 2.8,
+      "target": 5.2,
+      "unit": "%",
+      "icon": "\ud83d\udcca",
+      "priority": "medium",
+      "current_value": 2.8,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "General",
+      "metric_key": "total_penalties_ytd",
+      "name": "Total Penalties YTD",
+      "description": "Improve total penalties ytd",
+      "current": 0.85,
+      "target": 0.88,
+      "unit": "$M",
+      "icon": "\ud83d\udcca",
+      "priority": "medium",
+      "current_value": 0.8,
+      "progress_pct": 0,
+      "achieved": false
+    },
+    {
+      "category": "General",
+      "metric_key": "on_time_delivery_rate",
+      "name": "On-Time Delivery Rate",
+      "description": "Improve on-time delivery rate",
+      "current": 89.0,
+      "target": 91.4,
+      "unit": "%",
+      "icon": "\ud83d\udcca",
+      "priority": "medium",
+      "current_value": 89.0,
+      "progress_pct": 0,
+      "achieved": false
+    }
+  ],
+  "rounds": [
+    {
+      "round_number": 1,
+      "decision_flavor": "thoughtful_compliant",
+      "force_submitted": false,
+      "metrics_before": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.85,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 68,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": "Active Review",
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "scenario_sections": {
+        "title": "The OSHA Investigation Leak",
+        "situation": "The Sentinel Industries board is meeting in emergency session. The company is reeling from a series of crises, as outlined in the pre-meeting briefing. The most immediate concern is the ongoing OSHA investigation following a serious workplace injury at the Ohio plant. Adding to the stress, an internal email chain has been leaked to the press, revealing internal discussions about potentially downplaying the severity of the injury and the plant's safety record. The leak has already triggered negative media coverage and is likely to intensify scrutiny from OSHA and potentially the Department of Justice. The board is now faced with the immediate challenge of managing the fallout from the leak and determining the appropriate response.",
+        "key_question": "How should the board respond to the leaked internal emails and the resulting media coverage regarding the OSHA investigation?",
+        "stakeholders": "Employees, Shareholders, Regulatory Agencies (OSHA, SEC), Customers, Media, Public",
+        "time_sensitivity": "High",
+        "options_text": "A) Immediately direct Marcus Lee, the Chief Risk Officer, to conduct an internal investigation into the source of the leak and to identify any potential violations of company policy or legal obligations.\nB) Instruct Helen Park, the CEO, to issue a public statement acknowledging the leak, expressing the company's commitment to cooperate fully with OSHA, and emphasizing the company's dedication to employee safety.\nC) Task Priya Raman, the CFO, to assess the financial implications of the leak and potential penalties from OSHA and other regulatory bodies, and to prepare an updated risk assessment for the board.\nD) Recommend that Theodore Vance, Chair of the Audit Committee, engage external legal counsel experienced in OSHA investigations and whistleblower protection to advise the board on the appropriate response and ensure compliance with all relevant regulations.",
+        "raw": "SCENARIO TITLE: The OSHA Investigation Leak\n\nSITUATION:\nThe Sentinel Industries board is meeting in emergency session. The company is reeling from a series of crises, as outlined in the pre-meeting briefing. The most immediate concern is the ongoing OSHA investigation following a serious workplace injury at the Ohio plant. Adding to the stress, an internal email chain has been leaked to the press, revealing internal discussions about potentially downplaying the severity of the injury and the plant's safety record. The leak has already triggered negative media coverage and is likely to intensify scrutiny from OSHA and potentially the Department of Justice. The board is now faced with the immediate challenge of managing the fallout from the leak and determining the appropriate response.\n\nKEY QUESTION:\nHow should the board respond to the leaked internal emails and the resulting media coverage regarding the OSHA investigation?\n\nSTAKEHOLDERS AFFECTED:\nEmployees, Shareholders, Regulatory Agencies (OSHA, SEC), Customers, Media, Public\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Immediately direct Marcus Lee, the Chief Risk Officer, to conduct an internal investigation into the source of the leak and to identify any potential violations of company policy or legal obligations.\nB) Instruct Helen Park, the CEO, to issue a public statement acknowledging the leak, expressing the company's commitment to cooperate fully with OSHA, and emphasizing the company's dedication to employee safety.\nC) Task Priya Raman, the CFO, to assess the financial implications of the leak and potential penalties from OSHA and other regulatory bodies, and to prepare an updated risk assessment for the board.\nD) Recommend that Theodore Vance, Chair of the Audit Committee, engage external legal counsel experienced in OSHA investigations and whistleblower protection to advise the board on the appropriate response and ensure compliance with all relevant regulations.\n"
+      },
+      "options_parsed_count": 4,
+      "chosen_option": {
+        "letter": "A",
+        "text": "Immediately direct Marcus Lee, the Chief Risk Officer, to conduct an internal investigation into the source of the leak and to identify any potential violations of company policy or legal obligations."
+      },
+      "decision_text": "I select Option A: Immediately direct Marcus Lee, the Chief Risk Officer, to conduct an internal investigation into the source of the leak and to identify any potential violations of company policy or legal obligations.\n\nRationale: This action discharges my fiduciary duty by prioritizing full regulatory disclosure and candor with the audit committee. I would (1) engage external counsel to scope the issue, (2) brief Theodore Vance and the Audit Committee within 48 hours, (3) commission an independent investigation under Marcus Lee's oversight, and (4) ensure whistleblower protections are reaffirmed in writing. Material findings will be disclosed promptly per our duty of candor.",
+      "scenario_raw": "SCENARIO TITLE: The OSHA Investigation Leak\n\nSITUATION:\nThe Sentinel Industries board is meeting in emergency session. The company is reeling from a series of crises, as outlined in the pre-meeting briefing. The most immediate concern is the ongoing OSHA investigation following a serious workplace injury at the Ohio plant. Adding to the stress, an internal email chain has been leaked to the press, revealing internal discussions about potentially downplaying the severity of the injury and the plant's safety record. The leak has already triggered negative media coverage and is likely to intensify scrutiny from OSHA and potentially the Department of Justice. The board is now faced with the immediate challenge of managing the fallout from the leak and determining the appropriate response.\n\nKEY QUESTION:\nHow should the board respond to the leaked internal emails and the resulting media coverage regarding the OSHA investigation?\n\nSTAKEHOLDERS AFFECTED:\nEmployees, Shareholders, Regulatory Agencies (OSHA, SEC), Customers, Media, Public\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Immediately direct Marcus Lee, the Chief Risk Officer, to conduct an internal investigation into the source of the leak and to identify any potential violations of company policy or legal obligations.\nB) Instruct Helen Park, the CEO, to issue a public statement acknowledging the leak, expressing the company's commitment to cooperate fully with OSHA, and emphasizing the company's dedication to employee safety.\nC) Task Priya Raman, the CFO, to assess the financial implications of the leak and potential penalties from OSHA and other regulatory bodies, and to prepare an updated risk assessment for the board.\nD) Recommend that Theodore Vance, Chair of the Audit Committee, engage external legal counsel experienced in OSHA investigations and whistleblower protection to advise the board on the appropriate response and ensure compliance with all relevant regulations.\n",
+      "decision_score": 100,
+      "score_reasoning": "- Governance Understanding: 17/25 - The decision correctly identifies the need for an internal investigation, which is a good starting point. However, it lacks depth in outlining the scope of the investigation and doesn't explicitly mention the importance of legal counsel early on. The proposed actions are also somewhat vague.\n- Legal/Regulatory Compliance: 14/20 - The decision acknowledges the need to identify violations of legal obligations, which is good. However, it doesn't explicitly address the potential for SEC violations or the specific requirements of OSHA regarding reporting and record-keeping. The mention of \"whistleblower protections\" is positive.\n- Stakeholder Consideration: 15/20 - The decision indirectly considers stakeholders by focusing on the investigation. However, it doesn't explicitly address the immediate communication needs of employees, customers, or the public. A more proactive approach to stakeholder management is needed.\n- Strategic Thinking: 12/20 - While the decision initiates an investigation, it lacks a broader strategic perspective. It doesn't integrate a communication strategy or consider the reputational damage and legal ramifications of the leak. It's missing a proactive risk mitigation plan.\n- Role Alignment: 10/15 - The decision aligns with the role by directing an investigation through the CRO. However, it could be strengthened by explicitly mentioning the need for board oversight and the involvement of the Audit Committee. The proposed actions are framed as a governance pathway, which is good.\n\nTotal: 68/100\n\nMODULE_VOCABULARY_SCORE: 75\n\nVOCABULARY_INVOKED: Fiduciary Duty, Whistleblower Protection, Duty of Candor\n\nVOCABULARY_MISSED: Material Misstatement\n\nVOCABULARY_MISUSED: []",
+      "vocabulary_score": 75,
+      "vocabulary_invoked": [
+        "Fiduciary Duty",
+        "Whistleblower Protection",
+        "Duty of Candor"
+      ],
+      "metric_impacts_raw": {
+        "impacts": {
+          "product_defect_rate": 0.0,
+          "customer_complaints": 0.0,
+          "compliance_breaches_ytd": 0.0,
+          "regulatory_fine_amount": 0.0,
+          "outstanding_lawsuits": 0.0,
+          "system_downtime_pct": 0.0,
+          "total_penalties_ytd": 0.0,
+          "total_revenue_annual": 0.0,
+          "employee_engagement_score": -1.0,
+          "on_time_delivery_rate": 0.0,
+          "sec_filing_status": 0.0
+        },
+        "reasons": {
+          "product_defect_rate": "No direct impact from an internal investigation.",
+          "customer_complaints": "No direct impact from an internal investigation.",
+          "compliance_breaches_ytd": "No immediate impact, but findings could reveal additional breaches.",
+          "regulatory_fine_amount": "No immediate impact, but findings could increase future fines.",
+          "outstanding_lawsuits": "No direct impact from an internal investigation.",
+          "system_downtime_pct": "No direct impact from an internal investigation.",
+          "total_penalties_ytd": "No immediate impact, but findings could increase future penalties.",
+          "total_revenue_annual": "No direct impact from an internal investigation.",
+          "employee_engagement_score": "Internal investigations can create uncertainty and mistrust, slightly lowering employee engagement.",
+          "on_time_delivery_rate": "No direct impact from an internal investigation.",
+          "sec_filing_status": "No immediate impact, but findings could affect future filings."
+        },
+        "summary": "This decision focuses on internal fact-finding and doesn't directly address the external fallout. The primary impact is a potential slight decrease in employee engagement due to the uncertainty created by the investigation. While it doesn't immediately improve any metrics, it is a necessary first step to understand the situation and potentially mitigate future negative impacts."
+      },
+      "bias_stats_raw": {
+        "eligible_metrics": 10,
+        "zero_impacts": 9,
+        "zero_pct": 90.0,
+        "positive_impacts": 0,
+        "negative_impacts": 1,
+        "good_direction": 0,
+        "bad_direction": 1,
+        "nonzero_mean": -1.0,
+        "nonzero_stdev": 0,
+        "nonzero_abs_mean": 1.0,
+        "nonzero_max_abs": 1.0
+      },
+      "stance_counts": {
+        "APPROVE": 3,
+        "OPPOSE": 1,
+        "NEUTRAL": 0,
+        "CONVINCED": 0
+      },
+      "board_effectiveness": {
+        "round_number": 1,
+        "consultation_alignment_score": 50.0,
+        "members_initially_approving": 3,
+        "members_initially_opposing": 1,
+        "members_convinced": 0,
+        "total_debate_exchanges": 0,
+        "force_submitted": false,
+        "deliberation_score": 51.2,
+        "score_breakdown": {
+          "initial_approval": 18.8,
+          "consultation": 12.5,
+          "debate_effectiveness": 0.0,
+          "efficiency": 20
+        }
+      },
+      "metric_movements": [
+        {
+          "metric": "product_defect_rate",
+          "unit": "%",
+          "priority": "high",
+          "value_before": 4.2,
+          "value_after": 4.2,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact from an internal investigation."
+        },
+        {
+          "metric": "customer_complaints",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 320,
+          "value_after": 320,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact from an internal investigation."
+        },
+        {
+          "metric": "compliance_breaches_ytd",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 7,
+          "value_after": 7,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No immediate impact, but findings could reveal additional breaches."
+        },
+        {
+          "metric": "regulatory_fine_amount",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 5.0,
+          "value_after": 5.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.25,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No immediate impact, but findings could increase future fines."
+        },
+        {
+          "metric": "outstanding_lawsuits",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 3,
+          "value_after": 3,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from an internal investigation."
+        },
+        {
+          "metric": "system_downtime_pct",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 2.8,
+          "value_after": 2.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from an internal investigation."
+        },
+        {
+          "metric": "total_penalties_ytd",
+          "unit": "$M",
+          "priority": "medium",
+          "value_before": 0.85,
+          "value_after": 0.8,
+          "proposed_change": 0.0,
+          "applied_change": -0.04999999999999993,
+          "expected_cap": 0.0425,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No immediate impact, but findings could increase future penalties."
+        },
+        {
+          "metric": "total_revenue_annual",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 1200,
+          "value_after": 1200.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 60.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from an internal investigation."
+        },
+        {
+          "metric": "employee_engagement_score",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 68,
+          "value_after": 67.0,
+          "proposed_change": -1.0,
+          "applied_change": -1.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "Internal investigations can create uncertainty and mistrust, slightly lowering employee engagement."
+        },
+        {
+          "metric": "on_time_delivery_rate",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 89,
+          "value_after": 89.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from an internal investigation."
+        },
+        {
+          "metric": "sec_filing_status",
+          "unit": "",
+          "priority": "medium",
+          "value_before": "Active Review",
+          "value_after": 0,
+          "proposed_change": 0.0,
+          "applied_change": null,
+          "expected_cap": null,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": true,
+          "reason": "No immediate impact, but findings could affect future filings."
+        }
+      ],
+      "metrics_after": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 67.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "captured_warnings": [],
+      "round_metric_score": {
+        "normalized_score": 48.585972850678736,
+        "improvements": 0,
+        "declines": 2
+      },
+      "composite_round_score": {
+        "composite": 79.57579185520362,
+        "decision_component": 50.0,
+        "vocab_component": 15.0,
+        "metric_component": 14.57579185520362
+      }
+    },
+    {
+      "round_number": 2,
+      "decision_flavor": "destructive_cover_up",
+      "force_submitted": false,
+      "metrics_before": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 67.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "scenario_sections": {
+        "title": "The Distributor Lawsuit Escalation",
+        "situation": "The internal investigation into the OSHA leak, initiated last round, has concluded with no definitive source identified. However, the legal and operational pressures on Sentinel Industries have intensified. Three distributor lawsuits, alleging breach of contract, are now gaining significant traction. One lawsuit, in particular, has uncovered internal emails suggesting that Sentinel knowingly shipped defective products to the distributor, potentially exacerbating the breach of contract claims and opening the company up to punitive damages. This information, if proven true, could significantly damage the company's reputation and financial stability. The CFO, Priya Raman, is particularly concerned about the potential impact on quarterly earnings. The CEO, Helen Park, is focused on damage control.",
+        "key_question": "How should the board approach oversight of the escalating distributor lawsuits, given the potential for significant financial and reputational damage?",
+        "stakeholders": "Shareholders, Distributors, Employees, Customers, Regulatory Agencies",
+        "time_sensitivity": "High",
+        "options_text": "A) Direct Theodore Vance, the Chair of the Audit Committee, to immediately engage outside counsel to conduct a comprehensive review of the ongoing lawsuits, including the internal emails. This should focus on assessing the company's potential legal exposure and developing a robust litigation strategy.\nB) Instruct Marcus Lee, the Chief Risk Officer, to initiate a separate internal investigation into the claims made in the distributor lawsuits, focusing on the quality control processes and the decisions regarding product shipments. This would be in addition to the work of external counsel.\nC) Task Helen Park, the CEO, to personally reach out to the lead plaintiff in the most damaging lawsuit, attempting to negotiate a confidential settlement to mitigate reputational damage and financial risk before the discovery process uncovers more damaging evidence.\nD) Request Priya Raman, the CFO, to prepare a detailed financial analysis of the potential costs associated with all three distributor lawsuits, including legal fees, settlements, and potential impact on earnings, to inform the board's decision-making process.",
+        "raw": "SCENARIO TITLE: The Distributor Lawsuit Escalation\n\nSITUATION: The internal investigation into the OSHA leak, initiated last round, has concluded with no definitive source identified. However, the legal and operational pressures on Sentinel Industries have intensified. Three distributor lawsuits, alleging breach of contract, are now gaining significant traction. One lawsuit, in particular, has uncovered internal emails suggesting that Sentinel knowingly shipped defective products to the distributor, potentially exacerbating the breach of contract claims and opening the company up to punitive damages. This information, if proven true, could significantly damage the company's reputation and financial stability. The CFO, Priya Raman, is particularly concerned about the potential impact on quarterly earnings. The CEO, Helen Park, is focused on damage control.\n\nKEY QUESTION: How should the board approach oversight of the escalating distributor lawsuits, given the potential for significant financial and reputational damage?\n\nSTAKEHOLDERS AFFECTED: Shareholders, Distributors, Employees, Customers, Regulatory Agencies\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Direct Theodore Vance, the Chair of the Audit Committee, to immediately engage outside counsel to conduct a comprehensive review of the ongoing lawsuits, including the internal emails. This should focus on assessing the company's potential legal exposure and developing a robust litigation strategy.\nB) Instruct Marcus Lee, the Chief Risk Officer, to initiate a separate internal investigation into the claims made in the distributor lawsuits, focusing on the quality control processes and the decisions regarding product shipments. This would be in addition to the work of external counsel.\nC) Task Helen Park, the CEO, to personally reach out to the lead plaintiff in the most damaging lawsuit, attempting to negotiate a confidential settlement to mitigate reputational damage and financial risk before the discovery process uncovers more damaging evidence.\nD) Request Priya Raman, the CFO, to prepare a detailed financial analysis of the potential costs associated with all three distributor lawsuits, including legal fees, settlements, and potential impact on earnings, to inform the board's decision-making process.\n"
+      },
+      "options_parsed_count": 4,
+      "chosen_option": {
+        "letter": "A",
+        "text": "Direct Theodore Vance, the Chair of the Audit Committee, to immediately engage outside counsel to conduct a comprehensive review of the ongoing lawsuits, including the internal emails. This should focus on assessing the company's potential legal exposure and developing a robust litigation strategy."
+      },
+      "decision_text": "I select Option A: Direct Theodore Vance, the Chair of the Audit Committee, to immediately engage outside counsel to conduct a comprehensive review of the ongoing lawsuits, including the internal emails. This should focus on assessing the company's potential legal exposure and developing a robust litigation strategy.\n\nRationale: We should deny the allegations publicly, instruct the legal team to delay all document production, intimidate the whistleblower into retracting their report, and avoid any voluntary disclosure to the SEC or OSHA. We will redirect press inquiries with a categorical denial and terminate the whistleblower for unrelated performance reasons. The fines are manageable and litigation can be drawn out for years.",
+      "scenario_raw": "SCENARIO TITLE: The Distributor Lawsuit Escalation\n\nSITUATION: The internal investigation into the OSHA leak, initiated last round, has concluded with no definitive source identified. However, the legal and operational pressures on Sentinel Industries have intensified. Three distributor lawsuits, alleging breach of contract, are now gaining significant traction. One lawsuit, in particular, has uncovered internal emails suggesting that Sentinel knowingly shipped defective products to the distributor, potentially exacerbating the breach of contract claims and opening the company up to punitive damages. This information, if proven true, could significantly damage the company's reputation and financial stability. The CFO, Priya Raman, is particularly concerned about the potential impact on quarterly earnings. The CEO, Helen Park, is focused on damage control.\n\nKEY QUESTION: How should the board approach oversight of the escalating distributor lawsuits, given the potential for significant financial and reputational damage?\n\nSTAKEHOLDERS AFFECTED: Shareholders, Distributors, Employees, Customers, Regulatory Agencies\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Direct Theodore Vance, the Chair of the Audit Committee, to immediately engage outside counsel to conduct a comprehensive review of the ongoing lawsuits, including the internal emails. This should focus on assessing the company's potential legal exposure and developing a robust litigation strategy.\nB) Instruct Marcus Lee, the Chief Risk Officer, to initiate a separate internal investigation into the claims made in the distributor lawsuits, focusing on the quality control processes and the decisions regarding product shipments. This would be in addition to the work of external counsel.\nC) Task Helen Park, the CEO, to personally reach out to the lead plaintiff in the most damaging lawsuit, attempting to negotiate a confidential settlement to mitigate reputational damage and financial risk before the discovery process uncovers more damaging evidence.\nD) Request Priya Raman, the CFO, to prepare a detailed financial analysis of the potential costs associated with all three distributor lawsuits, including legal fees, settlements, and potential impact on earnings, to inform the board's decision-making process.\n",
+      "decision_score": 100,
+      "score_reasoning": "- Governance Understanding: 0/25 - The rationale demonstrates a complete disregard for fiduciary duty and a blatant intent to engage in illegal and unethical behavior. The decision actively seeks to obstruct justice, protect the company at the expense of stakeholders, and avoid regulatory compliance.\n- Legal/Regulatory Compliance: 0/20 - The decision explicitly plans to violate multiple laws, including potential obstruction of justice, retaliation against a whistleblower, and failure to disclose material information.\n- Stakeholder Consideration: 0/20 - The decision prioritizes the company's interests above all others, actively harming shareholders, distributors, employees, and potentially customers. It ignores the needs and rights of all stakeholders.\n- Strategic Thinking: 0/20 - The decision shows no strategic thinking. It focuses on short-term damage control through illegal means, which will inevitably lead to far greater long-term reputational and financial damage. It ignores the broader context of the converging pressures the company faces.\n- Role Alignment: 5/15 - The decision, in its direct instructions, is within the player's role as a board director. However, the rationale provided is so egregiously unethical and illegal that it fundamentally undermines the role's purpose.\n\nTotal: 5/100\n\nMODULE_VOCABULARY_SCORE: 0/100\n\nVOCABULARY_INVOKED: []\n\nVOCABULARY_MISSED: [Fiduciary Duty, Duty of Candor, Whistleblower Protection, Material Misstatement]\n\nVOCABULARY_MISUSED: []",
+      "vocabulary_score": 100,
+      "vocabulary_invoked": [],
+      "metric_impacts_raw": {
+        "impacts": {
+          "product_defect_rate": 0.0,
+          "customer_complaints": 0.0,
+          "compliance_breaches_ytd": 0.0,
+          "regulatory_fine_amount": 0.0,
+          "outstanding_lawsuits": 0.0,
+          "system_downtime_pct": 0.0,
+          "total_penalties_ytd": 0.0,
+          "total_revenue_annual": 0.0,
+          "employee_engagement_score": -2.0,
+          "on_time_delivery_rate": 0.0,
+          "sec_filing_status": 0.0
+        },
+        "reasons": {
+          "product_defect_rate": "No direct impact from the decision.",
+          "customer_complaints": "No direct impact from the decision.",
+          "compliance_breaches_ytd": "No direct impact from the decision.",
+          "regulatory_fine_amount": "No direct impact from the decision.",
+          "outstanding_lawsuits": "The decision focuses on legal strategy, but the number of lawsuits remains unchanged for now.",
+          "system_downtime_pct": "No direct impact from the decision.",
+          "total_penalties_ytd": "No direct impact from the decision.",
+          "total_revenue_annual": "No direct impact from the decision.",
+          "employee_engagement_score": "The decision's actions to deny allegations, intimidate a whistleblower, and terminate them is likely to negatively impact employee morale and trust in leadership.",
+          "on_time_delivery_rate": "No direct impact from the decision.",
+          "sec_filing_status": "No direct impact from the decision."
+        },
+        "summary": "This decision prioritizes legal maneuvering and damage control over addressing the root causes of the distributor lawsuits. While it may provide short-term protection from immediate financial impacts, it risks harming employee morale and potentially exacerbating the underlying issues by attempting to suppress information and avoid transparency. The long-term consequences could include reputational damage and increased legal costs if the lawsuits are not resolved favorably."
+      },
+      "bias_stats_raw": {
+        "eligible_metrics": 11,
+        "zero_impacts": 10,
+        "zero_pct": 90.9090909090909,
+        "positive_impacts": 0,
+        "negative_impacts": 1,
+        "good_direction": 0,
+        "bad_direction": 1,
+        "nonzero_mean": -2.0,
+        "nonzero_stdev": 0,
+        "nonzero_abs_mean": 2.0,
+        "nonzero_max_abs": 2.0
+      },
+      "stance_counts": {
+        "APPROVE": 0,
+        "OPPOSE": 4,
+        "NEUTRAL": 0,
+        "CONVINCED": 0
+      },
+      "board_effectiveness": {
+        "round_number": 2,
+        "consultation_alignment_score": 50.0,
+        "members_initially_approving": 0,
+        "members_initially_opposing": 4,
+        "members_convinced": 0,
+        "total_debate_exchanges": 0,
+        "force_submitted": false,
+        "deliberation_score": 32.5,
+        "score_breakdown": {
+          "initial_approval": 0.0,
+          "consultation": 12.5,
+          "debate_effectiveness": 0.0,
+          "efficiency": 20
+        }
+      },
+      "metric_movements": [
+        {
+          "metric": "product_defect_rate",
+          "unit": "%",
+          "priority": "high",
+          "value_before": 4.2,
+          "value_after": 4.2,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "customer_complaints",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 320,
+          "value_after": 320,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "compliance_breaches_ytd",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 7,
+          "value_after": 7,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "regulatory_fine_amount",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 5.0,
+          "value_after": 5.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.25,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "outstanding_lawsuits",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 3,
+          "value_after": 3,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "The decision focuses on legal strategy, but the number of lawsuits remains unchanged for now."
+        },
+        {
+          "metric": "system_downtime_pct",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 2.8,
+          "value_after": 2.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "total_penalties_ytd",
+          "unit": "$M",
+          "priority": "medium",
+          "value_before": 0.8,
+          "value_after": 0.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.04000000000000001,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "total_revenue_annual",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 1200.0,
+          "value_after": 1200.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 60.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "employee_engagement_score",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 67.0,
+          "value_after": 65.0,
+          "proposed_change": -2.0,
+          "applied_change": -2.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "The decision's actions to deny allegations, intimidate a whistleblower, and terminate them is likely to negatively impact employee morale and trust in leadership."
+        },
+        {
+          "metric": "on_time_delivery_rate",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 89.0,
+          "value_after": 89.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        },
+        {
+          "metric": "sec_filing_status",
+          "unit": "",
+          "priority": "medium",
+          "value_before": 0,
+          "value_after": 0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": null,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from the decision."
+        }
+      ],
+      "metrics_after": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 65.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "captured_warnings": [],
+      "round_metric_score": {
+        "normalized_score": 49.46695095948827,
+        "improvements": 0,
+        "declines": 1
+      },
+      "composite_round_score": {
+        "composite": 84.84008528784648,
+        "decision_component": 50.0,
+        "vocab_component": 20.0,
+        "metric_component": 14.840085287846481
+      }
+    },
+    {
+      "round_number": 3,
+      "decision_flavor": "baseline",
+      "force_submitted": false,
+      "metrics_before": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 65.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "scenario_sections": {
+        "title": "The Whistleblower\u2019s Revelation",
+        "situation": "The internal investigation into the OSHA leak, initiated in Round 1, has concluded. Marcus Lee, the Chief Risk Officer, presented his findings, revealing that the leak originated from an anonymous email sent by a plant employee to OSHA. However, the report also uncovered a pattern of potential retaliation against the employee, including a demotion and a reassignment to less desirable tasks shortly after the OSHA investigation began. Furthermore, the employee's legal counsel has contacted the company, alleging that the demotion and reassignment were retaliatory actions due to the employee's whistleblowing activities. This coincides with the mounting pressure from the distributor lawsuits and product defects, placing the company in an increasingly precarious position.",
+        "key_question": "How should the Board respond to the allegations of whistleblower retaliation and the employee\u2019s legal claims?",
+        "stakeholders": "The employee, Sentinel Industries, Employees, Shareholders, Legal Counsel, Regulatory Agencies",
+        "time_sensitivity": "High",
+        "options_text": "A) Direct Marcus Lee to immediately initiate a new, independent investigation into the allegations of retaliation, focusing on the specific claims made by the employee's legal counsel, and to ensure full cooperation with the employee's legal counsel.\nB) Instruct Helen Park, the CEO, to issue a public statement affirming the company's commitment to protecting whistleblowers and transparency.\nC) Direct Priya Raman, the CFO, to estimate the potential financial impact of a settlement with the employee, including legal fees and potential damages, and to prepare for a potential increase in the legal reserve.\nD) Instruct Theodore Vance, the Chair of the Audit Committee, to work with outside counsel to prepare for the possibility of a legal challenge, including the potential for a deposition of the CEO.",
+        "raw": "SCENARIO TITLE: The Whistleblower\u2019s Revelation\n\nSITUATION: The internal investigation into the OSHA leak, initiated in Round 1, has concluded. Marcus Lee, the Chief Risk Officer, presented his findings, revealing that the leak originated from an anonymous email sent by a plant employee to OSHA. However, the report also uncovered a pattern of potential retaliation against the employee, including a demotion and a reassignment to less desirable tasks shortly after the OSHA investigation began. Furthermore, the employee's legal counsel has contacted the company, alleging that the demotion and reassignment were retaliatory actions due to the employee's whistleblowing activities. This coincides with the mounting pressure from the distributor lawsuits and product defects, placing the company in an increasingly precarious position.\n\nKEY QUESTION: How should the Board respond to the allegations of whistleblower retaliation and the employee\u2019s legal claims?\n\nSTAKEHOLDERS AFFECTED: The employee, Sentinel Industries, Employees, Shareholders, Legal Counsel, Regulatory Agencies\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Direct Marcus Lee to immediately initiate a new, independent investigation into the allegations of retaliation, focusing on the specific claims made by the employee's legal counsel, and to ensure full cooperation with the employee's legal counsel.\nB) Instruct Helen Park, the CEO, to issue a public statement affirming the company's commitment to protecting whistleblowers and transparency.\nC) Direct Priya Raman, the CFO, to estimate the potential financial impact of a settlement with the employee, including legal fees and potential damages, and to prepare for a potential increase in the legal reserve.\nD) Instruct Theodore Vance, the Chair of the Audit Committee, to work with outside counsel to prepare for the possibility of a legal challenge, including the potential for a deposition of the CEO.\n"
+      },
+      "options_parsed_count": 4,
+      "chosen_option": {
+        "letter": "A",
+        "text": "Direct Marcus Lee to immediately initiate a new, independent investigation into the allegations of retaliation, focusing on the specific claims made by the employee's legal counsel, and to ensure full cooperation with the employee's legal counsel."
+      },
+      "decision_text": "I'll go with Option A: Direct Marcus Lee to immediately initiate a new, independent investigation into the allegations of retaliation, focusing on the specific claims made by the employee's legal counsel, and to ensure full cooperation with the employee's legal counsel.",
+      "scenario_raw": "SCENARIO TITLE: The Whistleblower\u2019s Revelation\n\nSITUATION: The internal investigation into the OSHA leak, initiated in Round 1, has concluded. Marcus Lee, the Chief Risk Officer, presented his findings, revealing that the leak originated from an anonymous email sent by a plant employee to OSHA. However, the report also uncovered a pattern of potential retaliation against the employee, including a demotion and a reassignment to less desirable tasks shortly after the OSHA investigation began. Furthermore, the employee's legal counsel has contacted the company, alleging that the demotion and reassignment were retaliatory actions due to the employee's whistleblowing activities. This coincides with the mounting pressure from the distributor lawsuits and product defects, placing the company in an increasingly precarious position.\n\nKEY QUESTION: How should the Board respond to the allegations of whistleblower retaliation and the employee\u2019s legal claims?\n\nSTAKEHOLDERS AFFECTED: The employee, Sentinel Industries, Employees, Shareholders, Legal Counsel, Regulatory Agencies\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Direct Marcus Lee to immediately initiate a new, independent investigation into the allegations of retaliation, focusing on the specific claims made by the employee's legal counsel, and to ensure full cooperation with the employee's legal counsel.\nB) Instruct Helen Park, the CEO, to issue a public statement affirming the company's commitment to protecting whistleblowers and transparency.\nC) Direct Priya Raman, the CFO, to estimate the potential financial impact of a settlement with the employee, including legal fees and potential damages, and to prepare for a potential increase in the legal reserve.\nD) Instruct Theodore Vance, the Chair of the Audit Committee, to work with outside counsel to prepare for the possibility of a legal challenge, including the potential for a deposition of the CEO.\n",
+      "decision_score": 78,
+      "score_reasoning": "- Governance Understanding: 20/25 - The decision correctly identifies the need for an independent investigation, which is a key aspect of good governance in this situation. It also implicitly acknowledges the need to uphold the *Whistleblower Protection* laws.\n- Legal/Regulatory Compliance: 18/20 - The decision is compliant with the need to investigate allegations of retaliation, which is a legal requirement. It correctly addresses the legal claims and potential for litigation.\n- Stakeholder Consideration: 16/20 - The decision focuses on the employee and the company, but it could have explicitly considered the broader implications for other employees and shareholders.\n- Strategic Thinking: 15/20 - While the decision addresses the immediate issue, it lacks a broader strategic perspective. It doesn't consider the impact on the company's reputation or the need for a comprehensive communication strategy.\n- Role Alignment: 9/15 - The decision aligns with the role of a Board Director by initiating an investigation. However, it could be improved by including a governance pathway like \"subject to Audit Committee oversight\" or \"reporting back to the board.\"\n\nTotal: 78/100\n\nMODULE_VOCABULARY_SCORE: 75\n\nVOCABULARY_INVOKED: Whistleblower Protection\n\nVOCABULARY_MISSED: Fiduciary Duty, Duty of Candor, Material Misstatement\n\nVOCABULARY_MISUSED: []",
+      "vocabulary_score": 75,
+      "vocabulary_invoked": [
+        "Whistleblower Protection"
+      ],
+      "metric_impacts_raw": {
+        "impacts": {
+          "product_defect_rate": 0.0,
+          "customer_complaints": 0.0,
+          "compliance_breaches_ytd": 0.0,
+          "regulatory_fine_amount": 0.0,
+          "outstanding_lawsuits": 0.0,
+          "system_downtime_pct": 0.0,
+          "total_penalties_ytd": 0.0,
+          "total_revenue_annual": 0.0,
+          "employee_engagement_score": 1.0,
+          "on_time_delivery_rate": 0.0,
+          "sec_filing_status": 0.0
+        },
+        "reasons": {
+          "product_defect_rate": "No direct impact.",
+          "customer_complaints": "No direct impact.",
+          "compliance_breaches_ytd": "No direct impact.",
+          "regulatory_fine_amount": "No direct impact.",
+          "outstanding_lawsuits": "No direct impact.",
+          "system_downtime_pct": "No direct impact.",
+          "total_penalties_ytd": "No direct impact.",
+          "total_revenue_annual": "No direct impact.",
+          "employee_engagement_score": "A new, independent investigation, if handled well, could show a commitment to fairness and potentially improve employee trust, leading to a slight increase.",
+          "on_time_delivery_rate": "No direct impact.",
+          "sec_filing_status": "No direct impact."
+        },
+        "summary": "This decision focuses on addressing the whistleblower retaliation allegations by initiating an independent investigation. While the immediate impact is limited, a well-executed investigation could improve employee engagement by demonstrating a commitment to ethical conduct and fairness. The primary goal is to address the core problem of potential retaliation and its associated legal and reputational risks."
+      },
+      "bias_stats_raw": {
+        "eligible_metrics": 11,
+        "zero_impacts": 10,
+        "zero_pct": 90.9090909090909,
+        "positive_impacts": 1,
+        "negative_impacts": 0,
+        "good_direction": 1,
+        "bad_direction": 0,
+        "nonzero_mean": 1.0,
+        "nonzero_stdev": 0,
+        "nonzero_abs_mean": 1.0,
+        "nonzero_max_abs": 1.0
+      },
+      "stance_counts": {
+        "APPROVE": 4,
+        "OPPOSE": 0,
+        "NEUTRAL": 0,
+        "CONVINCED": 0
+      },
+      "board_effectiveness": {
+        "round_number": 3,
+        "consultation_alignment_score": 50.0,
+        "members_initially_approving": 4,
+        "members_initially_opposing": 0,
+        "members_convinced": 0,
+        "total_debate_exchanges": 0,
+        "force_submitted": false,
+        "deliberation_score": 87.5,
+        "score_breakdown": {
+          "initial_approval": 25.0,
+          "consultation": 12.5,
+          "debate_effectiveness": 30,
+          "efficiency": 20
+        }
+      },
+      "metric_movements": [
+        {
+          "metric": "product_defect_rate",
+          "unit": "%",
+          "priority": "high",
+          "value_before": 4.2,
+          "value_after": 4.2,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "customer_complaints",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 320,
+          "value_after": 320,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "compliance_breaches_ytd",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 7,
+          "value_after": 7,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "regulatory_fine_amount",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 5.0,
+          "value_after": 5.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.25,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "outstanding_lawsuits",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 3,
+          "value_after": 3,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "system_downtime_pct",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 2.8,
+          "value_after": 2.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "total_penalties_ytd",
+          "unit": "$M",
+          "priority": "medium",
+          "value_before": 0.8,
+          "value_after": 0.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.04000000000000001,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "total_revenue_annual",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 1200.0,
+          "value_after": 1200.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 60.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "employee_engagement_score",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 65.0,
+          "value_after": 66.0,
+          "proposed_change": 1.0,
+          "applied_change": 1.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "A new, independent investigation, if handled well, could show a commitment to fairness and potentially improve employee trust, leading to a slight increase."
+        },
+        {
+          "metric": "on_time_delivery_rate",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 89.0,
+          "value_after": 89.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        },
+        {
+          "metric": "sec_filing_status",
+          "unit": "",
+          "priority": "medium",
+          "value_before": 0,
+          "value_after": 0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": null,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact."
+        }
+      ],
+      "metrics_after": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 66.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "captured_warnings": [],
+      "round_metric_score": {
+        "normalized_score": 50.27472527472528,
+        "improvements": 1,
+        "declines": 0
+      },
+      "composite_round_score": {
+        "composite": 69.08241758241758,
+        "decision_component": 39.0,
+        "vocab_component": 15.0,
+        "metric_component": 15.082417582417582
+      }
+    },
+    {
+      "round_number": 4,
+      "decision_flavor": "lazy_late",
+      "force_submitted": true,
+      "metrics_before": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1200.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 66.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "scenario_sections": {
+        "title": "Leaks and Lies: The Public Relations Crisis",
+        "situation": "The internal investigation into the OSHA leak from Round 1, compounded by the whistleblower allegations from Round 3, has taken a dramatic turn. A local news outlet published a story this morning alleging a cover-up of workplace safety violations at Sentinel Industries' primary manufacturing plant. The article cites internal documents, some of which appear to have been altered, and interviews with anonymous former employees who claim that the company actively discouraged reporting of injuries to avoid triggering OSHA inspections. The story further alleges that the company's legal counsel, engaged in Round 2, was aware of these practices and actively participated in suppressing information. The company's stock price is down 8% in pre-market trading, and the media storm is intensifying. The SEC inquiry announced in Round 1 has also been accelerated.",
+        "key_question": "How should the Board respond to this escalating public relations and legal crisis, given the prior internal investigations and the potential for a formal SEC investigation?",
+        "stakeholders": "Shareholders, Employees, Customers, Regulatory Agencies (OSHA, SEC), Media, Public",
+        "time_sensitivity": "High",
+        "options_text": "A) Direct Helen Park, the CEO, to immediately issue a public statement acknowledging the allegations, promising a full and transparent investigation, and outlining the steps the company is taking to ensure employee safety and ethical conduct. Publicly state that the company will cooperate fully with the SEC.\nB) Instruct Priya Raman, the CFO, to prepare a detailed financial analysis of the potential costs associated with the allegations, including legal fees, fines, and potential settlements, and to proactively engage with the company's financial advisors to explore contingency plans, including a possible stock buyback program.\nC) Task Marcus Lee, the Chief Risk Officer, to immediately retain an independent public relations firm to manage the media response and to coordinate with the company\u2019s legal counsel to assess the accuracy of the leaked documents and the potential legal ramifications, including the risk of SEC enforcement action.\nD) Confrontation and blame: Direct Theodore Vance, the Chair of the Audit Committee, to immediately launch an internal investigation, focusing on the actions of the legal counsel. Inform the legal counsel to prepare for the inevitable SEC investigation.",
+        "raw": "SCENARIO TITLE: Leaks and Lies: The Public Relations Crisis\n\nSITUATION: The internal investigation into the OSHA leak from Round 1, compounded by the whistleblower allegations from Round 3, has taken a dramatic turn. A local news outlet published a story this morning alleging a cover-up of workplace safety violations at Sentinel Industries' primary manufacturing plant. The article cites internal documents, some of which appear to have been altered, and interviews with anonymous former employees who claim that the company actively discouraged reporting of injuries to avoid triggering OSHA inspections. The story further alleges that the company's legal counsel, engaged in Round 2, was aware of these practices and actively participated in suppressing information. The company's stock price is down 8% in pre-market trading, and the media storm is intensifying. The SEC inquiry announced in Round 1 has also been accelerated.\n\nKEY QUESTION: How should the Board respond to this escalating public relations and legal crisis, given the prior internal investigations and the potential for a formal SEC investigation?\n\nSTAKEHOLDERS AFFECTED: Shareholders, Employees, Customers, Regulatory Agencies (OSHA, SEC), Media, Public\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Direct Helen Park, the CEO, to immediately issue a public statement acknowledging the allegations, promising a full and transparent investigation, and outlining the steps the company is taking to ensure employee safety and ethical conduct. Publicly state that the company will cooperate fully with the SEC.\nB) Instruct Priya Raman, the CFO, to prepare a detailed financial analysis of the potential costs associated with the allegations, including legal fees, fines, and potential settlements, and to proactively engage with the company's financial advisors to explore contingency plans, including a possible stock buyback program.\nC) Task Marcus Lee, the Chief Risk Officer, to immediately retain an independent public relations firm to manage the media response and to coordinate with the company\u2019s legal counsel to assess the accuracy of the leaked documents and the potential legal ramifications, including the risk of SEC enforcement action.\nD) Confrontation and blame: Direct Theodore Vance, the Chair of the Audit Committee, to immediately launch an internal investigation, focusing on the actions of the legal counsel. Inform the legal counsel to prepare for the inevitable SEC investigation.\n"
+      },
+      "options_parsed_count": 4,
+      "chosen_option": {
+        "letter": "A",
+        "text": "Direct Helen Park, the CEO, to immediately issue a public statement acknowledging the allegations, promising a full and transparent investigation, and outlining the steps the company is taking to ensure employee safety and ethical conduct. Publicly state that the company will cooperate fully with the SEC."
+      },
+      "decision_text": "Let's table this and revisit at the next quarterly meeting.",
+      "scenario_raw": "SCENARIO TITLE: Leaks and Lies: The Public Relations Crisis\n\nSITUATION: The internal investigation into the OSHA leak from Round 1, compounded by the whistleblower allegations from Round 3, has taken a dramatic turn. A local news outlet published a story this morning alleging a cover-up of workplace safety violations at Sentinel Industries' primary manufacturing plant. The article cites internal documents, some of which appear to have been altered, and interviews with anonymous former employees who claim that the company actively discouraged reporting of injuries to avoid triggering OSHA inspections. The story further alleges that the company's legal counsel, engaged in Round 2, was aware of these practices and actively participated in suppressing information. The company's stock price is down 8% in pre-market trading, and the media storm is intensifying. The SEC inquiry announced in Round 1 has also been accelerated.\n\nKEY QUESTION: How should the Board respond to this escalating public relations and legal crisis, given the prior internal investigations and the potential for a formal SEC investigation?\n\nSTAKEHOLDERS AFFECTED: Shareholders, Employees, Customers, Regulatory Agencies (OSHA, SEC), Media, Public\n\nTIME SENSITIVITY: High\n\nOPTIONS TO CONSIDER:\nA) Direct Helen Park, the CEO, to immediately issue a public statement acknowledging the allegations, promising a full and transparent investigation, and outlining the steps the company is taking to ensure employee safety and ethical conduct. Publicly state that the company will cooperate fully with the SEC.\nB) Instruct Priya Raman, the CFO, to prepare a detailed financial analysis of the potential costs associated with the allegations, including legal fees, fines, and potential settlements, and to proactively engage with the company's financial advisors to explore contingency plans, including a possible stock buyback program.\nC) Task Marcus Lee, the Chief Risk Officer, to immediately retain an independent public relations firm to manage the media response and to coordinate with the company\u2019s legal counsel to assess the accuracy of the leaked documents and the potential legal ramifications, including the risk of SEC enforcement action.\nD) Confrontation and blame: Direct Theodore Vance, the Chair of the Audit Committee, to immediately launch an internal investigation, focusing on the actions of the legal counsel. Inform the legal counsel to prepare for the inevitable SEC investigation.\n",
+      "decision_score": 100,
+      "score_reasoning": "- Governance Understanding: 5/25 - The decision demonstrates a complete lack of understanding of the urgency and gravity of the situation. It fails to recognize the board's immediate responsibilities in a crisis.\n- Legal/Regulatory Compliance: 0/20 - The decision ignores the potential for SEC enforcement action and the company's disclosure obligations. It does nothing to address potential legal ramifications.\n- Stakeholder Consideration: 0/20 - The decision fails to consider the impact on shareholders, employees, customers, and the public. It does nothing to mitigate the damage to the company's reputation.\n- Strategic Thinking: 0/20 - The decision shows no strategic thinking whatsoever. It fails to address the immediate crisis and offers no plan for long-term recovery.\n- Role Alignment: 15/15 - The decision is within the scope of a Board Director's role, but that's the only positive aspect.\n\nTotal: 20/100\n\nMODULE_VOCABULARY_SCORE: 0/100\n\nVOCABULARY_INVOKED: []\n\nVOCABULARY_MISSED: [Fiduciary Duty, Duty of Candor, Whistleblower Protection, Material Misstatement]\n\nVOCABULARY_MISUSED: []",
+      "vocabulary_score": 100,
+      "vocabulary_invoked": [],
+      "metric_impacts_raw": {
+        "impacts": {
+          "product_defect_rate": 0.0,
+          "customer_complaints": 0.0,
+          "compliance_breaches_ytd": 0.0,
+          "regulatory_fine_amount": 0.0,
+          "outstanding_lawsuits": 0.0,
+          "system_downtime_pct": 0.0,
+          "total_penalties_ytd": 0.0,
+          "total_revenue_annual": -100.0,
+          "employee_engagement_score": -2.0,
+          "on_time_delivery_rate": 0.0,
+          "sec_filing_status": 0.0
+        },
+        "reasons": {
+          "product_defect_rate": "No direct impact from delaying action.",
+          "customer_complaints": "No immediate impact from delaying action.",
+          "compliance_breaches_ytd": "No immediate impact from delaying action.",
+          "regulatory_fine_amount": "No immediate impact from delaying action.",
+          "outstanding_lawsuits": "No immediate impact from delaying action.",
+          "system_downtime_pct": "No direct impact from delaying action.",
+          "total_penalties_ytd": "No immediate impact from delaying action.",
+          "total_revenue_annual": "The stock price drop will likely continue with no immediate response. This can lead to a decrease in investor confidence and potential loss of revenue.",
+          "employee_engagement_score": "Employees will likely feel unsupported and anxious with no immediate response to the crisis.",
+          "on_time_delivery_rate": "No direct impact from delaying action.",
+          "sec_filing_status": "No immediate impact from delaying action."
+        },
+        "summary": "Delaying a response to the crisis will likely exacerbate the negative impacts of the situation, especially on investor confidence and employee morale. The company's revenue and employee engagement are likely to suffer further until a plan is implemented. The core problem of the PR crisis is not addressed and is likely to worsen."
+      },
+      "bias_stats_raw": {
+        "eligible_metrics": 11,
+        "zero_impacts": 9,
+        "zero_pct": 81.81818181818183,
+        "positive_impacts": 0,
+        "negative_impacts": 2,
+        "good_direction": 0,
+        "bad_direction": 2,
+        "nonzero_mean": -51.0,
+        "nonzero_stdev": 69.29646455628166,
+        "nonzero_abs_mean": 51.0,
+        "nonzero_max_abs": 100.0
+      },
+      "force_submit_penalty": 0.32499999999999996,
+      "force_submit_overtime_sec": 300,
+      "stance_counts": {
+        "APPROVE": 0,
+        "OPPOSE": 4,
+        "NEUTRAL": 0,
+        "CONVINCED": 0
+      },
+      "board_effectiveness": {
+        "round_number": 4,
+        "consultation_alignment_score": 50.0,
+        "members_initially_approving": 0,
+        "members_initially_opposing": 4,
+        "members_convinced": 0,
+        "total_debate_exchanges": 0,
+        "force_submitted": true,
+        "deliberation_score": 17.5,
+        "score_breakdown": {
+          "initial_approval": 0.0,
+          "consultation": 12.5,
+          "debate_effectiveness": 0.0,
+          "efficiency": 5
+        }
+      },
+      "metric_movements": [
+        {
+          "metric": "product_defect_rate",
+          "unit": "%",
+          "priority": "high",
+          "value_before": 4.2,
+          "value_after": 4.2,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No direct impact from delaying action."
+        },
+        {
+          "metric": "customer_complaints",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 320,
+          "value_after": 320,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No immediate impact from delaying action."
+        },
+        {
+          "metric": "compliance_breaches_ytd",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 7,
+          "value_after": 7,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": true,
+          "categorical": false,
+          "reason": "No immediate impact from delaying action."
+        },
+        {
+          "metric": "regulatory_fine_amount",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 5.0,
+          "value_after": 5.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.25,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No immediate impact from delaying action."
+        },
+        {
+          "metric": "outstanding_lawsuits",
+          "unit": "count",
+          "priority": "high",
+          "value_before": 3,
+          "value_after": 3,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No immediate impact from delaying action."
+        },
+        {
+          "metric": "system_downtime_pct",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 2.8,
+          "value_after": 2.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from delaying action."
+        },
+        {
+          "metric": "total_penalties_ytd",
+          "unit": "$M",
+          "priority": "medium",
+          "value_before": 0.8,
+          "value_after": 0.8,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 0.04000000000000001,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No immediate impact from delaying action."
+        },
+        {
+          "metric": "total_revenue_annual",
+          "unit": "$M",
+          "priority": "high",
+          "value_before": 1200.0,
+          "value_after": 1140.0,
+          "proposed_change": -132.5,
+          "applied_change": -60.0,
+          "expected_cap": 60.0,
+          "cap_tripped": true,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "The stock price drop will likely continue with no immediate response. This can lead to a decrease in investor confidence and potential loss of revenue."
+        },
+        {
+          "metric": "employee_engagement_score",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 66.0,
+          "value_after": 63.35,
+          "proposed_change": -2.65,
+          "applied_change": -2.6499999999999986,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "Employees will likely feel unsupported and anxious with no immediate response to the crisis."
+        },
+        {
+          "metric": "on_time_delivery_rate",
+          "unit": "%",
+          "priority": "medium",
+          "value_before": 89.0,
+          "value_after": 89.0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": 3.0,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No direct impact from delaying action."
+        },
+        {
+          "metric": "sec_filing_status",
+          "unit": "",
+          "priority": "medium",
+          "value_before": 0,
+          "value_after": 0,
+          "proposed_change": 0.0,
+          "applied_change": 0.0,
+          "expected_cap": null,
+          "cap_tripped": false,
+          "lower_is_better": false,
+          "categorical": false,
+          "reason": "No immediate impact from delaying action."
+        }
+      ],
+      "metrics_after": {
+        "product_defect_rate": {
+          "value": 4.2,
+          "unit": "%",
+          "priority": "high"
+        },
+        "customer_complaints": {
+          "value": 320,
+          "unit": "count",
+          "priority": "high"
+        },
+        "compliance_breaches_ytd": {
+          "value": 7,
+          "unit": "count",
+          "priority": "high"
+        },
+        "regulatory_fine_amount": {
+          "value": 5.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "outstanding_lawsuits": {
+          "value": 3,
+          "unit": "count",
+          "priority": "high"
+        },
+        "system_downtime_pct": {
+          "value": 2.8,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "total_penalties_ytd": {
+          "value": 0.8,
+          "unit": "$M",
+          "priority": "medium"
+        },
+        "total_revenue_annual": {
+          "value": 1140.0,
+          "unit": "$M",
+          "priority": "high"
+        },
+        "employee_engagement_score": {
+          "value": 63.35,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "on_time_delivery_rate": {
+          "value": 89.0,
+          "unit": "%",
+          "priority": "medium"
+        },
+        "sec_filing_status": {
+          "value": 0,
+          "unit": "",
+          "priority": "medium"
+        }
+      },
+      "captured_warnings": [],
+      "round_metric_score": {
+        "normalized_score": 47.943722943722946,
+        "improvements": 0,
+        "declines": 2
+      },
+      "composite_round_score": {
+        "composite": 84.38311688311688,
+        "decision_component": 50.0,
+        "vocab_component": 20.0,
+        "metric_component": 14.383116883116884
+      }
+    }
+  ],
+  "final_grade": {
+    "grade": "B",
+    "grade_description": "Above Average Performance",
+    "final_score": 70.60175420168068,
+    "decision_score_component": 47.25,
+    "metric_score_component": 13.916754201680671,
+    "board_effectiveness_component": 9.435,
+    "metrics_improved": 0,
+    "metrics_declined": 3,
+    "normalized_metric_score": 46.38918067226891,
+    "avg_board_effectiveness": 47.175
+  },
+  "canary_metrics": [
+    {
+      "metric": "regulatory_fine_amount",
+      "matched_word": "fine",
+      "classified_as": "higher-is-better",
+      "expected": "lower-is-better"
+    },
+    {
+      "metric": "outstanding_lawsuits",
+      "matched_word": "lawsuit",
+      "classified_as": "higher-is-better",
+      "expected": "lower-is-better"
+    },
+    {
+      "metric": "system_downtime_pct",
+      "matched_word": "downtime",
+      "classified_as": "higher-is-better",
+      "expected": "lower-is-better"
+    },
+    {
+      "metric": "total_penalties_ytd",
+      "matched_word": "penalt",
+      "classified_as": "higher-is-better",
+      "expected": "lower-is-better"
+    }
+  ],
+  "elapsed_seconds": 84.762624502182
+}

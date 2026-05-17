@@ -20,7 +20,14 @@
       "Bash(.venv/Scripts/python generate_flags_pdf.py)",
       "Bash(pdftotext agent2_flags_analysis.pdf -)",
       "Bash(.venv/Scripts/python -m pytest tests/test_scenarios.py::TestAuditWidgetStateCleanup -v)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(.venv/Scripts/python.exe audit_simulation.py)",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/python.exe audit_simulation_stress.py)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_client_claim_fixes.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/ -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_retest_verification.py::TestMissionObjectiveTargets::test_board_packet_page_target_questionable -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/)"
     ]
   }
 }

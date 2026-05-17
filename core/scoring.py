@@ -6,27 +6,129 @@ from typing import Dict, List
 
 from core.models import TIME_PRESSURE_MINUTES
 
-# Metrics where a lower value represents improvement (e.g. reducing turnover is good)
+# Metrics where a lower value represents improvement.
+#
+# IMPORTANT: matching is TOKEN-based after underscore-splitting and Porter
+# Step-1A depluralization (see _is_lower_better below). Substring matching
+# was abandoned because it produces false positives for short tokens like
+# `fine` (matches `refine`, `final`) and silently rewards harmful outcomes
+# (e.g. `regulatory_fine_amount` was previously classified as higher-better).
+#
+# Add SINGULAR forms only — plurals (penalties, fines, breaches, lawsuits,
+# disputes, incidents) are handled automatically by the depluralizer.
+# Add EXCLUSIONS (below) for multi-token phrases where the keyword is
+# contextually higher-is-better (e.g. asset_turnover, return_on_equity).
 LOWER_IS_BETTER_KEYWORDS = {
-    'churn', 'attrition', 'risk', 'debt', 'turnover', 'cost', 'defect',
-    'burn', 'incident', 'latency', 'vacancy', 'audit', 'pending',
-    'liability', 'remediation', 'penalty', 'loss', 'exposure',
-    'violation', 'complaint', 'breach',
-    'gap', 'delay', 'overdue',
-    'carbon', 'emission', 'footprint', 'greenhouse',
+    # Financial / accounting
+    'cost', 'expense', 'expenditure', 'opex', 'overhead', 'loss', 'writeoff',
+    'writedown', 'chargeoff', 'impairment', 'arrears', 'overdue', 'shortfall',
+    'deficit', 'slippage', 'markdown', 'dilution', 'liability', 'debt',
+    'provision', 'npl', 'nonperforming', 'delinquency', 'delinquent',
+    'arrear',  # mass-noun form after depluralizer strips trailing 's'
+    # Regulatory / legal / compliance
+    'penalty', 'fine', 'sanction', 'lawsuit', 'litigation', 'investigation',
+    'infraction', 'violation', 'noncompliance', 'nonconformance', 'nonconformity',
+    'subpoena', 'injunction', 'remediation', 'materialweakness',
+    # Risk / security
+    'risk', 'exposure', 'incident', 'breach', 'vulnerability', 'threat',
+    'attack', 'intrusion', 'compromise', 'malware', 'phishing', 'ransomware',
+    'cve', 'mttd', 'mttr', 'backlog', 'pending', 'audit',
+    # Operations / manufacturing
+    'defect', 'downtime', 'outage', 'failure', 'scrap', 'rework', 'reject',
+    'recall', 'breakdown', 'stoppage', 'bottleneck', 'wip',
+    # HR / people
+    'attrition', 'turnover', 'absentee', 'absenteeism', 'grievance', 'harassment',
+    'discrimination', 'injury', 'accident', 'fatality', 'ltifr', 'trir',
+    'disengagement', 'vacancy',
+    # Customer
+    'churn', 'complaint', 'escalation', 'dissatisfaction', 'detractor',
+    'cancellation', 'refund', 'chargeback', 'dispute', 'abandonment',
+    # IT / tech
+    'latency', 'error', 'bug', 'crash', 'rollback', 'regression', 'flaky',
+    # ESG / environment
+    'carbon', 'emission', 'pollution', 'pollutant', 'spill', 'effluent',
+    'waste', 'hazardous', 'nox', 'ghg', 'footprint', 'greenhouse', 'flaring',
+    # Misc problem indicators
+    'gap', 'delay', 'lateness', 'burn', 'complaint',
+    # Paperwork / process burden
+    'packet', 'paperwork', 'paperload',
 }
 
-# Metrics containing these keywords should NOT be classified as lower-is-better,
-# even if they also contain a LOWER_IS_BETTER keyword (e.g. "remediation_costs_reserve")
-LOWER_IS_BETTER_EXCLUSIONS = {'reserve', 'budget', 'fund', 'allocation'}
+# Multi-token phrases where the LOWER_IS_BETTER keyword is contextually
+# higher-is-better. Checked as substrings of the FULL metric key (not tokenized)
+# so they can match across underscores. Check is done BEFORE keyword matching.
+LOWER_IS_BETTER_EXCLUSIONS = {
+    # Pools you WANT to grow
+    'reserve', 'budget', 'fund', 'allocation',
+    # Finance / accounting where keyword reverses meaning
+    'asset_turnover', 'inventory_turnover', 'receivables_turnover',
+    'capital_turnover', 'portfolio_turnover',
+    'return_on', 'returns_on',
+    'cost_savings', 'cost_avoidance', 'cost_reduction', 'cost_efficiency',
+    'debt_capacity', 'debt_coverage', 'debt_service_coverage',
+    # Risk metrics where keyword reverses meaning
+    'risk_appetite', 'risk_capacity', 'risk_adjusted',
+    # Audit metrics where keyword reverses meaning
+    'audit_score', 'audit_rating', 'audit_coverage', 'audit_completion',
+    # Recovery / prevention / resolution metrics
+    'recovery', 'recovered', 'prevention', 'prevented', 'resolution_rate',
+    'resolved_rate', 'avoided',
+    # Quality metrics named in inverted form
+    'defect_free', 'error_free', 'zero_defect', 'zero_incident',
+    # Compliance metrics where lower-better keyword reverses meaning
+    'compliance_score', 'compliance_rate',
+    # ESG metrics where lower-better keyword reverses meaning
+    'emission_reduction', 'carbon_offset', 'carbon_removal',
+    'waste_diversion', 'waste_recycled',
+    # IT metrics where lower-better keyword reverses meaning
+    'uptime', 'availability', 'mtbf',
+    # Wellness contexts
+    'weight_loss',
+}
+
+
+def _depluralize(token: str) -> str:
+    """Tiny Porter Step-1A depluralizer (stdlib-only).
+
+    Handles regular English plural endings so penalty/penalties, fine/fines,
+    breach/breaches, lawsuit/lawsuits all match the same singular keyword.
+    Length guards prevent stem collisions on short non-plural words.
+    """
+    if len(token) < 4:
+        return token
+    if token.endswith('sses'):
+        return token[:-2]                  # losses -> loss
+    if token.endswith('ies'):
+        return token[:-3] + 'y'            # penalties -> penalty
+    if token.endswith(('ches', 'shes', 'xes', 'zes')):
+        return token[:-2]                  # breaches -> breach
+    if token.endswith('es') and not token.endswith(('ses', 'aes', 'oes', 'ies')):
+        return token[:-1]                  # disputes -> dispute, escalates -> escalate
+    if token.endswith('s') and not token.endswith('ss') and len(token) > 4:
+        return token[:-1]                  # incidents -> incident
+    return token
 
 
 def _is_lower_better(metric_key: str) -> bool:
-    """Determine if a lower value is better for this metric, with exclusion overrides."""
+    """Determine if a lower value is better for this metric.
+
+    Algorithm:
+      1. Check EXCLUSIONS as substrings of the full key first (catches multi-token
+         phrases like `asset_turnover`, `return_on_equity` where the keyword's
+         contextual meaning is reversed).
+      2. Tokenize the key on underscores, depluralize each token, and check
+         whether any depluralized token matches the keyword set.
+
+    Token-based matching avoids substring false positives like `fine` matching
+    `refine` or `define`. Depluralization avoids requiring both singular and
+    plural forms in the keyword set.
+    """
     key_lower = metric_key.lower()
-    if any(exc in key_lower for exc in LOWER_IS_BETTER_EXCLUSIONS):
-        return False
-    return any(kw in key_lower for kw in LOWER_IS_BETTER_KEYWORDS)
+    for exc in LOWER_IS_BETTER_EXCLUSIONS:
+        if exc in key_lower:
+            return False
+    tokens = [_depluralize(t) for t in key_lower.split('_') if t]
+    return any(t in LOWER_IS_BETTER_KEYWORDS for t in tokens)
 
 
 def calculate_board_effectiveness_score(round_number: int,
@@ -259,6 +361,135 @@ def calculate_goal_progress(goals: List[Dict], current_metrics: Dict) -> List[Di
 def get_time_pressure_minutes(time_pressure: str) -> int:
     """Get the time limit in minutes based on time pressure setting."""
     return TIME_PRESSURE_MINUTES.get(time_pressure, 10)
+
+
+# Composite round-score weights. Must sum to 1.0. Mirrors the final-grade
+# weighting in calculate_overall_grade so per-round and final scores are on
+# the same scale. Closes client claim #3 (round score should be a composite
+# of decision quality, module application, and business impact).
+COMPOSITE_ROUND_WEIGHTS = {
+    'decision': 0.50,   # LLM rubric judgment of decision quality
+    'metric':   0.30,   # Per-round business impact (priority-weighted % change)
+    'vocab':    0.20,   # Module vocabulary application
+}
+
+
+def compute_round_metric_score(metrics_before: Dict, metrics_after: Dict) -> Dict:
+    """Compute the per-round metric movement score on a 0-100 scale.
+
+    Mirrors the metric component of calculate_overall_grade, but scoped to a
+    single round delta (before this round -> after this round) rather than
+    the full initial-vs-final span.
+
+    Returns a dict with normalized_score (0-100), improvements/declines counts,
+    and the raw priority-weighted avg pct change for transparency.
+    """
+    PRIORITY_WEIGHTS = {'high': 1.5, 'medium': 1.0, 'low': 0.6}
+    metric_score = 0.0
+    total_weight = 0.0
+    improvements = 0
+    declines = 0
+
+    for k, before in metrics_before.items():
+        if k not in metrics_after:
+            continue
+        # Skip categorical / non-numeric metrics (defends against J1-style data)
+        if (before.get('categorical_value') or before.get('non_numeric')
+                or isinstance(before.get('value'), str)):
+            continue
+        try:
+            bv = float(before.get('value')) if before.get('value') is not None else 0
+            av = float(metrics_after[k].get('value')) if metrics_after[k].get('value') is not None else 0
+        except (TypeError, ValueError):
+            continue
+        priority = (before.get('priority') or 'medium').lower()
+        weight = PRIORITY_WEIGHTS.get(priority, 1.0)
+
+        higher_better = not _is_lower_better(k)
+        if bv != 0:
+            pct_change = ((av - bv) / abs(bv)) * 100
+        else:
+            pct_change = av * 10  # bootstrap from zero baseline
+        if not higher_better:
+            pct_change = -pct_change
+
+        capped = max(-20, min(20, pct_change))
+        metric_score += capped * weight
+        total_weight += weight
+
+        if pct_change > 0:
+            improvements += 1
+        elif pct_change < 0:
+            declines += 1
+
+    if total_weight > 0:
+        avg = metric_score / total_weight
+        normalized = max(0, min(100, 50 + avg * 2.5))
+    else:
+        normalized = 50  # no movement => neutral
+
+    return {
+        'normalized_score': round(normalized, 1),
+        'improvements': improvements,
+        'declines': declines,
+        'weighted_avg_pct_change': round(metric_score / total_weight, 2) if total_weight else 0.0,
+    }
+
+
+def compute_composite_round_score(decision_score: float,
+                                   vocab_score: float,
+                                   metrics_before: Dict,
+                                   metrics_after: Dict,
+                                   weights: Dict = None) -> Dict:
+    """Compute the player-facing composite round score.
+
+    The composite combines three dimensions (decision quality, module vocabulary,
+    business impact this round) into a single 0-100 number on the same scale as
+    the final grade. This addresses client feedback that the round-level score
+    was a single noisy LLM signal that didn't reflect actual metric movement
+    or module mastery.
+
+    Args:
+        decision_score: 0-100, the LLM rubric judgment of the decision.
+        vocab_score:    0-100, the module-vocabulary application score.
+        metrics_before / metrics_after: metric dicts before and after this round.
+        weights:        optional override of COMPOSITE_ROUND_WEIGHTS. Must contain
+                        keys 'decision', 'metric', 'vocab' summing to 1.0.
+
+    Returns:
+        Dict with keys:
+            composite          — the headline 0-100 score
+            decision_component — weighted contribution from decision_score
+            metric_component   — weighted contribution from per-round metric movement
+            vocab_component    — weighted contribution from vocab_score
+            metric_breakdown   — the full compute_round_metric_score() result
+            weights            — the weights actually used (for UI display)
+    """
+    w = dict(COMPOSITE_ROUND_WEIGHTS)
+    if weights:
+        w.update(weights)
+        total = sum(w.values())
+        if abs(total - 1.0) > 0.01:
+            raise ValueError(f"Composite weights must sum to 1.0 (got {total})")
+
+    decision_score = max(0, min(100, float(decision_score)))
+    vocab_score = max(0, min(100, float(vocab_score)))
+    metric_breakdown = compute_round_metric_score(metrics_before, metrics_after)
+    metric_score = metric_breakdown['normalized_score']
+
+    decision_component = decision_score * w['decision']
+    metric_component   = metric_score   * w['metric']
+    vocab_component    = vocab_score    * w['vocab']
+    composite = decision_component + metric_component + vocab_component
+
+    return {
+        'composite': round(composite, 1),
+        'decision_component': round(decision_component, 2),
+        'metric_component': round(metric_component, 2),
+        'vocab_component': round(vocab_component, 2),
+        'metric_breakdown': metric_breakdown,
+        'weights': w,
+    }
 
 
 # Late-submission penalty thresholds. Closes TIMER_ISSUES.md #2 (flat penalty

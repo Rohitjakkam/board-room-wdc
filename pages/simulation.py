@@ -659,6 +659,24 @@ def run_simulation_round(llm: object, data: Dict,
                     st.session_state.metric_impact_reasons = impacts.get('reasons', {})
                     st.session_state[f"impact_summary_{state.current_round}"] = impacts.get('summary', '')
 
+                    # Compute the composite per-round score (decision + module + business impact).
+                    # Mirrors the final-grade formula but scoped to one round, so the player
+                    # sees a score that reflects actual metric movement — not just LLM rubric.
+                    # Closes client claim #3.
+                    try:
+                        from core.scoring import compute_composite_round_score
+                        composite = compute_composite_round_score(
+                            decision_score=evaluation['score'],
+                            vocab_score=evaluation.get('vocabulary_score', 50),
+                            metrics_before=current_metrics,
+                            metrics_after=updated_metrics,
+                        )
+                        st.session_state[f"composite_score_{state.current_round}"] = composite
+                        # Also store on the evaluation dict so downstream displays can use it
+                        evaluation['composite_round_score'] = composite
+                    except Exception as _comp_err:
+                        logger.warning(f"Composite round score computation failed: {_comp_err}")
+
                 st.session_state.round_complete = True
                 _save_checkpoint('evaluated')
             except Exception as e:

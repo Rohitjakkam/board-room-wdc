@@ -390,18 +390,43 @@ def display_final_summary(data: Dict):
             rounds_list = data.get('simulation_config', {}).get('rounds', [])
             round_config = rounds_list[round_num] if round_num < len(rounds_list) else {}
 
-            round_score = evaluation.get('score', 0)
+            # Composite round score (decision + module + business impact) is the
+            # player-facing headline. Falls back to LLM decision score for legacy
+            # data from before composite was wired in.
+            composite_info = (st.session_state.get(f"composite_score_{round_num}")
+                              or evaluation.get('composite_round_score'))
+            decision_score = evaluation.get('score', 0)
+            if composite_info:
+                round_score = composite_info['composite']
+            else:
+                round_score = decision_score
             score_color = "#28a745" if round_score >= 70 else "#ffc107" if round_score >= 50 else "#dc3545"
             score_emoji = "🟢" if round_score >= 70 else "🟡" if round_score >= 50 else "🔴"
 
-            with st.expander(f"{score_emoji} Round {round_num + 1}: Score {round_score}/100 | Difficulty: {round_config.get('difficulty', 'N/A').title()}", expanded=False):
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-                    <strong>Focus Area:</strong> {round_config.get('focus_area', 'General')}<br>
-                    <strong>Time Pressure:</strong> {round_config.get('time_pressure', 'normal').title()}<br>
-                    <strong>Your Score:</strong> <span style="color: {score_color}; font-weight: bold;">{round_score}/100</span>
-                </div>
-                """, unsafe_allow_html=True)
+            with st.expander(f"{score_emoji} Round {round_num + 1}: Score {round_score:.0f}/100 | Difficulty: {round_config.get('difficulty', 'N/A').title()}", expanded=False):
+                if composite_info:
+                    mb = composite_info['metric_breakdown']
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                        <strong>Focus Area:</strong> {round_config.get('focus_area', 'General')}<br>
+                        <strong>Time Pressure:</strong> {round_config.get('time_pressure', 'normal').title()}<br>
+                        <strong>Composite Score:</strong> <span style="color: {score_color}; font-weight: bold;">{round_score:.0f}/100</span>
+                        <div style="font-size:12px; color:#555; margin-top:6px;">
+                            <strong>Decision Quality (50%):</strong> {decision_score}/100 → {composite_info['decision_component']:.1f} pts<br>
+                            <strong>Module Vocabulary (20%):</strong> {evaluation.get('vocabulary_score', 50)}/100 → {composite_info['vocab_component']:.1f} pts<br>
+                            <strong>Business Impact (30%):</strong> {mb['normalized_score']:.0f}/100 → {composite_info['metric_component']:.1f} pts
+                            <em>({mb['improvements']} metrics improved, {mb['declines']} declined this round)</em>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                        <strong>Focus Area:</strong> {round_config.get('focus_area', 'General')}<br>
+                        <strong>Time Pressure:</strong> {round_config.get('time_pressure', 'normal').title()}<br>
+                        <strong>Your Score:</strong> <span style="color: {score_color}; font-weight: bold;">{round_score}/100</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 st.markdown("#### 📋 Scenario Presented")
                 with st.container():

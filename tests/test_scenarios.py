@@ -745,13 +745,17 @@ ENCOURAGEMENT: Good prudence application
         )
 
         assert 'vocabulary_score' in result
-        assert result['vocabulary_score'] == 65
+        # LLM returned MODULE_VOCABULARY_SCORE: 65 but listed 1 misused term.
+        # Reconciliation policy (C1+C2 strengthened): −20 per misused term.
+        # 65 − 20 = 45.
+        assert result['vocabulary_score'] == 45
         assert result['vocabulary_invoked'] == ['Principle of Prudence', 'AS 5']
         assert result['vocabulary_missed'] == ['Contingent Liability']
         assert result['vocabulary_misused'] == ['Extraordinary Item']
 
     def test_evaluate_decision_handles_missing_vocabulary_section(self):
-        """If LLM omits vocabulary fields, defaults are sane (score=0, empty lists)."""
+        """If LLM omits vocabulary fields AND module key_terms is empty, score
+        defaults to 50 (neutral, not 100 — closes C1/C2 grade-inflation bug)."""
         from unittest.mock import MagicMock
         from core.simulation_engine import evaluate_decision
 
@@ -777,7 +781,11 @@ ENCOURAGEMENT: ok"""
             player_role={'name': 'P', 'role': 'CFO', 'expertise': 'Finance'},
         )
 
-        assert result['vocabulary_score'] == 0
+        # When module has no key_terms AND LLM omits vocabulary fields, the
+        # vocab score is floored at 50 (neutral) rather than 0 — otherwise the
+        # composite round score would be unfairly penalized for the absence of
+        # an assessment that wasn't possible to make.
+        assert result['vocabulary_score'] == 50
         assert result['vocabulary_invoked'] == []
         assert result['vocabulary_missed'] == []
         assert result['vocabulary_misused'] == []

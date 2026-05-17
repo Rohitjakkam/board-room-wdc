@@ -257,18 +257,20 @@ class TestMissionObjectiveTargets:
         assert goals[0]['target'] > goals[0]['current'], \
             "FIX: reserve target should increase (reserve was insufficient)"
 
-    def test_board_packet_page_target_questionable(self):
-        """Increasing board packet pages from 214 to ~225 as a governance goal
-        is debatable. More pages ≠ better governance."""
+    def test_board_packet_page_target_now_decreases(self):
+        """FIXED (client claim #2): `packet`/`paperwork` are now in
+        LOWER_IS_BETTER_KEYWORDS, so board packet pages target DECREASES — reducing
+        paperwork burden is the correct goal. Was: target wrongly increased."""
         metrics = {
             'board_packet_page_count': CLEARWATER_METRICS['board_packet_page_count'],
         }
         goals = generate_game_goals(metrics, total_rounds=5)
         if goals:
             goal = goals[0]
-            # Default behavior increases the count — questionable for page count
-            assert goal['target'] > goal['current'], \
-                "Default behavior: board packet page target increases (questionable)"
+            assert goal['target'] < goal['current'], \
+                "FIX: board packet page target should DECREASE (less paperwork = better)"
+            assert goal.get('lower_is_better'), \
+                "FIX: board_packet_page_count should now be lower_is_better"
 
     def test_governance_keywords_now_present(self):
         """FIXED: Governance-specific keywords are now in LOWER_IS_BETTER_KEYWORDS."""
