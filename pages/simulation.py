@@ -389,6 +389,22 @@ def run_simulation_round(llm: object, data: Dict,
                 else:
                     member_names = [m['name'] for m in available_members]
 
+                    # Hover-preview chips above the multiselect — lets users see
+                    # full profile (expertise, tenure, personality) before picking.
+                    from components.board_members import member_chip_html as _mch
+                    _chip_row = ' '.join(
+                        f'<span style="background:#eef2ff;color:#3730a3;padding:0.18rem 0.55rem;'
+                        f'border-radius:12px;font-size:0.78rem;margin:0.12rem;display:inline-block;'
+                        f'border:1px solid #c7d2fe;">{_mch(m, label=m["name"])}</span>'
+                        for m in available_members
+                    )
+                    st.markdown(
+                        f'<div style="margin: 0.3rem 0 0.55rem 0;">'
+                        f'<small style="color:#6b7280;">💡 Hover any name to see their full profile:</small><br>'
+                        f'{_chip_row}</div>',
+                        unsafe_allow_html=True,
+                    )
+
                     selected_members = st.multiselect(
                         "Select board member(s) to consult:",
                         member_names,

@@ -8,8 +8,14 @@ from typing import Dict, List
 
 from core.models import SimulationState
 from core.simulation_engine import generate_member_stances, evaluate_debate_response
+from components.board_members import member_chip_html
 
 logger = logging.getLogger(__name__)
+
+
+def _member_lookup(company_data: Dict) -> Dict[str, Dict]:
+    """Build {name: member_dict} for hover-popup rendering at any call site."""
+    return {m['name']: m for m in company_data.get('board_members', [])}
 
 
 def display_deliberation_phase(llm: object, data: Dict,
@@ -124,6 +130,7 @@ def display_deliberation_phase(llm: object, data: Dict,
     # dissenter list from deliberation start. Previously, waiting dissenters were buried
     # in collapsed expanders, creating the illusion that a "third dissenter appeared
     # mid-deliberation" when the queue advanced past the second.
+    member_lookup = _member_lookup(company_data)
     if all_oppose:
         current_idx = st.session_state.get(current_dissenter_key, 0)
         total_d = len(all_oppose)
@@ -141,10 +148,18 @@ def display_deliberation_phase(llm: object, data: Dict,
             else:
                 # Upcoming
                 bg, fg, mark = "#f8d7da", "#721c24", ""
+            # Wrap the member name with hover-popup chip so reviewers can see
+            # full background (expertise, tenure, personality) without leaving
+            # the queue view.
+            name_html = member_chip_html(
+                member_lookup.get(name, {'name': name}),
+                label=name,
+                stance=stance,
+            )
             queue_chips.append(
                 f'<span style="background:{bg};color:{fg};padding:0.25rem 0.6rem;'
                 f'border-radius:14px;font-size:0.82rem;margin:0.15rem;display:inline-block;">'
-                f'{mark}[{idx + 1}/{total_d}] {name}</span>'
+                f'{mark}[{idx + 1}/{total_d}] {name_html}</span>'
             )
         st.markdown(
             f'<div style="margin: 0.6rem 0;">'
@@ -158,10 +173,18 @@ def display_deliberation_phase(llm: object, data: Dict,
     st.markdown("---")
 
     # Display approving members
+    # Each expander body opens with the hover-popup chip so the full profile is
+    # one mouseover away (st.expander labels can't accept HTML — chip is inside).
     if approving:
         st.markdown("**✅ Supporting your decision:**")
         for name, stance in approving:
             with st.expander(f"✅ {name} ({stance['member_role']}) - APPROVES"):
+                st.markdown(
+                    f"<small>Hover for full profile: "
+                    f"{member_chip_html(member_lookup.get(name, {'name': name}), stance=stance)}"
+                    f"</small>",
+                    unsafe_allow_html=True,
+                )
                 st.markdown(f"*\"{stance['initial_reaction']}\"*")
                 st.caption(f"**Expertise:** {stance['member_expertise']} | **Relevance:** {stance['expertise_relevance']}")
 
@@ -170,6 +193,12 @@ def display_deliberation_phase(llm: object, data: Dict,
         st.markdown("**➖ Neutral:**")
         for name, stance in neutral:
             with st.expander(f"➖ {name} ({stance['member_role']}) - NEUTRAL"):
+                st.markdown(
+                    f"<small>Hover for full profile: "
+                    f"{member_chip_html(member_lookup.get(name, {'name': name}), stance=stance)}"
+                    f"</small>",
+                    unsafe_allow_html=True,
+                )
                 st.markdown(f"*\"{stance['initial_reaction']}\"*")
                 st.caption(f"**Expertise:** {stance['member_expertise']}")
 
@@ -178,6 +207,12 @@ def display_deliberation_phase(llm: object, data: Dict,
         st.markdown("**🔄 Convinced during debate:**")
         for name, stance in convinced:
             with st.expander(f"🔄 {name} ({stance['member_role']}) - CONVINCED"):
+                st.markdown(
+                    f"<small>Hover for full profile: "
+                    f"{member_chip_html(member_lookup.get(name, {'name': name}), stance=stance)}"
+                    f"</small>",
+                    unsafe_allow_html=True,
+                )
                 st.success(f"Convinced in debate round {stance['convinced_in_round']}")
                 st.markdown(f"*Original objection:* {stance.get('original_counter_opinion', stance.get('counter_opinion', 'N/A'))}")
 
@@ -192,9 +227,12 @@ def display_deliberation_phase(llm: object, data: Dict,
             is_current = (idx == current_idx)
 
             if is_current:
+                # Wrap the name in the hover chip — full background one mouseover away.
+                _member = member_lookup.get(name, {'name': name})
+                name_chip = member_chip_html(_member, label=name, stance=stance)
                 st.markdown(f"""
                 <div class="stance-card stance-oppose">
-                    <h4>⚠️ {name} ({stance['member_role']}) - OPPOSES</h4>
+                    <h4>⚠️ {name_chip} ({stance['member_role']}) - OPPOSES</h4>
                     <p><strong>Expertise:</strong> {stance['member_expertise']}</p>
                     <p><em>"{stance['initial_reaction']}"</em></p>
                     <div class="conviction-bar">

@@ -406,6 +406,92 @@ ENCOURAGEMENT: ok"""
         assert result['vocabulary_score'] == 40
 
 
+class TestMemberChipHover:
+    """member_chip_html — reusable board-member hover popup helper.
+    Used wherever a member name is displayed (deliberation, summary, consultation)."""
+
+    def test_minimal_member_renders(self):
+        from components.board_members import member_chip_html
+        html = member_chip_html({'name': 'Jane Doe'})
+        assert 'class="member-hover-wrap"' in html
+        assert 'class="member-hover-popup"' in html
+        assert 'Jane Doe' in html
+        assert 'tabindex="0"' in html  # keyboard accessible
+
+    def test_all_known_fields_appear(self):
+        from components.board_members import member_chip_html
+        member = {
+            'name': 'Marcus Lee', 'role': 'Chief Risk Officer',
+            'expertise': 'Risk Management', 'tenure_years': 6,
+            'personality': 'Rigorously cautious',
+            'committees': ['Risk Committee'],
+        }
+        html = member_chip_html(member)
+        assert 'Chief Risk Officer' in html
+        assert 'Risk Management' in html
+        assert '6 years' in html
+        assert 'Risk Committee' in html
+        assert 'Rigorously cautious' in html
+
+    def test_singular_year_for_tenure_1(self):
+        from components.board_members import member_chip_html
+        html = member_chip_html({'name': 'X', 'tenure_years': 1})
+        assert '1 year' in html
+        assert '1 years' not in html
+
+    def test_missing_fields_silently_omitted(self):
+        from components.board_members import member_chip_html
+        html = member_chip_html({'name': 'X', 'role': 'CEO'})
+        # No expertise / tenure / personality — no row should appear
+        assert 'mh-personality' not in html
+        # But role still renders
+        assert 'CEO' in html
+
+    def test_stance_block_renders_when_provided(self):
+        from components.board_members import member_chip_html
+        html = member_chip_html(
+            {'name': 'X', 'role': 'CFO', 'personality': 'cautious'},
+            stance={'stance': 'OPPOSE', 'conviction_level': 7,
+                    'counter_opinion': 'Premature disclosure'},
+        )
+        assert 'OPPOSE' in html
+        assert '7/10' in html
+        assert 'Premature disclosure' in html
+        assert 'This round' in html
+
+    def test_stance_block_absent_when_no_stance(self):
+        from components.board_members import member_chip_html
+        html = member_chip_html({'name': 'X'})
+        assert 'This round' not in html
+
+    def test_html_escaping_prevents_xss(self):
+        """User-controlled member fields must be escaped — no raw HTML injection."""
+        from components.board_members import member_chip_html
+        html = member_chip_html({
+            'name': '<script>alert(1)</script>',
+            'role': '<img src=x onerror=alert(2)>',
+            'personality': 'Has "quotes" & ampersands',
+        })
+        assert '<script>alert(1)' not in html
+        assert '&lt;script&gt;' in html
+        assert '&lt;img' in html
+        assert '&amp;' in html
+
+    def test_anchor_right_class(self):
+        from components.board_members import member_chip_html
+        html = member_chip_html({'name': 'X'}, anchor='right')
+        assert 'anchor-right' in html
+
+    def test_custom_label(self):
+        """Caller can pass HTML as label (e.g. wrapped in <strong> or <h4>)."""
+        from components.board_members import member_chip_html
+        html = member_chip_html({'name': 'Marcus Lee'}, label='<strong>Marcus</strong>')
+        # The label is rendered as-is (caller is trusted for the label slot)
+        assert '<strong>Marcus</strong>' in html
+        # But the popup heading still shows the full escaped name
+        assert '<h5>Marcus Lee</h5>' in html
+
+
 class TestScoreExtraction:
     """Verify the score parser fix using sample LLM outputs.
 

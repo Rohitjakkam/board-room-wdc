@@ -240,5 +240,115 @@ def inject_styles():
         font-size: 0.85rem;
         margin: 0.2rem 0;
     }
+
+    /* Board-member hover tooltip — used wherever a member name is displayed.
+       Render via components.board_members.member_chip_html(member). The wrapper
+       is inline so it slots into existing text flows; the popup is absolutely
+       positioned so it doesn't disturb surrounding layout. */
+    .member-hover-wrap {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+        border-bottom: 1px dotted rgba(100, 116, 139, 0.5);
+    }
+    .member-hover-wrap .member-hover-popup {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        z-index: 9999;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 280px;
+        max-width: 360px;
+        background: #ffffff;
+        color: #1f2937;
+        text-align: left;
+        padding: 0.85rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.08);
+        font-size: 0.85rem;
+        line-height: 1.45;
+        font-weight: normal;
+        transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+        white-space: normal;
+        pointer-events: none;  /* avoid flicker when crossing the gap */
+    }
+    .member-hover-wrap .member-hover-popup::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 6px;
+        border-style: solid;
+        border-color: #ffffff transparent transparent transparent;
+        filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.08));
+    }
+    .member-hover-wrap:hover .member-hover-popup,
+    .member-hover-wrap:focus-within .member-hover-popup {
+        visibility: visible;
+        opacity: 1;
+    }
+    .member-hover-popup h5 {
+        margin: 0 0 0.35rem 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #111827;
+    }
+    .member-hover-popup .mh-role {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-bottom: 0.55rem;
+        font-weight: 500;
+    }
+    .member-hover-popup .mh-row {
+        display: flex;
+        margin: 0.18rem 0;
+        font-size: 0.8rem;
+    }
+    .member-hover-popup .mh-key {
+        color: #6b7280;
+        min-width: 86px;
+        flex-shrink: 0;
+    }
+    .member-hover-popup .mh-val {
+        color: #1f2937;
+    }
+    .member-hover-popup .mh-personality {
+        margin-top: 0.55rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid #f3f4f6;
+        font-style: italic;
+        color: #4b5563;
+        font-size: 0.8rem;
+    }
+    .member-hover-popup .mh-section {
+        margin-top: 0.55rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid #f3f4f6;
+    }
+    .member-hover-popup .mh-section-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6b7280;
+        margin-bottom: 0.3rem;
+        font-weight: 600;
+    }
+
+    /* When the wrapper is near the right edge of the screen, anchor popup left
+       to avoid clipping. Apply by adding class .anchor-right to the wrapper. */
+    .member-hover-wrap.anchor-right .member-hover-popup {
+        left: auto;
+        right: 0;
+        transform: none;
+    }
+    .member-hover-wrap.anchor-right .member-hover-popup::after {
+        left: auto;
+        right: 20px;
+        transform: none;
+    }
 </style>
 """, unsafe_allow_html=True)

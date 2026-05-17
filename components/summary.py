@@ -526,9 +526,12 @@ def display_final_summary(data: Dict):
                     st.markdown("#### 🗣️ Round Activity")
                     st.markdown(" | ".join(activity_parts))
 
-                # Board member stances summary
+                # Board member stances summary — names render as hover-popup chips
+                # so users can recall who each member is without scrolling away.
                 member_stances = st.session_state.get(f"member_stances_{round_num}", {})
                 if member_stances:
+                    from components.board_members import member_chip_html as _mch
+                    _member_lookup = {m['name']: m for m in data.get('company_data', {}).get('board_members', [])}
                     st.markdown("#### 🏛️ Board Member Reactions")
                     stance_lines = []
                     for name, info in member_stances.items():
@@ -537,8 +540,19 @@ def display_final_summary(data: Dict):
                         convinced_note = ""
                         if info.get('convinced_in_round') is not None:
                             convinced_note = " → ✅ Convinced"
-                        stance_lines.append(f"- {icon} **{name}** ({info.get('member_role', '')}) — {stance}{convinced_note}")
-                    st.markdown("\n".join(stance_lines))
+                        # Build a chip with hover that pulls member + this round's stance
+                        chip = _mch(_member_lookup.get(name, {'name': name}),
+                                    label=f"<strong>{name}</strong>",
+                                    stance=info)
+                        stance_lines.append(
+                            f'<li>{icon} {chip} '
+                            f'<span style="color:#6b7280;">({info.get("member_role", "")})</span> '
+                            f'— {stance}{convinced_note}</li>'
+                        )
+                    st.markdown(
+                        f'<ul style="list-style:none; padding-left:0; margin:0.4rem 0;">{ "".join(stance_lines) }</ul>',
+                        unsafe_allow_html=True,
+                    )
 
                 st.markdown("---")
 

@@ -27,7 +27,15 @@
       "Bash(.venv/Scripts/python.exe -m pytest tests/test_client_claim_fixes.py -v)",
       "Bash(.venv/Scripts/python.exe -m pytest tests/ -v)",
       "Bash(.venv/Scripts/python.exe -m pytest tests/test_retest_verification.py::TestMissionObjectiveTargets::test_board_packet_page_target_questionable -v)",
-      "Bash(.venv/Scripts/python.exe -m pytest tests/)"
+      "Bash(.venv/Scripts/python.exe -m pytest tests/)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_retest_verification.py::TestTenureDisplay::test_board_members_component_handles_none_tenure -v)",
+      "Bash(.venv/Scripts/python.exe -m streamlit run main.py --server.headless true --server.port 8765)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8765)",
+      "Bash(curl -s http://localhost:8765/_stcore/health)",
+      "Bash(curl -s http://localhost:8765/)",
+      "Bash(curl -s -o /dev/null http://localhost:8765/)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_client_claim_fixes.py::TestMemberChipHover -v)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8765/_stcore/health)"
     ]
   }
 }
