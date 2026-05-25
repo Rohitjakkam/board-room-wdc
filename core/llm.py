@@ -414,39 +414,59 @@ TIME SENSITIVITY: [How urgent is this decision — if previous rounds had High u
 OPTIONS TO CONSIDER:
 
 You MUST produce EXACTLY 4 options labeled A, B, C, D — no more, no less.
-Each option must follow this calibrated difficulty distribution:
+The four options must COLLECTIVELY include these four calibrations (one of each):
 
-  OPTION A: CALIBRATION = unanimous           (0 OPPOSE — every non-player member APPROVES)
-  OPTION B: CALIBRATION = mild_dissent        (exactly 2 OPPOSE — the rest APPROVE)
-  OPTION C: CALIBRATION = controversial       (3 OPPOSE)
-  OPTION D: CALIBRATION = highly_controversial (4 OPPOSE — only one APPROVES, or all OPPOSE if {len(other_members)} <= 4)
+  - unanimous           (0 OPPOSE — every non-player member APPROVES)
+  - mild_dissent        (exactly 2 OPPOSE — the rest APPROVE)
+  - controversial       (3 OPPOSE)
+  - highly_controversial (4 OPPOSE — only one APPROVES, or all OPPOSE if {len(other_members)} <= 4)
 
-The order matters — A is the consensus-best-practice choice, D is the most contested.
+RANDOMIZE which letter (A/B/C/D) gets which calibration — do NOT always put unanimous
+as Option A. Choose the mapping unpredictably for this round so a student playing
+multiple rounds cannot learn a "the first option is always the safe one" heuristic.
+For example: this round Option B might be unanimous while Option A is controversial.
+
 The 4 options must be GENUINELY DIFFERENT strategic approaches — not 4 variations of the same idea.
 Each ACTION must be 3-5 substantive sentences describing the specific action AND its trade-offs
 (financial, regulatory, reputational, operational). Avoid one-line generic options.
+
+CRITICAL — DO NOT TELEGRAPH DIFFICULTY IN THE ACTION TEXT:
+The ACTION text is shown directly to the student. They must NOT be able to tell which
+calibration tier an option belongs to from reading the text alone. The text must
+describe the action and its honest trade-offs WITHOUT phrases like:
+  - "this is the safest option" / "this is the most aggressive option"
+  - "all members would support this" / "this will face strong opposition"
+  - "the board will approve" / "the board will reject"
+  - "this is the consensus choice" / "this is the radical choice"
+  - any other meta-commentary about how the board will react
+Every option should read as a defensible action that a board could reasonably take,
+even if your internal calibration says it would be highly controversial. The
+student's job is to evaluate the action on its merits — not to pattern-match
+on linguistic difficulty cues.
 
 For each non-player board member listed above, assign EXACTLY one of: APPROVE, OPPOSE, NEUTRAL.
 For every OPPOSE assignment, include a concrete counter-argument grounded in that member's
 expertise (e.g., the CFO opposes on financial-impact grounds, the CRO on risk-exposure grounds).
 NEUTRAL should be rare — prefer APPROVE or OPPOSE.
 
-Use this EXACT format for each option (one block per option):
+Use this EXACT format for each option (one block per option).
+The example below intentionally maps calibrations to letters in a NON-ALPHABETICAL
+order — your own mapping should be chosen unpredictably for this round.
 
-OPTION A | CALIBRATION: unanimous
+OPTION A | CALIBRATION: controversial
 ACTION: [3-5 detailed sentences describing the specific action and its trade-offs]
+STANCES: Name1=OPPOSE, Name2=OPPOSE, Name3=APPROVE, Name4=OPPOSE
+COUNTERS: Name1: [their 1-2 sentence objection] | Name2: [their objection] | Name4: [their objection]
+
+OPTION B | CALIBRATION: unanimous
+ACTION: [3-5 detailed sentences]
 STANCES: Name1=APPROVE, Name2=APPROVE, Name3=APPROVE, Name4=APPROVE
 COUNTERS: (none)
 
-OPTION B | CALIBRATION: mild_dissent
+OPTION C | CALIBRATION: mild_dissent
 ACTION: [3-5 detailed sentences]
 STANCES: Name1=APPROVE, Name2=OPPOSE, Name3=APPROVE, Name4=OPPOSE
-COUNTERS: Name2: [their 1-2 sentence objection grounded in their expertise] | Name4: [their 1-2 sentence objection]
-
-OPTION C | CALIBRATION: controversial
-ACTION: [3-5 detailed sentences]
-STANCES: Name1=OPPOSE, Name2=OPPOSE, Name3=APPROVE, Name4=OPPOSE
-COUNTERS: Name1: [...] | Name2: [...] | Name4: [...]
+COUNTERS: Name2: [their 1-2 sentence objection grounded in their expertise] | Name4: [their objection]
 
 OPTION D | CALIBRATION: highly_controversial
 ACTION: [3-5 detailed sentences]

@@ -670,6 +670,66 @@ class TestCompositeRoundScore4Component:
         assert result['composite'] == 67.5
 
 
+class TestOptionUINoCalibrationLeak:
+    """v1.4.8 — Option-card UI must not reveal calibration / opposer-count.
+
+    The calibration (unanimous / mild_dissent / controversial / highly_controversial)
+    and stance_distribution are pedagogical metadata that drive deterministic board
+    stances. Leaking them to the student via the option card lets them pick the
+    "safe" option by counting badges instead of reasoning about the action.
+    """
+    import os
+    from pathlib import Path
+
+    REPO_ROOT = Path(__file__).resolve().parent.parent
+    SIM_PATH = REPO_ROOT / 'pages' / 'simulation.py'
+
+    @classmethod
+    def _option_render_block(cls) -> str:
+        import re
+        content = cls.SIM_PATH.read_text(encoding='utf-8')
+        m = re.search(r"for idx, opt in enumerate\(options\):.*?if st\.button",
+                       content, re.DOTALL)
+        assert m, "Could not locate the option-card render block — test needs updating"
+        return m.group(0)
+
+    @classmethod
+    def _non_comment_lines(cls, block: str) -> str:
+        # Strip Python comment lines so allowed words can appear inside comments.
+        return '\n'.join(line for line in block.split('\n')
+                         if not line.strip().startswith('#'))
+
+    def test_no_likely_oppose_label(self):
+        """The literal phrase 'likely oppose' must not appear in the card body."""
+        block = self._non_comment_lines(self._option_render_block())
+        assert 'likely oppose' not in block, \
+            "Option card must not show 'likely oppose' — telegraphs the safe choice"
+
+    def test_no_opposer_count_rendered(self):
+        block = self._non_comment_lines(self._option_render_block())
+        # f-string interpolations of opposer count
+        assert '{opposers}' not in block
+        # Inline calculation rendered in the UI
+        assert "for v in sd.values() if v == 'OPPOSE'" not in block, \
+            "Card must not compute opposer counts at render time"
+
+    def test_no_calibration_field_rendered(self):
+        """opt['calibration'] / opt.get('calibration') must not be used to render
+        ANY visible markup in the card. Internal use (logging, conditional logic)
+        is fine, but appending to an HTML string is not."""
+        block = self._non_comment_lines(self._option_render_block())
+        # No direct interpolation of calibration into a string
+        assert "{calibration}" not in block
+        assert '{opt["calibration"]}' not in block
+        assert "{opt['calibration']}" not in block
+
+    def test_no_stance_distribution_rendered(self):
+        block = self._non_comment_lines(self._option_render_block())
+        assert '{opt["stance_distribution"]}' not in block
+        assert "{opt['stance_distribution']}" not in block
+        assert '{sd}' not in block  # `sd` was the variable name used previously
+
+
 class TestMemberChipHover:
     """member_chip_html — reusable board-member hover popup helper.
     Used wherever a member name is displayed (deliberation, summary, consultation)."""

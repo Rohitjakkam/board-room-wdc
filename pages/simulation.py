@@ -564,37 +564,20 @@ def run_simulation_round(llm: object, data: Dict,
                 with option_cols[idx % 2]:
                     _is_selected = (has_selected_option
                                     and st.session_state[f"selected_option_{state.current_round}"].get('letter') == opt['letter'])
-                    # Calibration badge — only render for new-format options that
-                    # carry it (old-format options have calibration=None).
-                    calibration = opt.get('calibration')
-                    badge = ''
-                    if calibration:
-                        _badge_colors = {
-                            'unanimous': ('#d4edda', '#155724'),
-                            'mild_dissent': ('#fff3cd', '#856404'),
-                            'controversial': ('#f8d7da', '#721c24'),
-                            'highly_controversial': ('#f5c2c7', '#58151c'),
-                        }
-                        bg, fg = _badge_colors.get(calibration, ('#e2e3e5', '#383d41'))
-                        # Show opposer count if we have stance distribution
-                        sd = opt.get('stance_distribution') or {}
-                        opposers = sum(1 for v in sd.values() if v == 'OPPOSE')
-                        badge = (
-                            f'<span style="background:{bg};color:{fg};padding:2px 8px;'
-                            f'border-radius:10px;font-size:0.7rem;margin-left:8px;'
-                            f'font-weight:500;">{opposers} likely oppose</span>'
-                        )
+                    # NOTE: option calibration (unanimous / mild_dissent / etc.) and
+                    # stance_distribution MUST NOT be displayed here. They are internal
+                    # pedagogical metadata used to drive deterministic board stances —
+                    # leaking them would let students pick the "safe" option without
+                    # reasoning. Card shows only the letter and the option text.
                     border_color = '#198754' if _is_selected else '#dee2e6'
                     bg_color = '#f0f9f4' if _is_selected else '#ffffff'
                     prefix = '✅ ' if _is_selected else ''
-                    # Render the option as a card with full detailed text visible.
-                    # The Select button sits below the card.
                     st.markdown(
                         f'<div style="background:{bg_color};border:2px solid {border_color};'
                         f'border-radius:10px;padding:0.85rem 1rem;margin-bottom:0.4rem;'
                         f'min-height:170px;">'
                         f'<div style="font-weight:600;font-size:0.95rem;color:#1f2937;'
-                        f'margin-bottom:0.5rem;">{prefix}Option {opt["letter"]}{badge}</div>'
+                        f'margin-bottom:0.5rem;">{prefix}Option {opt["letter"]}</div>'
                         f'<div style="color:#374151;font-size:0.88rem;line-height:1.5;">'
                         f'{opt["text"]}</div>'
                         f'</div>',

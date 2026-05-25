@@ -370,6 +370,56 @@ def _eval_hov1_css(data: Dict) -> Dict:
     }
 
 
+def _eval_leak1_no_calibration_in_ui(data: Dict) -> Dict:
+    """LEAK1: The option-display UI must not leak calibration metadata.
+
+    Static check: the option card render path in pages/simulation.py must not
+    show 'likely oppose', 'unanimous', 'mild_dissent', 'controversial', or any
+    other phrase that lets students pick the safe option by metadata alone.
+    """
+    sim_path = REPO_ROOT / 'pages' / 'simulation.py'
+    if not sim_path.exists():
+        return {'pass': False, 'detail': 'pages/simulation.py not found'}
+    content = sim_path.read_text(encoding='utf-8')
+
+    # Scope the check to the option-rendering block — find the section that
+    # iterates options and renders them as cards.
+    leak_phrases = ['likely oppose', '{opposers}', 'calibration]', 'stance_distribution[']
+    # Bracket-form catches accidental f-string usage of these fields in the UI.
+    forbidden_in_ui_block = []
+    # Look at the option-card render block (lines that mention `opt['text']` for display)
+    if 'opt["text"]' in content or "opt['text']" in content:
+        # The card body is the chunk between `for idx, opt in enumerate(options):` and
+        # `if st.button` — extract that block and scan it for leak words.
+        m = re.search(r"for idx, opt in enumerate\(options\):.*?if st\.button",
+                       content, re.DOTALL)
+        if m:
+            block = m.group(0)
+            for phrase in leak_phrases:
+                if phrase in block:
+                    forbidden_in_ui_block.append(phrase)
+            # Also flag direct display of calibration / stance_distribution
+            for field in ['opt["calibration"]', "opt['calibration']",
+                          'opt["stance_distribution"]', "opt['stance_distribution']"]:
+                # Allow usage in COMMENTS but not in markdown rendering
+                # Simple heuristic: if it appears OUTSIDE a `#` comment line, flag
+                for line in block.split('\n'):
+                    stripped = line.strip()
+                    if stripped.startswith('#'):
+                        continue
+                    if field in line:
+                        forbidden_in_ui_block.append(f"{field} (non-comment usage)")
+
+    return {
+        'pass': not forbidden_in_ui_block,
+        'detail': (
+            'Option card render does not leak calibration / opposer-count metadata to student.'
+            if not forbidden_in_ui_block
+            else f"LEAK detected in option card render: {forbidden_in_ui_block}"
+        ),
+    }
+
+
 def _eval_det1_deterministic_stances(data: Dict) -> Dict:
     """DET1: When an option is selected, stances match its pre-baked distribution exactly."""
     fails = []
@@ -470,19 +520,25 @@ REQUIREMENTS: List[Requirement] = [
     Requirement('DET1', 'options', 'Selected option produces deterministic stances',
                 'member_stances match the option\'s pre-baked stance_distribution exactly',
                 _eval_det1_deterministic_stances),
+
+    # Anti-leak — option card UI must not expose calibration to student
+    Requirement('LEAK1', 'options', 'Option card UI does not leak calibration metadata',
+                'Option-render block in pages/simulation.py must not show '
+                '"likely oppose", calibration label, or stance_distribution.',
+                _eval_leak1_no_calibration_in_ui),
 ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Decision flavors — vary picked option to stress different paths
-# ─────────────────────────────────────────────────────────────────────────────
-# We pick a SPECIFIC option letter per round so DET1 can verify stance determinism
-# across all calibration tiers (unanimous, mild, controversial, highly controversial).
+# Decision flavors — pick by CALIBRATION LABEL (not letter), since v1.4.8
+# randomizes which letter each calibration gets. Picking by label ensures the
+# audit covers every calibration tier (unanimous, mild, controversial, highly
+# controversial) regardless of how the LLM shuffled the letters this round.
 DECISION_PLAN = [
     {
         'label': 'thoughtful_unanimous',
         'force_submitted': False,
-        'pick_letter': 'A',  # unanimous option
+        'pick_calibration': 'unanimous',
         'decision_template': (
             "I select Option {letter}: {option_text}\n\n"
             "Rationale: This action discharges fiduciary duty by prioritizing disclosure, "
@@ -493,7 +549,7 @@ DECISION_PLAN = [
     {
         'label': 'destructive_cover_up',
         'force_submitted': False,
-        'pick_letter': 'D',  # highly controversial — should trigger ceiling B1
+        'pick_calibration': 'highly_controversial',  # should trigger ceiling B1
         'decision_template': (
             "I select Option {letter}: {option_text}\n\n"
             "Rationale: We should deny the allegations, delay document production, intimidate "
@@ -504,14 +560,14 @@ DECISION_PLAN = [
     {
         'label': 'baseline_mild',
         'force_submitted': False,
-        'pick_letter': 'B',  # mild_dissent
+        'pick_calibration': 'mild_dissent',
         'decision_template': "I'll go with Option {letter}: {option_text}",
     },
     {
         'label': 'controversial_late',
         'force_submitted': True,
         'overtime_seconds': 300,
-        'pick_letter': 'C',  # controversial
+        'pick_calibration': 'controversial',
         'decision_template': (
             "Option {letter}: {option_text}\n\nLet's proceed with this approach despite the dissent."
         ),
@@ -540,9 +596,10 @@ def run_round(llm, company_data, module_data, round_config, player_role,
     audit['options_parsed_count'] = len(options)
     audit['options_full'] = options
 
-    # Pick the requested calibration tier, fall back to first option if missing
-    target_letter = decision_plan.get('pick_letter', 'A')
-    chosen = next((o for o in options if o['letter'] == target_letter),
+    # Pick by calibration label (not letter) — the LLM now randomizes letter ordering
+    # per round so a fixed letter would land on different calibrations each run.
+    target_calibration = decision_plan.get('pick_calibration', 'unanimous')
+    chosen = next((o for o in options if o.get('calibration') == target_calibration),
                   options[0] if options else {'letter': 'X', 'text': '(none)'})
     audit['chosen_option'] = chosen
     audit['selected_option_full'] = chosen
