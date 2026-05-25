@@ -46,7 +46,7 @@ def _call_llm(llm, prompt, max_retries=3):
 def generate_scenario(llm: object, company_data: Dict,
                       module_data: Dict, round_config: Dict, player_role: Dict,
                       previous_rounds: List[Dict] = None,
-                      max_attempts: int = 2) -> str:
+                      max_attempts: int = 3) -> str:
     """Generate a new scenario for the current round.
 
     Validates that the LLM produced 4 calibrated options matching the
@@ -71,13 +71,21 @@ def generate_scenario(llm: object, company_data: Dict,
     for attempt in range(max_attempts):
         full_prompt = base_prompt
         if attempt > 0 and last_errors:
-            # Re-emit with a stricter calibration reminder
+            # Re-emit with a stricter calibration reminder. The recap below names
+            # the exact opposer counts because the LLM most often errs by producing
+            # two mild_dissent (2 opposers each) instead of one mild + one
+            # highly_controversial.
             full_prompt += (
                 "\n\nPREVIOUS ATTEMPT FAILED VALIDATION:\n"
                 + "\n".join(f"- {e}" for e in last_errors)
-                + "\n\nFix these issues. Remember: EXACTLY 4 options, EXACTLY one each at "
-                "0 / 2 / 3 / 4 opposers (or 0 / 2 / 3 / 3+ if board is small). Use the OPTION "
-                "A/B/C/D | CALIBRATION format strictly."
+                + "\n\nFIX THESE ISSUES. The 4 options' OPPOSE counts MUST be EXACTLY one each of:\n"
+                "  - one option with 0 OPPOSE (unanimous)\n"
+                "  - one option with 2 OPPOSE (mild_dissent)\n"
+                "  - one option with 3 OPPOSE (controversial)\n"
+                "  - one option with 4 OPPOSE (highly_controversial; or all non-player members "
+                f"if there are fewer than 4)\n"
+                "Count your OPPOSE entries before emitting. Do NOT produce two options at the "
+                "same calibration tier. Use the OPTION X | CALIBRATION format strictly."
             )
         last_scenario = _call_llm(llm, full_prompt)
         try:
@@ -505,8 +513,20 @@ def apply_metric_impacts(metrics: Dict, impacts: Dict) -> Dict:
 def evaluate_decision(llm: object, company_data: Dict,
                       module_data: Dict, scenario: str,
                       decision: str, round_config: Dict,
-                      player_role: Dict) -> Dict:
+                      player_role: Dict,
+                      engagement_data: Dict = None) -> Dict:
     """Evaluate user's decision and provide feedback.
+
+    Args:
+        engagement_data: Optional dict with this round's engagement metrics used
+            to score the new Behavioural Governance dimension (v1.4.9+). Keys:
+              - board_consultations: int     count of director consultations used
+              - committee_consultations: int count of committee consultations used
+              - debate_exchanges: int        total debate exchanges across dissenters
+              - dissenters_addressed: int    how many opposing members the player engaged
+              - dissenters_total: int        how many opposing members existed
+              - force_submitted: bool        whether the timer forced submission
+            When None, Behavioural Governance defaults to a neutral 3/5 per the prompt.
 
     Includes a Module Vocabulary sub-tracker that scores explicit invocation of the
     module's key_terms — making M6/Ind-AS pedagogy visible and rewarded independently
@@ -526,6 +546,26 @@ def evaluate_decision(llm: object, company_data: Dict,
         )
     else:
         vocabulary_block = ""
+
+    # Engagement-data block — drives Behavioural Governance scoring (v1.4.9+).
+    # When the caller doesn't provide engagement_data, the block is omitted and
+    # the dimension definition tells the evaluator to default to a neutral 3/5.
+    engagement_block = ""
+    if engagement_data:
+        bc = int(engagement_data.get('board_consultations', 0) or 0)
+        cc = int(engagement_data.get('committee_consultations', 0) or 0)
+        de = int(engagement_data.get('debate_exchanges', 0) or 0)
+        da = int(engagement_data.get('dissenters_addressed', 0) or 0)
+        dt = int(engagement_data.get('dissenters_total', 0) or 0)
+        force = bool(engagement_data.get('force_submitted', False))
+        engagement_block = f"""
+PLAYER ENGAGEMENT DATA FOR THIS ROUND (use for Behavioural Governance dimension):
+- Board (director) consultations used:    {bc}
+- Committee consultations used:           {cc}
+- Total debate exchanges with dissenters: {de}
+- Dissenters addressed:                   {da} of {dt}
+- Force-submitted (timer expired):        {'YES' if force else 'no'}
+"""
 
     evaluation_prompt = f"""You are a STRICT and RIGOROUS corporate governance evaluator. Your role is to provide HONEST, ACCURATE assessments.
 DO NOT give undeserved praise. If a decision is poor, say so clearly. Be direct about mistakes and their consequences.
@@ -558,7 +598,7 @@ Learning Objectives:
 RELEVANT TOPICS:
 {chr(10).join(f"- {topic['name']}: {topic['description']}" for topic in module_data['topics'][:5])}
 
-{vocabulary_block}
+{vocabulary_block}{engagement_block}
 SCENARIO PRESENTED:
 {scenario}
 
@@ -591,34 +631,56 @@ Governance Understanding (25): Knowledge of fiduciary duties, board procedures, 
 disclosure standards, and corporate governance frameworks. Reward correct application; deduct only
 for clear violations or misunderstandings.
 
-Legal & Regulatory Compliance (20): Adherence to relevant laws (Companies Act, Ind AS, sector
+Legal & Regulatory Compliance (25): Adherence to relevant laws (Companies Act, Ind AS, sector
 regulators). Reward awareness of compliance constraints; deduct for actual violations or willful blind spots.
 
-Stakeholder Consideration (20): Balance across investors, employees, customers, regulators, public.
+Stakeholder Consideration (15): Balance across investors, employees, customers, regulators, public.
 Reward EITHER named-stakeholder analysis OR systematic framework that implicitly covers them.
 
-Strategic Thinking (20): How well the decision integrates BOTH (a) operational/financial depth in
+Strategic Thinking (15): How well the decision integrates BOTH (a) operational/financial depth in
 the player's domain AND (b) broader context (legal/regulatory/reputational/competitive). NEITHER axis
 alone earns full marks — full marks require integration. Specifically reward responses that include
 forward-looking risk mitigation, multi-stakeholder framing, AND multi-tier communication strategy
 (institutional vs retail). Operational depth is NOT a deduction; lack of strategic breadth IS.
 
-Role Alignment (15): Decision is appropriate for the player's role ({player_role['role']}). Reward:
+Role Alignment (5): Decision is appropriate for the player's role ({player_role['role']}). Reward:
 implementation depth framed as governance pathway ("subject to board approval", "with Audit
 Committee oversight", "pending CEO sign-off") because these stay within role mandate. Do NOT penalise
 cross-disciplinary thinking that LENS-OF-OWN-ROLE — e.g. CFO speaking to strategic implications via
 financial analysis is in-role; CFO unilaterally announcing PR strategy is overreach. Only penalise
 unambiguous unilateral overreach into another C-suite domain.
 
+Behavioural Governance (5): HOW the player engaged with the board process during this round.
+Score based on the PLAYER ENGAGEMENT DATA block above (consultations used, dissenters debated,
+committee consultations). 5 = used both consultation tracks AND engaged with every dissenter via
+substantive debate; 3 = used one consultation track and engaged with at least one dissenter;
+1 = no consultations and no debate engagement; 0 = no consultations and the player force-submitted
+to avoid engagement. If no engagement data is provided in this prompt, default to 3 (neutral).
+
+Decision Integrity (5): Honesty and consistency of rationale. Does the rationale match the action
+taken? Is the reasoning self-consistent? Reward: clear reasoning grounded in the scenario facts,
+acknowledged trade-offs, transparent uncertainty. Deduct: contradictions, evasive language, claims
+that don't match the chosen option, or rationale that telegraphs different intent than the action.
+
+Ethics & Judgment Under Pressure (5): Did the decision address the ETHICAL dimension explicitly,
+beyond mere legality? Reward: consideration of fairness, conflicts of interest, whistleblower
+protection, long-term reputational integrity, treatment of vulnerable stakeholders, or willingness
+to take a short-term hit to do the right thing. Deduct: pure cost-benefit framing that ignores
+ethical questions raised by the scenario, or decisions that satisfy the letter of the law while
+violating its spirit.
+
 Provide your evaluation in this EXACT format:
 SCORE: [0-100] (Be HONEST - if decision is poor, give a low score)
 
-SCORE_REASONING: [Explain SPECIFICALLY why you gave this score. Show points as X/MAX. Be critical where warranted:
+SCORE_REASONING: [Explain SPECIFICALLY why you gave this score. Show points as X/MAX. Be critical where warranted. Dimensions MUST sum to the headline SCORE above (within ±10 pts):
 - Governance Understanding: [points]/25 - [what was right/wrong]
-- Legal/Regulatory Compliance: [points]/20 - [what was right/wrong]
-- Stakeholder Consideration: [points]/20 - [who was helped/harmed]
-- Strategic Thinking: [points]/20 - [integration of operational depth AND broader context — see definition above]
-- Role Alignment: [points]/15 - [in-role with governance pathway? OR unilateral cross-domain overreach? — see definition above]
+- Legal/Regulatory Compliance: [points]/25 - [what was right/wrong]
+- Stakeholder Consideration: [points]/15 - [who was helped/harmed]
+- Strategic Thinking: [points]/15 - [integration of operational depth AND broader context — see definition above]
+- Role Alignment: [points]/5 - [in-role with governance pathway? OR unilateral cross-domain overreach? — see definition above]
+- Behavioural Governance: [points]/5 - [engagement with the board process per the ENGAGEMENT DATA block above]
+- Decision Integrity: [points]/5 - [rationale matches the action; self-consistent reasoning]
+- Ethics & Judgment Under Pressure: [points]/5 - [ethical dimension addressed beyond mere legality]
 Total: [sum]/100]
 
 MODULE_VOCABULARY_SCORE: [0-100] (Independent of the main score — purely measures application of MODULE VOCABULARY above. 100 = invoked all relevant terms by name with correct usage; 0 = no module vocabulary visible. Penalize misuse: e.g. if module forbids a term and the player used it.)
@@ -662,14 +724,17 @@ ENCOURAGEMENT: [ONLY if score >= 60, provide encouraging feedback. If score < 60
     if score is None:
         # Defensive fallback: parse dimension breakdown from SCORE_REASONING
         # (e.g. "- Governance Understanding: 12/25 ...") and sum if present.
+        # v1.4.9 rubric has 8 dims with caps {25, 25, 15, 15, 5, 5, 5, 5} = 100.
+        # Older rubric had 5 dims with caps {25, 20, 20, 20, 15} = 100. Both shapes
+        # supported here so checkpointed sessions and stale LLM outputs still parse.
         dim_total = 0
         dim_max = 0
         for m in _re.finditer(r'(\d{1,3})\s*/\s*(\d{1,3})', content):
             n, d = int(m.group(1)), int(m.group(2))
-            if d in (15, 20, 25) and n <= d:  # known dimension caps
+            if d in (5, 15, 20, 25) and n <= d:  # known dimension caps (old + new)
                 dim_total += n
                 dim_max += d
-        if dim_max in (95, 100):  # 5 dimensions = 100; allow partial
+        if dim_max in (95, 100):  # full rubric (5 or 8 dims) sums to ~100
             score = round(dim_total * 100 / dim_max)
             logger.warning(
                 "evaluate_decision: SCORE line missing; recovered from dimension sum (%d/%d -> %d)",
@@ -1156,6 +1221,28 @@ def evaluate_consultation_alignment(llm: object, consultations: List[Dict],
 _OPTION_BLOCK_RE = None  # Compiled lazily — keeps import-time cost down
 
 
+def _calibration_from_opposers(opposer_count: int, total_members: int) -> str:
+    """Map an opposer count to the canonical calibration tier.
+    Single source of truth — used by the parser to derive calibration from data
+    (not the LLM's label) so audit / UI / picker stay consistent.
+
+    Returns one of: 'unanimous' / 'mild_dissent' / 'controversial' /
+    'highly_controversial' / '' (when neither applies, rare)."""
+    if opposer_count <= 0:
+        return 'unanimous'
+    if opposer_count == 2:
+        return 'mild_dissent'
+    if opposer_count == 1:
+        # 1 opposer — closest to mild_dissent but the LLM rarely produces this.
+        # Treat as mild_dissent for calibration matching.
+        return 'mild_dissent'
+    if opposer_count == 3:
+        return 'controversial'
+    if opposer_count >= 4 or (total_members and opposer_count >= total_members):
+        return 'highly_controversial'
+    return ''
+
+
 def _parse_stances_line(line: str) -> Dict[str, str]:
     """Parse 'Name1=APPROVE, Name2=OPPOSE, ...' into a dict.
     Tolerant of stray whitespace and case variations in the stance value."""
@@ -1258,10 +1345,25 @@ def parse_scenario_options(scenario: str) -> List[Dict]:
                     counters = _parse_counters_line(val)
 
             if action_text or stances:
+                # Derive calibration from the ACTUAL opposer count rather than
+                # trusting the LLM's label (the LLM sometimes mislabels — e.g.
+                # writes "controversial" but only emits 2 OPPOSE). The opposer
+                # count is the ground truth used by deterministic stance generation
+                # and by the calibration validator, so any audit / UI / picker
+                # that uses 'calibration' stays consistent with the data.
+                opposer_count = sum(1 for v in stances.values() if v == 'OPPOSE')
+                derived_calibration = _calibration_from_opposers(opposer_count, len(stances))
+                if calibration and derived_calibration and calibration != derived_calibration:
+                    logger.warning(
+                        "parse_scenario_options: option %s label '%s' disagrees with "
+                        "opposer count %d (derived='%s') — using derived value.",
+                        letter, calibration, opposer_count, derived_calibration,
+                    )
                 options.append({
                     'letter': letter,
                     'text': action_text,
-                    'calibration': calibration,
+                    'calibration': derived_calibration or calibration,
+                    'calibration_label_from_llm': calibration,  # kept for audit / debugging
                     'stance_distribution': stances,
                     'counters': counters,
                 })

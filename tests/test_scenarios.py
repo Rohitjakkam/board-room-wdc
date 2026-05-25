@@ -1337,18 +1337,22 @@ class TestRubricRecalibrationAndConvictionTuning:
         # Cross-disciplinary thinking through own-role lens must NOT be penalised
         assert 'cross-disciplinary' in first_prompt.lower() or 'lens-of-own-role' in first_prompt.lower() or 'in-role' in first_prompt.lower()
 
-    def test_dimension_weights_unchanged(self):
-        """Recalibration must NOT change the 25/20/20/20/15 weights — only the descriptions."""
+    def test_dimension_weights_v1_4_9(self):
+        """v1.4.9 rubric: 8 dimensions = 25/25/15/15/5/5/5/5 = 100.
+        (Was 25/20/20/20/15 in v1.4.2 — replaced after client redesign.)"""
         from pathlib import Path
         src = Path('core/simulation_engine.py').read_text(encoding='utf-8')
-        # Find the SCORE_REASONING block and verify each dimension still has its original max
-        assert '/25 - [what was right/wrong]' in src       # Governance Understanding
-        assert '/20 - [what was right/wrong]' in src       # Legal/Regulatory
-        assert '/20 - [who was helped/harmed]' in src      # Stakeholder
-        # Strategic Thinking should still be /20 (recalibrated description, same weight)
-        assert 'Strategic Thinking: [points]/20' in src
-        # Role Alignment should still be /15 (recalibrated description, same weight)
-        assert 'Role Alignment: [points]/15' in src
+        # Per-dimension max values must match the v1.4.9 spec exactly
+        assert 'Governance Understanding: [points]/25' in src
+        assert 'Legal/Regulatory Compliance: [points]/25' in src
+        assert 'Stakeholder Consideration: [points]/15' in src
+        assert 'Strategic Thinking: [points]/15' in src
+        assert 'Role Alignment: [points]/5' in src
+        assert 'Behavioural Governance: [points]/5' in src
+        assert 'Decision Integrity: [points]/5' in src
+        assert 'Ethics & Judgment Under Pressure: [points]/5' in src
+        # And the totals stay at 100
+        assert 'Total: [sum]/100' in src
 
     # ── #1 Argument-quality conviction tuning ───────────────────────────
 

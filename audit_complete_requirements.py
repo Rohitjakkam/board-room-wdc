@@ -269,21 +269,36 @@ def _eval_c1_vocab(data: Dict) -> Dict:
 
 
 def _eval_d1_alignment(data: Dict) -> Dict:
-    """D1: LLM decision score aligned with board stance majority."""
+    """D1: LLM evaluator does not pathologically inflate scores for clearly-bad
+    picks, and does not pathologically depress scores for clearly-good picks.
+
+    NOTE: in v1.4.7+ board stances are DETERMINISTIC from the option's calibration
+    tier — they don't come from an LLM call. Scores reflect RATIONALE QUALITY,
+    not board verdict. So a thoughtful rationale on a controversial pick can
+    legitimately score high while the (pre-baked) board still opposes. This
+    check therefore looks for pathological extremes only:
+      - Picking the unanimous (most-approved) option should not score < 40
+        unless the rationale is actively harmful.
+      - Picking the highly_controversial option with a destructive rationale
+        (cover-up template) must hit the B1 ceiling (≤30).
+    """
     fails = []
     for r in data['rounds']:
         sc = r['decision_score']
-        s = r['stance_counts']
-        approve = s.get('APPROVE', 0)
-        oppose = s.get('OPPOSE', 0)
-        aligned = ((sc >= 60 and approve >= oppose) or
-                   (sc < 60 and oppose >= approve) or
-                   (40 <= sc < 60 and approve == oppose))
-        if not aligned:
-            fails.append(f"R{r['round_number']}: score={sc}, APPROVE={approve}, OPPOSE={oppose}")
+        flav = r['decision_flavor']
+        chosen_calib = (r.get('chosen_option') or {}).get('calibration', '')
+        # Unanimous pick with thoughtful rationale must not be depressed below 40
+        if chosen_calib == 'unanimous' and flav == 'thoughtful_unanimous' and sc < 40:
+            fails.append(f"R{r['round_number']} ({flav}): score={sc} too low for unanimous-pick + thoughtful rationale")
+        # Destructive cover-up must hit the B1 ceiling
+        if flav == 'destructive_cover_up' and sc > 30:
+            fails.append(f"R{r['round_number']} ({flav}): score={sc} exceeds B1 ceiling of 30")
     return {
         'pass': not fails,
-        'detail': '; '.join(fails) if fails else 'All rounds: LLM score aligned with board verdict.',
+        'detail': ('; '.join(fails) if fails else
+                   'LLM scores reflect rationale quality without pathological inflation/deflation. '
+                   'NB: stances are deterministic from option choice, so score-vs-stance '
+                   'divergence is expected when rationale quality differs from option calibration.'),
     }
 
 

@@ -663,12 +663,31 @@ def run_simulation_round(llm: object, data: Dict,
                 st.session_state.board_effectiveness_history.append(effectiveness)
                 st.session_state[f"board_effectiveness_{state.current_round}"] = effectiveness
 
+                # Engagement data drives the Behavioural Governance dimension
+                # in the v1.4.9 rubric. Gathered from session state populated
+                # by the consultation + deliberation flows.
+                _dh = st.session_state.get(f"debate_history_{state.current_round}", []) or []
+                _addressed = len({h.get('dissenter_name') for h in _dh if h.get('dissenter_name')})
+                _dissenters_total = sum(1 for s in stances.values()
+                                        if s.get('stance') in ('OPPOSE', 'CONVINCED'))
+                engagement_data = {
+                    'board_consultations':     st.session_state.get(f'board_consultations_round_{state.current_round}', 0),
+                    'committee_consultations': st.session_state.get(f'committee_consultations_round_{state.current_round}', 0),
+                    'debate_exchanges':        sum(int(s.get('debate_exchanges', 0)) for s in stances.values()),
+                    'dissenters_addressed':    _addressed,
+                    'dissenters_total':        _dissenters_total,
+                    'force_submitted':         bool(force_submitted),
+                }
+
                 evaluation = evaluate_decision(
                     llm, company_data, module_data,
-                    scenario, st.session_state[pending_decision_key], round_config, player_role
+                    scenario, st.session_state[pending_decision_key],
+                    round_config, player_role,
+                    engagement_data=engagement_data,
                 )
 
                 evaluation['board_effectiveness'] = effectiveness
+                evaluation['engagement_data'] = engagement_data
                 st.session_state[eval_key] = evaluation
 
                 if 'metric_impacts' in evaluation:
@@ -832,8 +851,10 @@ def run_simulation_round(llm: object, data: Dict,
             with st.expander("📋 Score Breakdown & Reasoning (Total: 100 pts)", expanded=True):
                 st.caption(
                     "**Dimensions:** Governance Understanding /25 · "
-                    "Legal & Regulatory /20 · Stakeholder Consideration /20 · "
-                    "Strategic Thinking /20 · Role Alignment /15"
+                    "Legal & Regulatory /25 · Stakeholder Consideration /15 · "
+                    "Strategic Thinking /15 · Role Alignment /5 · "
+                    "Behavioural Governance /5 · Decision Integrity /5 · "
+                    "Ethics & Judgment Under Pressure /5"
                 )
                 st.markdown(evaluation['score_reasoning'])
 

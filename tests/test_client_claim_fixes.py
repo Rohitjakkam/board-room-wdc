@@ -670,6 +670,122 @@ class TestCompositeRoundScore4Component:
         assert result['composite'] == 67.5
 
 
+class TestRubricV149:
+    """v1.4.9 rubric: 8 dimensions = 25/25/15/15/5/5/5/5 = 100.
+    Three new dimensions (Behavioural Governance, Decision Integrity, Ethics &
+    Judgment Under Pressure) join the existing five with rebalanced weights."""
+
+    from unittest.mock import MagicMock
+
+    @staticmethod
+    def _evaluate(llm_text, engagement_data=None):
+        from unittest.mock import MagicMock
+        from core.simulation_engine import evaluate_decision
+        mock = MagicMock()
+        mock.generate_content.return_value.text = llm_text
+        return mock, evaluate_decision(
+            llm=mock,
+            company_data={'company_name': 'X', 'company_overview': '',
+                          'metrics': {}, 'board_members': []},
+            module_data={'module_name': 'M', 'learning_objectives': [],
+                         'topics': [], 'key_terms': {}},
+            scenario='s', decision='d',
+            round_config={'difficulty': 'medium'},
+            player_role={'name': 'P', 'role': 'CFO', 'expertise': 'Finance'},
+            engagement_data=engagement_data,
+        )
+
+    def test_all_eight_dimensions_in_prompt(self):
+        mock, _ = self._evaluate("SCORE: 70\nSCORE_REASONING: ok\nSTRENGTHS: ok\nAREAS_FOR_IMPROVEMENT: ok\nKEY_LEARNING_POINTS: ok\nBEST_APPROACH: ok\nENCOURAGEMENT: ok")
+        prompt = mock.generate_content.call_args_list[0][0][0]
+        for label in ('Governance Understanding', 'Legal & Regulatory Compliance',
+                      'Stakeholder Consideration', 'Strategic Thinking',
+                      'Role Alignment', 'Behavioural Governance',
+                      'Decision Integrity', 'Ethics & Judgment Under Pressure'):
+            assert label in prompt, f"{label!r} missing from evaluation prompt"
+
+    def test_dimension_weights_sum_to_100(self):
+        """Per-dimension max points must sum to 100 — exactly."""
+        from pathlib import Path
+        import re
+        src = Path('core/simulation_engine.py').read_text(encoding='utf-8')
+        # Find the SCORE_REASONING block and extract every "[points]/N" pattern.
+        m = re.search(r'SCORE_REASONING:.*?Total:\s*\[sum\]/100', src, re.DOTALL)
+        assert m, "SCORE_REASONING block not found"
+        block = m.group(0)
+        caps = [int(n) for n in re.findall(r'\[points\]/(\d+)', block)]
+        assert len(caps) == 8, f"Expected 8 dimension caps, found {len(caps)}: {caps}"
+        assert sum(caps) == 100, f"Dimension caps must sum to 100, got {sum(caps)}: {caps}"
+        # And the specific distribution
+        assert sorted(caps, reverse=True) == [25, 25, 15, 15, 5, 5, 5, 5]
+
+    def test_engagement_block_omitted_when_no_data(self):
+        """When engagement_data is None, the prompt must NOT include the data block.
+        The Behavioural Governance dimension definition references the block by name,
+        so check for the actual data lines (which only render when data is provided)."""
+        mock, _ = self._evaluate(
+            "SCORE: 70\nSCORE_REASONING: ok\nSTRENGTHS: ok\nAREAS_FOR_IMPROVEMENT: ok\nKEY_LEARNING_POINTS: ok\nBEST_APPROACH: ok\nENCOURAGEMENT: ok"
+        )
+        prompt = mock.generate_content.call_args_list[0][0][0]
+        # These specific lines only appear inside the actual engagement_block
+        assert 'Board (director) consultations used:' not in prompt
+        assert 'Dissenters addressed:' not in prompt
+        assert 'Force-submitted (timer expired):' not in prompt
+
+    def test_engagement_block_included_when_data_provided(self):
+        """When engagement_data is provided, the prompt MUST surface every key."""
+        engagement = {
+            'board_consultations': 1, 'committee_consultations': 1,
+            'debate_exchanges': 4, 'dissenters_addressed': 2,
+            'dissenters_total': 3, 'force_submitted': False,
+        }
+        mock, _ = self._evaluate(
+            "SCORE: 70\nSCORE_REASONING: ok\nSTRENGTHS: ok\nAREAS_FOR_IMPROVEMENT: ok\nKEY_LEARNING_POINTS: ok\nBEST_APPROACH: ok\nENCOURAGEMENT: ok",
+            engagement_data=engagement,
+        )
+        prompt = mock.generate_content.call_args_list[0][0][0]
+        assert 'PLAYER ENGAGEMENT DATA' in prompt
+        assert 'Board (director) consultations used:    1' in prompt
+        assert 'Committee consultations used:           1' in prompt
+        assert 'Total debate exchanges with dissenters: 4' in prompt
+        assert 'Dissenters addressed:                   2 of 3' in prompt
+        assert 'Force-submitted (timer expired):        no' in prompt
+
+    def test_force_submitted_renders_as_yes(self):
+        engagement = {'board_consultations': 0, 'committee_consultations': 0,
+                      'debate_exchanges': 0, 'dissenters_addressed': 0,
+                      'dissenters_total': 0, 'force_submitted': True}
+        mock, _ = self._evaluate(
+            "SCORE: 70\nSCORE_REASONING: ok\nSTRENGTHS: ok\nAREAS_FOR_IMPROVEMENT: ok\nKEY_LEARNING_POINTS: ok\nBEST_APPROACH: ok\nENCOURAGEMENT: ok",
+            engagement_data=engagement,
+        )
+        prompt = mock.generate_content.call_args_list[0][0][0]
+        assert 'Force-submitted (timer expired):        YES' in prompt
+
+    def test_score_parser_handles_8dim_breakdown(self):
+        """Dimension-sum fallback must work when SCORE: is missing and dims include /5 caps."""
+        llm_text = """SCORE_REASONING:
+- Governance Understanding: 12/25
+- Legal/Regulatory Compliance: 15/25
+- Stakeholder Consideration: 10/15
+- Strategic Thinking: 8/15
+- Role Alignment: 3/5
+- Behavioural Governance: 4/5
+- Decision Integrity: 3/5
+- Ethics & Judgment Under Pressure: 2/5
+Total: 57/100
+
+STRENGTHS: ok
+AREAS_FOR_IMPROVEMENT: ok
+KEY_LEARNING_POINTS: ok
+BEST_APPROACH: ok
+ENCOURAGEMENT: ok"""
+        _, result = self._evaluate(llm_text)
+        # 12+15+10+8+3+4+3+2 = 57. Allow parser to recover this if SCORE: missing.
+        # Headline SCORE: line is missing here, so fallback parses dimensions and recovers.
+        assert result['score'] == 57, f"Parser recovered {result['score']} (expected 57)"
+
+
 class TestOptionUINoCalibrationLeak:
     """v1.4.8 — Option-card UI must not reveal calibration / opposer-count.
 
