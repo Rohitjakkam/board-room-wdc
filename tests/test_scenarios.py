@@ -1986,13 +1986,20 @@ class TestScenarioModel:
         assert 'gemini-2.0-flash-lite' in src
 
     def test_scenario_llm_has_higher_token_limit(self):
-        """Scenario model should have 4096 max tokens vs 2048 for default."""
+        """Scenario model needs MORE tokens than the default LLM so the 4th
+        calibrated option can't be truncated. v1.4.10 bumped 4096 → 6144 in
+        response to client reports of occasionally missing options."""
         import inspect
         from core.llm import initialize_scenario_llm, initialize_llm
         scenario_src = inspect.getsource(initialize_scenario_llm)
         default_src = inspect.getsource(initialize_llm)
-        assert '4096' in scenario_src, "Scenario model should have 4096 max tokens"
-        assert '2048' in default_src, "Default model should have 2048 max tokens"
+        # Just enforce the relationship — scenario LLM gets MORE budget than default.
+        # Extract numeric max_output_tokens via regex so the test survives future bumps.
+        import re
+        scenario_n = int(re.search(r'max_output_tokens\s*=\s*(\d+)', scenario_src).group(1))
+        default_n = int(re.search(r'max_output_tokens\s*=\s*(\d+)', default_src).group(1))
+        assert scenario_n >= 4096, f"Scenario LLM should have ≥4096 tokens, got {scenario_n}"
+        assert scenario_n > default_n, "Scenario LLM must have more tokens than the default"
 
     def test_simulation_page_uses_scenario_llm_for_scenarios(self):
         """pages/simulation.py must use _scenario_llm for generate_scenario calls."""

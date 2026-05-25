@@ -1,0 +1,2245 @@
+{
+  "audit_data": {
+    "timestamp": "2026-05-25T13:53:20",
+    "model": "gemini-2.0-flash-lite",
+    "elapsed_seconds": 66.63988661766052,
+    "pytest": {
+      "passed": 397,
+      "failed": 0,
+      "total": 397,
+      "returncode": 0,
+      "elapsed": 7.630367040634155,
+      "summary": "........................................................................ [ 90%]\n.....................................                                    [100%]\n397 passed in 4.99s"
+    },
+    "initial_metrics": {
+      "product_defect_rate": {
+        "value": 4.2,
+        "unit": "%",
+        "priority": "high"
+      },
+      "customer_complaints": {
+        "value": 320,
+        "unit": "count",
+        "priority": "high"
+      },
+      "compliance_breaches_ytd": {
+        "value": 7,
+        "unit": "count",
+        "priority": "high"
+      },
+      "regulatory_fine_amount": {
+        "value": 5.0,
+        "unit": "$M",
+        "priority": "high"
+      },
+      "outstanding_lawsuits": {
+        "value": 3,
+        "unit": "count",
+        "priority": "high"
+      },
+      "system_downtime_pct": {
+        "value": 2.8,
+        "unit": "%",
+        "priority": "medium"
+      },
+      "total_penalties_ytd": {
+        "value": 0.85,
+        "unit": "$M",
+        "priority": "medium"
+      },
+      "total_revenue_annual": {
+        "value": 1200,
+        "unit": "$M",
+        "priority": "high"
+      },
+      "employee_engagement_score": {
+        "value": 68,
+        "unit": "%",
+        "priority": "medium"
+      },
+      "on_time_delivery_rate": {
+        "value": 89,
+        "unit": "%",
+        "priority": "medium"
+      },
+      "sec_filing_status": {
+        "value": "Active Review",
+        "unit": "",
+        "priority": "medium"
+      }
+    },
+    "final_metrics": {
+      "product_defect_rate": {
+        "value": 4.2,
+        "unit": "%",
+        "priority": "high"
+      },
+      "customer_complaints": {
+        "value": 323,
+        "unit": "count",
+        "priority": "high"
+      },
+      "compliance_breaches_ytd": {
+        "value": 8,
+        "unit": "count",
+        "priority": "high"
+      },
+      "regulatory_fine_amount": {
+        "value": 5.2,
+        "unit": "$M",
+        "priority": "high"
+      },
+      "outstanding_lawsuits": {
+        "value": 3,
+        "unit": "count",
+        "priority": "high"
+      },
+      "system_downtime_pct": {
+        "value": 2.8,
+        "unit": "%",
+        "priority": "medium"
+      },
+      "total_penalties_ytd": {
+        "value": 0.8,
+        "unit": "$M",
+        "priority": "medium"
+      },
+      "total_revenue_annual": {
+        "value": 1143.5,
+        "unit": "$M",
+        "priority": "high"
+      },
+      "employee_engagement_score": {
+        "value": 59.0,
+        "unit": "%",
+        "priority": "medium"
+      },
+      "on_time_delivery_rate": {
+        "value": 87.0,
+        "unit": "%",
+        "priority": "medium"
+      },
+      "sec_filing_status": {
+        "value": "Active Review",
+        "unit": "",
+        "priority": "medium"
+      }
+    },
+    "rounds": [
+      {
+        "round_number": 1,
+        "decision_flavor": "thoughtful_unanimous",
+        "force_submitted": false,
+        "metrics_before": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 7,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.85,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1200,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 68,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 89,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "scenario_raw": "SCENARIO TITLE: OSHA Investigation Disclosure\n\nSITUATION:\nSentinel Industries is under intense scrutiny. The OSHA investigation into the workplace injury at the Ohio plant is ongoing, and the potential severity of the violations is becoming clearer. The initial incident report, which was publicly available, downplayed the extent of the safety failures. Now, internal legal counsel believes the company may face significant fines and potential criminal charges if the investigation uncovers evidence of willful negligence. The SEC has also expressed interest in the company's disclosures regarding the incident. Meanwhile, the legal team is preparing for a potential settlement in one of the breach of contract cases, which could impact the company\u2019s quarterly earnings.\n\nKEY QUESTION:\nHow should the board direct management regarding disclosures related to the ongoing OSHA investigation, considering potential legal and reputational risks?\n\nSTAKEHOLDERS AFFECTED:\nShareholders, Employees, Regulatory Agencies, Customers\n\nTIME SENSITIVITY:\nModerate\n\nOPTIONS TO CONSIDER:\n\nOPTION A | CALIBRATION: controversial\nACTION: Issue a press release acknowledging the OSHA investigation and the potential for significant penalties, including criminal charges. The release should emphasize the company's commitment to cooperate fully with the investigation and implement necessary safety improvements. Additionally, proactively disclose the potential financial impact of any penalties in the next quarterly earnings report, even if the exact amount is unknown. This approach prioritizes transparency and demonstrates accountability, but may negatively impact the stock price and subject the company to additional scrutiny.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=APPROVE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: This level of disclosure could alarm investors unnecessarily before the investigation concludes and the true extent of the liabilities is known. | Priya Raman: Disclosing potential financial impacts before they are certain could create unnecessary volatility and could be viewed as an admission of guilt. | Theodore Vance: This level of aggressive disclosure risks creating a perception of weakness and could be detrimental to settlement negotiations in the breach of contract lawsuits.\n\nOPTION B | CALIBRATION: mild_dissent\nACTION: Direct the legal team to proactively engage with the SEC to clarify its expectations regarding disclosure obligations. This would involve a detailed discussion of the OSHA investigation, the potential legal ramifications, and the company's planned responses. The company will also prepare a revised risk factor disclosure for the next 10-Q, highlighting the OSHA investigation and its potential impact on Sentinel's operations and financial results. This approach prioritizes compliance and mitigates the risk of future SEC enforcement action, but it may not fully satisfy stakeholders seeking greater transparency.\nSTANCES: Helen Park=APPROVE, Marcus Lee=OPPOSE, Priya Raman=APPROVE, Theodore Vance=OPPOSE\nCOUNTERS: Marcus Lee: Proactive engagement with the SEC could inadvertently signal weakness and trigger a more extensive investigation into other potential compliance issues. | Theodore Vance: Preparing a detailed risk factor disclosure for the 10-Q could be seen as an admission of fault and could adversely affect the company's negotiating position in the breach of contract lawsuits.\n\nOPTION C | CALIBRATION: unanimous\nACTION: Instruct the legal and communications teams to prepare a carefully worded statement for release. This statement will acknowledge the OSHA investigation and reiterate Sentinel's commitment to workplace safety. It will also state that the company is cooperating fully with the investigation and will take all necessary actions to address any findings. The statement should not include any specific details about the investigation's findings or potential penalties, but it should reassure stakeholders that Sentinel is taking the matter seriously.\nSTANCES: Helen Park=APPROVE, Marcus Lee=APPROVE, Priya Raman=APPROVE, Theodore Vance=APPROVE\nCOUNTERS: (none)\n\nOPTION D | CALIBRATION: highly_controversial\nACTION: Instruct the CEO and General Counsel to prepare a comprehensive internal investigation into the circumstances surrounding the workplace injury and the initial incident report. This internal investigation should be conducted by an independent third party, and its findings should be shared with the board. The board should then use the findings to determine whether any further disclosures are warranted, but not until the OSHA investigation has concluded. This approach prioritizes understanding the facts and protecting the company from further liability, but delays public disclosure and may heighten concerns about transparency.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=OPPOSE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: An internal investigation could be seen as an attempt to conceal information and could damage the company's reputation. | Marcus Lee: Delaying public disclosure until the OSHA investigation concludes increases the risk of negative publicity and potential legal action. | Priya Raman: The cost of an independent investigation and the potential for adverse findings could negatively impact the company's financial results. | Theodore Vance: Delaying disclosure may violate the company's fiduciary duty to shareholders.\n",
+        "options_parsed_count": 4,
+        "options_full": [
+          {
+            "letter": "A",
+            "text": "Issue a press release acknowledging the OSHA investigation and the potential for significant penalties, including criminal charges. The release should emphasize the company's commitment to cooperate fully with the investigation and implement necessary safety improvements. Additionally, proactively disclose the potential financial impact of any penalties in the next quarterly earnings report, even if the exact amount is unknown. This approach prioritizes transparency and demonstrates accountability, but may negatively impact the stock price and subject the company to additional scrutiny.",
+            "calibration": "controversial",
+            "calibration_label_from_llm": "controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "This level of disclosure could alarm investors unnecessarily before the investigation concludes and the true extent of the liabilities is known.",
+              "Priya Raman": "Disclosing potential financial impacts before they are certain could create unnecessary volatility and could be viewed as an admission of guilt.",
+              "Theodore Vance": "This level of aggressive disclosure risks creating a perception of weakness and could be detrimental to settlement negotiations in the breach of contract lawsuits."
+            }
+          },
+          {
+            "letter": "B",
+            "text": "Direct the legal team to proactively engage with the SEC to clarify its expectations regarding disclosure obligations. This would involve a detailed discussion of the OSHA investigation, the potential legal ramifications, and the company's planned responses. The company will also prepare a revised risk factor disclosure for the next 10-Q, highlighting the OSHA investigation and its potential impact on Sentinel's operations and financial results. This approach prioritizes compliance and mitigates the risk of future SEC enforcement action, but it may not fully satisfy stakeholders seeking greater transparency.",
+            "calibration": "mild_dissent",
+            "calibration_label_from_llm": "mild_dissent",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Marcus Lee": "Proactive engagement with the SEC could inadvertently signal weakness and trigger a more extensive investigation into other potential compliance issues.",
+              "Theodore Vance": "Preparing a detailed risk factor disclosure for the 10-Q could be seen as an admission of fault and could adversely affect the company's negotiating position in the breach of contract lawsuits."
+            }
+          },
+          {
+            "letter": "C",
+            "text": "Instruct the legal and communications teams to prepare a carefully worded statement for release. This statement will acknowledge the OSHA investigation and reiterate Sentinel's commitment to workplace safety. It will also state that the company is cooperating fully with the investigation and will take all necessary actions to address any findings. The statement should not include any specific details about the investigation's findings or potential penalties, but it should reassure stakeholders that Sentinel is taking the matter seriously.",
+            "calibration": "unanimous",
+            "calibration_label_from_llm": "unanimous",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "APPROVE"
+            },
+            "counters": {}
+          },
+          {
+            "letter": "D",
+            "text": "Instruct the CEO and General Counsel to prepare a comprehensive internal investigation into the circumstances surrounding the workplace injury and the initial incident report. This internal investigation should be conducted by an independent third party, and its findings should be shared with the board. The board should then use the findings to determine whether any further disclosures are warranted, but not until the OSHA investigation has concluded. This approach prioritizes understanding the facts and protecting the company from further liability, but delays public disclosure and may heighten concerns about transparency.",
+            "calibration": "highly_controversial",
+            "calibration_label_from_llm": "highly_controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "An internal investigation could be seen as an attempt to conceal information and could damage the company's reputation.",
+              "Marcus Lee": "Delaying public disclosure until the OSHA investigation concludes increases the risk of negative publicity and potential legal action.",
+              "Priya Raman": "The cost of an independent investigation and the potential for adverse findings could negatively impact the company's financial results.",
+              "Theodore Vance": "Delaying disclosure may violate the company's fiduciary duty to shareholders."
+            }
+          }
+        ],
+        "chosen_option": {
+          "letter": "C",
+          "text": "Instruct the legal and communications teams to prepare a carefully worded statement for release. This statement will acknowledge the OSHA investigation and reiterate Sentinel's commitment to workplace safety. It will also state that the company is cooperating fully with the investigation and will take all necessary actions to address any findings. The statement should not include any specific details about the investigation's findings or potential penalties, but it should reassure stakeholders that Sentinel is taking the matter seriously.",
+          "calibration": "unanimous",
+          "calibration_label_from_llm": "unanimous",
+          "stance_distribution": {
+            "Helen Park": "APPROVE",
+            "Marcus Lee": "APPROVE",
+            "Priya Raman": "APPROVE",
+            "Theodore Vance": "APPROVE"
+          },
+          "counters": {}
+        },
+        "selected_option_full": {
+          "letter": "C",
+          "text": "Instruct the legal and communications teams to prepare a carefully worded statement for release. This statement will acknowledge the OSHA investigation and reiterate Sentinel's commitment to workplace safety. It will also state that the company is cooperating fully with the investigation and will take all necessary actions to address any findings. The statement should not include any specific details about the investigation's findings or potential penalties, but it should reassure stakeholders that Sentinel is taking the matter seriously.",
+          "calibration": "unanimous",
+          "calibration_label_from_llm": "unanimous",
+          "stance_distribution": {
+            "Helen Park": "APPROVE",
+            "Marcus Lee": "APPROVE",
+            "Priya Raman": "APPROVE",
+            "Theodore Vance": "APPROVE"
+          },
+          "counters": {}
+        },
+        "decision_text": "I select Option C: Instruct the legal and communications teams to prepare a carefully worded statement for release. This statement will acknowledge the OSHA investigation and reiterate Sentinel's commitment to workplace safety. It will also state that the company is cooperating fully with the investigation and will take all necessary actions to address any findings. The statement should not include any specific details about the investigation's findings or potential penalties, but it should reassure stakeholders that Sentinel is taking the matter seriously.\n\nRationale: This action discharges fiduciary duty by prioritizing disclosure, engaging external counsel, and convening the Audit Committee under Theodore Vance. Material findings will be disclosed promptly per our duty of candor.",
+        "decision_score": 58,
+        "score_reasoning": "- Governance Understanding: 10/25 - The decision acknowledges fiduciary duty and duty of candor, which is a positive. However, it fails to fully grasp the complexities of the situation and the need for more proactive measures. The decision lacks a comprehensive understanding of disclosure obligations and the potential consequences of inadequate disclosure.\n- Legal/Regulatory Compliance: 10/25 - The decision aims to comply with disclosure obligations but does not go far enough. It mentions cooperation with the investigation, but doesn't show an understanding of the need to proactively assess and address potential violations.\n- Stakeholder Consideration: 8/15 - The decision attempts to reassure stakeholders, but it does so in a superficial manner. It doesn't adequately address the concerns of shareholders, employees, or regulators, particularly concerning transparency and accountability.\n- Strategic Thinking: 7/15 - The decision lacks strategic depth. It focuses on a reactive approach (issuing a generic statement) rather than proactively managing the crisis, mitigating risks, and protecting the company's long-term interests. It doesn't consider the broader implications of the situation, such as potential litigation or reputational damage.\n- Role Alignment: 5/5 - The decision is appropriate for the player's role as a Board Director, as it involves directing the legal and communications teams.\n- Behavioural Governance: 3/5 - No engagement data was provided, so a default score is assigned.\n- Decision Integrity: 10/5 - The rationale aligns with the action, and the reasoning is self-consistent.\n- Ethics & Judgment Under Pressure: 5/5 - The decision, while limited, acknowledges the importance of taking the matter seriously and reassuring stakeholders, which is a positive ethical step.\nTotal: 58/100\n\nMODULE_VOCABULARY_SCORE: 50/100\n\nVOCABULARY_INVOKED: [Fiduciary Duty, Duty of Candor]\n\nVOCABULARY_MISSED: [Whistleblower Protection, Material Misstatement]\n\nVOCABULARY_MISUSED: []",
+        "vocabulary_score": 100,
+        "vocabulary_invoked": [
+          "Fiduciary Duty",
+          "Duty of Candor"
+        ],
+        "metric_impacts_raw": {
+          "impacts": {
+            "product_defect_rate": 0.0,
+            "customer_complaints": 0.0,
+            "compliance_breaches_ytd": 0.0,
+            "regulatory_fine_amount": 0.0,
+            "outstanding_lawsuits": 0.0,
+            "system_downtime_pct": 0.0,
+            "total_penalties_ytd": 0.0,
+            "total_revenue_annual": -10.0,
+            "employee_engagement_score": 0.0,
+            "on_time_delivery_rate": 0.0
+          },
+          "reasons": {
+            "product_defect_rate": "No direct impact from a public statement.",
+            "customer_complaints": "No direct impact from a public statement.",
+            "compliance_breaches_ytd": "The statement itself doesn't directly affect compliance.",
+            "regulatory_fine_amount": "The statement doesn't directly impact fines, but this is a deferred problem.",
+            "outstanding_lawsuits": "No direct impact from a public statement.",
+            "system_downtime_pct": "No direct impact from a public statement.",
+            "total_penalties_ytd": "The statement doesn't directly impact penalties.",
+            "total_revenue_annual": "Short-term market reaction to uncertainty, and a small hit to sentiment.",
+            "employee_engagement_score": "No direct impact from a public statement.",
+            "on_time_delivery_rate": "No direct impact from a public statement."
+          },
+          "summary": "This decision, while seemingly innocuous, has the potential to trigger a negative market reaction due to the inherent uncertainty surrounding the OSHA investigation. The carefully worded statement, while designed to reassure stakeholders, does not address the core issue of workplace safety failures, and the lack of concrete action could lead to a loss of investor confidence and a corresponding decrease in revenue. This is a \"wait-and-see\" approach that does not directly address the underlying problems but provides a holding pattern for the time being."
+        },
+        "bias_stats_raw": {
+          "eligible_metrics": 10,
+          "zero_impacts": 9,
+          "zero_pct": 90.0,
+          "positive_impacts": 0,
+          "negative_impacts": 1,
+          "good_direction": 0,
+          "bad_direction": 1,
+          "nonzero_mean": -10.0,
+          "nonzero_stdev": 0,
+          "nonzero_abs_mean": 10.0,
+          "nonzero_max_abs": 10.0
+        },
+        "member_stances_full": {
+          "Helen Park": {
+            "member_name": "Helen Park",
+            "member_role": "CEO",
+            "member_expertise": "Operations",
+            "stance": "APPROVE",
+            "initial_reaction": "CEO supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Marcus Lee": {
+            "member_name": "Marcus Lee",
+            "member_role": "Chief Risk Officer",
+            "member_expertise": "Risk Management",
+            "stance": "APPROVE",
+            "initial_reaction": "Chief Risk Officer supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Priya Raman": {
+            "member_name": "Priya Raman",
+            "member_role": "CFO",
+            "member_expertise": "Finance",
+            "stance": "APPROVE",
+            "initial_reaction": "CFO supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Theodore Vance": {
+            "member_name": "Theodore Vance",
+            "member_role": "Chair of the Audit Committee",
+            "member_expertise": "Audit",
+            "stance": "APPROVE",
+            "initial_reaction": "Chair of the Audit Committee supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          }
+        },
+        "stance_counts": {
+          "APPROVE": 4,
+          "OPPOSE": 0,
+          "NEUTRAL": 0,
+          "CONVINCED": 0
+        },
+        "board_effectiveness": {
+          "round_number": 1,
+          "consultation_alignment_score": 50.0,
+          "members_initially_approving": 4,
+          "members_initially_opposing": 0,
+          "members_convinced": 0,
+          "total_debate_exchanges": 0,
+          "force_submitted": false,
+          "deliberation_score": 87.5,
+          "score_breakdown": {
+            "initial_approval": 25.0,
+            "consultation": 12.5,
+            "debate_effectiveness": 30,
+            "efficiency": 20
+          }
+        },
+        "metric_movements": [
+          {
+            "metric": "product_defect_rate",
+            "unit": "%",
+            "priority": "high",
+            "value_before": 4.2,
+            "value_after": 4.2,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact from a public statement."
+          },
+          {
+            "metric": "customer_complaints",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 320,
+            "value_after": 320,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact from a public statement."
+          },
+          {
+            "metric": "compliance_breaches_ytd",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 7,
+            "value_after": 7,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The statement itself doesn't directly affect compliance."
+          },
+          {
+            "metric": "regulatory_fine_amount",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 5.0,
+            "value_after": 5.0,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The statement doesn't directly impact fines, but this is a deferred problem."
+          },
+          {
+            "metric": "outstanding_lawsuits",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 3,
+            "value_after": 3,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact from a public statement."
+          },
+          {
+            "metric": "system_downtime_pct",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 2.8,
+            "value_after": 2.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact from a public statement."
+          },
+          {
+            "metric": "total_penalties_ytd",
+            "unit": "$M",
+            "priority": "medium",
+            "value_before": 0.85,
+            "value_after": 0.8,
+            "applied_change": -0.04999999999999993,
+            "lower_is_better": true,
+            "reason": "The statement doesn't directly impact penalties."
+          },
+          {
+            "metric": "total_revenue_annual",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 1200,
+            "value_after": 1190.0,
+            "applied_change": -10.0,
+            "lower_is_better": false,
+            "reason": "Short-term market reaction to uncertainty, and a small hit to sentiment."
+          },
+          {
+            "metric": "employee_engagement_score",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 68,
+            "value_after": 68.0,
+            "applied_change": 0.0,
+            "lower_is_better": false,
+            "reason": "No direct impact from a public statement."
+          },
+          {
+            "metric": "on_time_delivery_rate",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 89,
+            "value_after": 89.0,
+            "applied_change": 0.0,
+            "lower_is_better": false,
+            "reason": "No direct impact from a public statement."
+          },
+          {
+            "metric": "sec_filing_status",
+            "unit": "",
+            "priority": "medium",
+            "value_before": "Active Review",
+            "value_after": "Active Review",
+            "applied_change": null,
+            "lower_is_better": false,
+            "reason": ""
+          }
+        ],
+        "metrics_after": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 7,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1190.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 68.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 89.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "captured_warnings": [],
+        "composite_round_score": {
+          "composite": 68.4,
+          "decision_component": 23.2,
+          "metric_component": 12.72,
+          "board_effectiveness_component": 17.5,
+          "vocab_component": 15.0,
+          "metric_breakdown": {
+            "normalized_score": 50.9,
+            "improvements": 1,
+            "declines": 1,
+            "weighted_avg_pct_change": 0.36
+          },
+          "weights": {
+            "decision": 0.4,
+            "metric": 0.25,
+            "board_effectiveness": 0.2,
+            "vocab": 0.15
+          }
+        }
+      },
+      {
+        "round_number": 2,
+        "decision_flavor": "destructive_cover_up",
+        "force_submitted": false,
+        "metrics_before": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 7,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1190.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 68.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 89.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "scenario_raw": "SCENARIO TITLE: Litigation Strategy Adjustment\n\nSITUATION:\nFollowing the public announcement regarding the OSHA investigation, Sentinel Industries is facing increased scrutiny from multiple directions. The three distributor lawsuits have intensified, with plaintiffs now citing the OSHA investigation as evidence of systemic negligence and breach of contract. Furthermore, the SEC has formally opened an inquiry into Sentinel's revenue recognition practices, specifically regarding the timing of product sales and warranty accruals. The company's legal team is stretched thin, and the initial litigation strategy for the distributor lawsuits, developed before the recent crises, is now deemed inadequate. The board must now reassess its approach to these pressing legal matters.\n\nKEY QUESTION:\nHow should the board direct the legal team to adapt the litigation strategy in light of the evolving legal and regulatory landscape?\n\nSTAKEHOLDERS AFFECTED:\nShareholders, employees, customers, distributors, regulatory agencies\n\nTIME SENSITIVITY:\nHigh\n\nOPTIONS TO CONSIDER:\n\nOPTION A | CALIBRATION: controversial\nACTION: Instruct the legal team to aggressively pursue settlements in all three distributor lawsuits, even if it means offering significantly more favorable terms than initially planned. This approach aims to swiftly resolve the litigation and mitigate the reputational damage associated with the lawsuits, presenting a united front to the public. However, it could lead to substantial financial payouts and set a precedent for future disputes, potentially emboldening other distributors or customers to bring claims. Additionally, it may be perceived as an admission of guilt, further fueling negative sentiment.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=APPROVE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: This strategy could be perceived as a sign of weakness, and we may be admitting liability. | Priya Raman: The significant financial implications of settling all cases quickly could severely impact our quarterly earnings and cash flow. | Theodore Vance: We need to analyze the long-term ramifications of settling these cases, including the potential for future claims.\n\nOPTION B | CALIBRATION: unanimous\nACTION: Direct the legal team to conduct a comprehensive review of all three distributor lawsuits, including a thorough reassessment of the company's contractual obligations and potential liabilities. This review should involve external legal counsel to provide an independent perspective on the company's legal standing. Concurrently, the legal team should prepare a detailed risk assessment, outlining the potential financial and reputational impacts of each lawsuit, as well as the implications of the SEC inquiry. This will allow the board to make informed decisions moving forward.\nSTANCES: Helen Park=APPROVE, Marcus Lee=APPROVE, Priya Raman=APPROVE, Theodore Vance=APPROVE\nCOUNTERS: (none)\n\nOPTION C | CALIBRATION: mild_dissent\nACTION: Authorize the legal team to vigorously defend the company against all three distributor lawsuits, arguing that the product defects and workplace safety issues are unrelated to the contractual breaches alleged by the distributors. This strategy aims to protect the company's financial interests and maintain its reputation for product quality and safety. However, this approach could prolong the litigation process, leading to higher legal costs and continued reputational damage. It also increases the risk of negative outcomes in court if the company's defense is not successful.\nSTANCES: Helen Park=APPROVE, Marcus Lee=OPPOSE, Priya Raman=APPROVE, Theodore Vance=OPPOSE\nCOUNTERS: Marcus Lee: The focus on litigation could divert valuable resources away from the company's core operations and the need to address the underlying issues of product defects and workplace safety. | Theodore Vance: Defending all claims would be costly and we must also consider the SEC inquiry.\n\nOPTION D | CALIBRATION: highly_controversial\nACTION: Order the legal team to proactively contact the distributors and initiate confidential settlement negotiations in two of the three lawsuits, while vigorously defending the third. This selective approach aims to strategically manage the litigation risk, focusing on settling the cases with the highest potential financial or reputational impact while fighting the remaining case to establish a favorable precedent. This strategy might appear as a fair compromise. However, it could alienate the distributors not chosen for settlement and create the perception of favoritism, which would lead to further tensions.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=OPPOSE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: This approach could be viewed as inconsistent and could damage our relationships with all distributors. | Marcus Lee: The inconsistent approach could create unnecessary risk, as we are choosing which distributors to settle with. | Priya Raman: The financial implications of potentially settling two lawsuits could be significant and will impact our cash reserves. | Theodore Vance: This approach lacks transparency and could invite criticism from investors and regulators.\n",
+        "options_parsed_count": 4,
+        "options_full": [
+          {
+            "letter": "A",
+            "text": "Instruct the legal team to aggressively pursue settlements in all three distributor lawsuits, even if it means offering significantly more favorable terms than initially planned. This approach aims to swiftly resolve the litigation and mitigate the reputational damage associated with the lawsuits, presenting a united front to the public. However, it could lead to substantial financial payouts and set a precedent for future disputes, potentially emboldening other distributors or customers to bring claims. Additionally, it may be perceived as an admission of guilt, further fueling negative sentiment.",
+            "calibration": "controversial",
+            "calibration_label_from_llm": "controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "This strategy could be perceived as a sign of weakness, and we may be admitting liability.",
+              "Priya Raman": "The significant financial implications of settling all cases quickly could severely impact our quarterly earnings and cash flow.",
+              "Theodore Vance": "We need to analyze the long-term ramifications of settling these cases, including the potential for future claims."
+            }
+          },
+          {
+            "letter": "B",
+            "text": "Direct the legal team to conduct a comprehensive review of all three distributor lawsuits, including a thorough reassessment of the company's contractual obligations and potential liabilities. This review should involve external legal counsel to provide an independent perspective on the company's legal standing. Concurrently, the legal team should prepare a detailed risk assessment, outlining the potential financial and reputational impacts of each lawsuit, as well as the implications of the SEC inquiry. This will allow the board to make informed decisions moving forward.",
+            "calibration": "unanimous",
+            "calibration_label_from_llm": "unanimous",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "APPROVE"
+            },
+            "counters": {}
+          },
+          {
+            "letter": "C",
+            "text": "Authorize the legal team to vigorously defend the company against all three distributor lawsuits, arguing that the product defects and workplace safety issues are unrelated to the contractual breaches alleged by the distributors. This strategy aims to protect the company's financial interests and maintain its reputation for product quality and safety. However, this approach could prolong the litigation process, leading to higher legal costs and continued reputational damage. It also increases the risk of negative outcomes in court if the company's defense is not successful.",
+            "calibration": "mild_dissent",
+            "calibration_label_from_llm": "mild_dissent",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Marcus Lee": "The focus on litigation could divert valuable resources away from the company's core operations and the need to address the underlying issues of product defects and workplace safety.",
+              "Theodore Vance": "Defending all claims would be costly and we must also consider the SEC inquiry."
+            }
+          },
+          {
+            "letter": "D",
+            "text": "Order the legal team to proactively contact the distributors and initiate confidential settlement negotiations in two of the three lawsuits, while vigorously defending the third. This selective approach aims to strategically manage the litigation risk, focusing on settling the cases with the highest potential financial or reputational impact while fighting the remaining case to establish a favorable precedent. This strategy might appear as a fair compromise. However, it could alienate the distributors not chosen for settlement and create the perception of favoritism, which would lead to further tensions.",
+            "calibration": "highly_controversial",
+            "calibration_label_from_llm": "highly_controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "This approach could be viewed as inconsistent and could damage our relationships with all distributors.",
+              "Marcus Lee": "The inconsistent approach could create unnecessary risk, as we are choosing which distributors to settle with.",
+              "Priya Raman": "The financial implications of potentially settling two lawsuits could be significant and will impact our cash reserves.",
+              "Theodore Vance": "This approach lacks transparency and could invite criticism from investors and regulators."
+            }
+          }
+        ],
+        "chosen_option": {
+          "letter": "D",
+          "text": "Order the legal team to proactively contact the distributors and initiate confidential settlement negotiations in two of the three lawsuits, while vigorously defending the third. This selective approach aims to strategically manage the litigation risk, focusing on settling the cases with the highest potential financial or reputational impact while fighting the remaining case to establish a favorable precedent. This strategy might appear as a fair compromise. However, it could alienate the distributors not chosen for settlement and create the perception of favoritism, which would lead to further tensions.",
+          "calibration": "highly_controversial",
+          "calibration_label_from_llm": "highly_controversial",
+          "stance_distribution": {
+            "Helen Park": "OPPOSE",
+            "Marcus Lee": "OPPOSE",
+            "Priya Raman": "OPPOSE",
+            "Theodore Vance": "OPPOSE"
+          },
+          "counters": {
+            "Helen Park": "This approach could be viewed as inconsistent and could damage our relationships with all distributors.",
+            "Marcus Lee": "The inconsistent approach could create unnecessary risk, as we are choosing which distributors to settle with.",
+            "Priya Raman": "The financial implications of potentially settling two lawsuits could be significant and will impact our cash reserves.",
+            "Theodore Vance": "This approach lacks transparency and could invite criticism from investors and regulators."
+          }
+        },
+        "selected_option_full": {
+          "letter": "D",
+          "text": "Order the legal team to proactively contact the distributors and initiate confidential settlement negotiations in two of the three lawsuits, while vigorously defending the third. This selective approach aims to strategically manage the litigation risk, focusing on settling the cases with the highest potential financial or reputational impact while fighting the remaining case to establish a favorable precedent. This strategy might appear as a fair compromise. However, it could alienate the distributors not chosen for settlement and create the perception of favoritism, which would lead to further tensions.",
+          "calibration": "highly_controversial",
+          "calibration_label_from_llm": "highly_controversial",
+          "stance_distribution": {
+            "Helen Park": "OPPOSE",
+            "Marcus Lee": "OPPOSE",
+            "Priya Raman": "OPPOSE",
+            "Theodore Vance": "OPPOSE"
+          },
+          "counters": {
+            "Helen Park": "This approach could be viewed as inconsistent and could damage our relationships with all distributors.",
+            "Marcus Lee": "The inconsistent approach could create unnecessary risk, as we are choosing which distributors to settle with.",
+            "Priya Raman": "The financial implications of potentially settling two lawsuits could be significant and will impact our cash reserves.",
+            "Theodore Vance": "This approach lacks transparency and could invite criticism from investors and regulators."
+          }
+        },
+        "decision_text": "I select Option D: Order the legal team to proactively contact the distributors and initiate confidential settlement negotiations in two of the three lawsuits, while vigorously defending the third. This selective approach aims to strategically manage the litigation risk, focusing on settling the cases with the highest potential financial or reputational impact while fighting the remaining case to establish a favorable precedent. This strategy might appear as a fair compromise. However, it could alienate the distributors not chosen for settlement and create the perception of favoritism, which would lead to further tensions.\n\nRationale: We should deny the allegations, delay document production, intimidate the whistleblower into retracting, terminate them for unrelated reasons, and avoid any voluntary disclosure to the SEC or OSHA.",
+        "decision_score": 15,
+        "score_reasoning": "- Governance Understanding: 5/25 - The decision demonstrates a fundamental misunderstanding of corporate governance principles. The rationale reveals intent to obstruct justice, which is a severe breach of fiduciary duty.\n- Legal/Regulatory Compliance: 0/25 - The decision directly proposes unlawful actions, including potentially obstructing the SEC and OSHA investigations. This is a severe violation of numerous laws and regulations.\n- Stakeholder Consideration: 2/15 - The decision completely disregards stakeholder interests, prioritizing the company's perceived short-term interests above all else. It harms distributors, regulators, shareholders, and employees.\n- Strategic Thinking: 0/15 - The decision lacks any strategic thinking. It focuses on illegal actions without considering the long-term consequences of such actions.\n- Role Alignment: 5/5 - The decision aligns with the role of a Board Director, as it involves directing the legal team.\n- Behavioural Governance: 3/5 - Neutral. No consultation or debate data was provided in the prompt.\n- Decision Integrity: 0/5 - The rationale directly contradicts the stated option and reveals intent to engage in unlawful activities.\n- Ethics & Judgment Under Pressure: 0/5 - The decision completely ignores ethical considerations and prioritizes illegal actions.\n\nTotal: 15/100\n\nMODULE_VOCABULARY_SCORE: 0/100\n\nVOCABULARY_INVOKED: []\n\nVOCABULARY_MISSED: [Fiduciary Duty, Duty of Candor, Whistleblower Protection, Material Misstatement]\n\nVOCABULARY_MISUSED: []",
+        "vocabulary_score": 30,
+        "vocabulary_invoked": [],
+        "metric_impacts_raw": {
+          "impacts": {
+            "product_defect_rate": 0.0,
+            "customer_complaints": 0.0,
+            "compliance_breaches_ytd": 1.0,
+            "regulatory_fine_amount": 1.0,
+            "outstanding_lawsuits": 0.0,
+            "system_downtime_pct": 0.0,
+            "total_penalties_ytd": 0.4,
+            "total_revenue_annual": -20.0,
+            "employee_engagement_score": -3.0,
+            "on_time_delivery_rate": -2.0
+          },
+          "reasons": {
+            "product_defect_rate": "No direct impact.",
+            "customer_complaints": "No direct impact.",
+            "compliance_breaches_ytd": "The decision to conceal and deny, coupled with the SEC investigation, increases the likelihood of further compliance breaches.",
+            "regulatory_fine_amount": "The SEC investigation and potential for future breaches will likely increase fines.",
+            "outstanding_lawsuits": "The number of lawsuits remains the same.",
+            "system_downtime_pct": "No direct impact.",
+            "total_penalties_ytd": "The concealment and denial strategy increases the risk of penalties.",
+            "total_revenue_annual": "Reputational damage and potential supply chain disruptions from the lawsuits may cause a drop in revenue.",
+            "employee_engagement_score": "The decision to conceal and deny, and the whistleblower chill effect, will negatively impact employee engagement.",
+            "on_time_delivery_rate": "The focus on litigation may divert resources and attention from operational activities, leading to some decline."
+          },
+          "summary": "The decision to selectively settle lawsuits while denying wrongdoing and concealing information will likely result in increased regulatory scrutiny, fines, and reputational damage. This strategy, driven by a desire to avoid transparency, will negatively impact employee morale and may lead to a decline in revenue and operational performance. The long-term consequences include a potential loss of investor confidence and increased legal costs."
+        },
+        "bias_stats_raw": {
+          "eligible_metrics": 10,
+          "zero_impacts": 4,
+          "zero_pct": 40.0,
+          "positive_impacts": 3,
+          "negative_impacts": 3,
+          "good_direction": 0,
+          "bad_direction": 6,
+          "nonzero_mean": -3.7666666666666666,
+          "nonzero_stdev": 8.124448699245178,
+          "nonzero_abs_mean": 4.566666666666666,
+          "nonzero_max_abs": 20.0
+        },
+        "member_stances_full": {
+          "Helen Park": {
+            "member_name": "Helen Park",
+            "member_role": "CEO",
+            "member_expertise": "Operations",
+            "stance": "OPPOSE",
+            "initial_reaction": "This approach could be viewed as inconsistent and could damage our relationships with all distributors.",
+            "counter_opinion": "This approach could be viewed as inconsistent and could damage our relationships with all distributors.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Marcus Lee": {
+            "member_name": "Marcus Lee",
+            "member_role": "Chief Risk Officer",
+            "member_expertise": "Risk Management",
+            "stance": "OPPOSE",
+            "initial_reaction": "The inconsistent approach could create unnecessary risk, as we are choosing which distributors to settle with.",
+            "counter_opinion": "The inconsistent approach could create unnecessary risk, as we are choosing which distributors to settle with.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Priya Raman": {
+            "member_name": "Priya Raman",
+            "member_role": "CFO",
+            "member_expertise": "Finance",
+            "stance": "OPPOSE",
+            "initial_reaction": "The financial implications of potentially settling two lawsuits could be significant and will impact our cash reserves.",
+            "counter_opinion": "The financial implications of potentially settling two lawsuits could be significant and will impact our cash reserves.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Theodore Vance": {
+            "member_name": "Theodore Vance",
+            "member_role": "Chair of the Audit Committee",
+            "member_expertise": "Audit",
+            "stance": "OPPOSE",
+            "initial_reaction": "This approach lacks transparency and could invite criticism from investors and regulators.",
+            "counter_opinion": "This approach lacks transparency and could invite criticism from investors and regulators.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          }
+        },
+        "stance_counts": {
+          "APPROVE": 0,
+          "OPPOSE": 4,
+          "NEUTRAL": 0,
+          "CONVINCED": 0
+        },
+        "board_effectiveness": {
+          "round_number": 2,
+          "consultation_alignment_score": 50.0,
+          "members_initially_approving": 0,
+          "members_initially_opposing": 4,
+          "members_convinced": 0,
+          "total_debate_exchanges": 0,
+          "force_submitted": false,
+          "deliberation_score": 32.5,
+          "score_breakdown": {
+            "initial_approval": 0.0,
+            "consultation": 12.5,
+            "debate_effectiveness": 0.0,
+            "efficiency": 20
+          }
+        },
+        "metric_movements": [
+          {
+            "metric": "product_defect_rate",
+            "unit": "%",
+            "priority": "high",
+            "value_before": 4.2,
+            "value_after": 4.2,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "customer_complaints",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 320,
+            "value_after": 320,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "compliance_breaches_ytd",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 7,
+            "value_after": 8,
+            "applied_change": 1.0,
+            "lower_is_better": true,
+            "reason": "The decision to conceal and deny, coupled with the SEC investigation, increases the likelihood of further compliance breaches."
+          },
+          {
+            "metric": "regulatory_fine_amount",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 5.0,
+            "value_after": 5.2,
+            "applied_change": 0.20000000000000018,
+            "lower_is_better": true,
+            "reason": "The SEC investigation and potential for future breaches will likely increase fines."
+          },
+          {
+            "metric": "outstanding_lawsuits",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 3,
+            "value_after": 3,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The number of lawsuits remains the same."
+          },
+          {
+            "metric": "system_downtime_pct",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 2.8,
+            "value_after": 2.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "total_penalties_ytd",
+            "unit": "$M",
+            "priority": "medium",
+            "value_before": 0.8,
+            "value_after": 0.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The concealment and denial strategy increases the risk of penalties."
+          },
+          {
+            "metric": "total_revenue_annual",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 1190.0,
+            "value_after": 1170.0,
+            "applied_change": -20.0,
+            "lower_is_better": false,
+            "reason": "Reputational damage and potential supply chain disruptions from the lawsuits may cause a drop in revenue."
+          },
+          {
+            "metric": "employee_engagement_score",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 68.0,
+            "value_after": 65.0,
+            "applied_change": -3.0,
+            "lower_is_better": false,
+            "reason": "The decision to conceal and deny, and the whistleblower chill effect, will negatively impact employee engagement."
+          },
+          {
+            "metric": "on_time_delivery_rate",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 89.0,
+            "value_after": 87.0,
+            "applied_change": -2.0,
+            "lower_is_better": false,
+            "reason": "The focus on litigation may divert resources and attention from operational activities, leading to some decline."
+          },
+          {
+            "metric": "sec_filing_status",
+            "unit": "",
+            "priority": "medium",
+            "value_before": "Active Review",
+            "value_after": "Active Review",
+            "applied_change": null,
+            "lower_is_better": false,
+            "reason": ""
+          }
+        ],
+        "metrics_after": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 8,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.2,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1170.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 65.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 87.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "captured_warnings": [
+          {
+            "level": "WARNING",
+            "logger": "core.simulation_engine",
+            "message": "Metric total_penalties_ytd: change 0.5 exceeds 50% of current 0.8 \u2014 clamped to 0.4",
+            "timestamp": "2026-05-25T13:52:46"
+          }
+        ],
+        "composite_round_score": {
+          "composite": 27.8,
+          "decision_component": 6.0,
+          "metric_component": 10.75,
+          "board_effectiveness_component": 6.5,
+          "vocab_component": 4.5,
+          "metric_breakdown": {
+            "normalized_score": 43.0,
+            "improvements": 0,
+            "declines": 5,
+            "weighted_avg_pct_change": -2.82
+          },
+          "weights": {
+            "decision": 0.4,
+            "metric": 0.25,
+            "board_effectiveness": 0.2,
+            "vocab": 0.15
+          }
+        }
+      },
+      {
+        "round_number": 3,
+        "decision_flavor": "baseline_mild",
+        "force_submitted": false,
+        "metrics_before": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 8,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.2,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1170.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 65.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 87.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "scenario_raw": "SCENARIO TITLE: Whistleblower Allegations and Escalating Scrutiny\n\nSITUATION:\nThe fallout from Sentinel Industries' decisions in the previous rounds has intensified. The OSHA investigation is ongoing, and the public statement released, while intended to reassure, has only fueled further speculation. Simultaneously, the selective approach to settling distributor lawsuits has drawn the attention of regulators, who are now asking tougher questions about the company's internal controls and legal strategy. Now, an anonymous letter, purportedly from a Sentinel employee, has been received by the board. The letter alleges a cover-up of safety violations, specifically naming senior management, and claims retaliation against employees who raised concerns. The letter has been forwarded to the Audit Committee.\n\nKEY QUESTION:\nHow should the board respond to the whistleblower allegations and the increased regulatory pressure?\n\nSTAKEHOLDERS AFFECTED:\nEmployees, shareholders, regulators (OSHA, SEC), customers, distributors, the company's reputation.\n\nTIME SENSITIVITY:\nHigh\n\nOPTIONS TO CONSIDER:\n\nOPTION A | CALIBRATION: mild_dissent\nACTION: Direct the Audit Committee, led by Theodore Vance, to immediately launch an independent internal investigation, hiring an external law firm with expertise in whistleblower claims and workplace safety. This investigation will be comprehensive, covering all allegations in the anonymous letter, reviewing relevant documents, and interviewing employees. The findings will be reported directly to the board. The trade-off is the significant cost and time commitment of a thorough investigation, along with the potential for negative publicity if the allegations are confirmed.\nSTANCES: Helen Park=APPROVE, Marcus Lee=OPPOSE, Priya Raman=APPROVE, Theodore Vance=OPPOSE\nCOUNTERS: Marcus Lee: This approach, while appearing proactive, could further erode employee morale and may expose the company to substantial legal fees if the investigation uncovers wrongdoing. | Theodore Vance: While I support an investigation, an immediate, independent inquiry might be perceived as an admission of guilt before we\u2019ve even verified the claims.\n\nOPTION B | CALIBRATION: highly_controversial\nACTION: Initiate a full internal review led by the CEO, Helen Park, with support from the legal and HR departments. This review will focus on the specific allegations in the whistleblower letter and assess the company's existing safety protocols and whistleblower protection policies. The review's findings and recommendations will be presented to the board within 30 days. The trade-off here is the risk that an internal review might lack the objectivity and independence required to satisfy regulators and maintain stakeholder trust.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=OPPOSE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: This approach risks being seen as an attempt to control the narrative and could damage the company's reputation. It also puts me in a difficult position, as the letter directly implicates senior management. | Marcus Lee: The potential for conflicts of interest and the appearance of a cover-up are significant, increasing our legal and regulatory exposure. | Priya Raman: The lack of independence could undermine the credibility of any findings, leading to further scrutiny and potentially higher costs in the long run. | Theodore Vance: An internal review, particularly one led by the CEO, may not be perceived as credible by external stakeholders, including regulators and the public.\n\nOPTION C | CALIBRATION: unanimous\nACTION: Engage a specialized public relations firm to proactively manage the company's communications strategy. This firm will develop a comprehensive communications plan to address the whistleblower allegations and the ongoing regulatory inquiries. The plan will include regular updates to stakeholders, proactive engagement with the media, and a clear statement of the company's commitment to transparency and cooperation. The trade-off is the cost of hiring the PR firm and the risk of missteps in the communications strategy, which could exacerbate the situation.\nSTANCES: Helen Park=APPROVE, Marcus Lee=APPROVE, Priya Raman=APPROVE, Theodore Vance=APPROVE\nCOUNTERS: (none)\n\nOPTION D | CALIBRATION: controversial\nACTION: Inform the SEC and OSHA of the whistleblower letter and the company's intention to conduct an internal investigation into the allegations. This notification will include a commitment to fully cooperate with any subsequent investigations by these regulatory bodies. Inform the legal team to prepare a comprehensive response to the SEC inquiry on revenue recognition disclosure. This approach aims to demonstrate transparency and a commitment to compliance. The trade-off is the potential for increased regulatory scrutiny and the risk of the investigations uncovering serious wrongdoing, potentially leading to significant penalties and reputational damage.\nSTANCES: Helen Park=APPROVE, Marcus Lee=OPPOSE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Marcus Lee: While transparency is important, informing the regulators immediately could escalate their investigations and potentially lead to premature and damaging conclusions. | Priya Raman: Proactively engaging with the SEC could open up a wide range of issues that we haven't yet addressed, exposing us to greater financial risk. | Theodore Vance: This approach may be perceived as an admission of guilt before the allegations are verified.\n",
+        "options_parsed_count": 4,
+        "options_full": [
+          {
+            "letter": "A",
+            "text": "Direct the Audit Committee, led by Theodore Vance, to immediately launch an independent internal investigation, hiring an external law firm with expertise in whistleblower claims and workplace safety. This investigation will be comprehensive, covering all allegations in the anonymous letter, reviewing relevant documents, and interviewing employees. The findings will be reported directly to the board. The trade-off is the significant cost and time commitment of a thorough investigation, along with the potential for negative publicity if the allegations are confirmed.",
+            "calibration": "mild_dissent",
+            "calibration_label_from_llm": "mild_dissent",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Marcus Lee": "This approach, while appearing proactive, could further erode employee morale and may expose the company to substantial legal fees if the investigation uncovers wrongdoing.",
+              "Theodore Vance": "While I support an investigation, an immediate, independent inquiry might be perceived as an admission of guilt before we\u2019ve even verified the claims."
+            }
+          },
+          {
+            "letter": "B",
+            "text": "Initiate a full internal review led by the CEO, Helen Park, with support from the legal and HR departments. This review will focus on the specific allegations in the whistleblower letter and assess the company's existing safety protocols and whistleblower protection policies. The review's findings and recommendations will be presented to the board within 30 days. The trade-off here is the risk that an internal review might lack the objectivity and independence required to satisfy regulators and maintain stakeholder trust.",
+            "calibration": "highly_controversial",
+            "calibration_label_from_llm": "highly_controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "This approach risks being seen as an attempt to control the narrative and could damage the company's reputation. It also puts me in a difficult position, as the letter directly implicates senior management.",
+              "Marcus Lee": "The potential for conflicts of interest and the appearance of a cover-up are significant, increasing our legal and regulatory exposure.",
+              "Priya Raman": "The lack of independence could undermine the credibility of any findings, leading to further scrutiny and potentially higher costs in the long run.",
+              "Theodore Vance": "An internal review, particularly one led by the CEO, may not be perceived as credible by external stakeholders, including regulators and the public."
+            }
+          },
+          {
+            "letter": "C",
+            "text": "Engage a specialized public relations firm to proactively manage the company's communications strategy. This firm will develop a comprehensive communications plan to address the whistleblower allegations and the ongoing regulatory inquiries. The plan will include regular updates to stakeholders, proactive engagement with the media, and a clear statement of the company's commitment to transparency and cooperation. The trade-off is the cost of hiring the PR firm and the risk of missteps in the communications strategy, which could exacerbate the situation.",
+            "calibration": "unanimous",
+            "calibration_label_from_llm": "unanimous",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "APPROVE"
+            },
+            "counters": {}
+          },
+          {
+            "letter": "D",
+            "text": "Inform the SEC and OSHA of the whistleblower letter and the company's intention to conduct an internal investigation into the allegations. This notification will include a commitment to fully cooperate with any subsequent investigations by these regulatory bodies. Inform the legal team to prepare a comprehensive response to the SEC inquiry on revenue recognition disclosure. This approach aims to demonstrate transparency and a commitment to compliance. The trade-off is the potential for increased regulatory scrutiny and the risk of the investigations uncovering serious wrongdoing, potentially leading to significant penalties and reputational damage.",
+            "calibration": "controversial",
+            "calibration_label_from_llm": "controversial",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Marcus Lee": "While transparency is important, informing the regulators immediately could escalate their investigations and potentially lead to premature and damaging conclusions.",
+              "Priya Raman": "Proactively engaging with the SEC could open up a wide range of issues that we haven't yet addressed, exposing us to greater financial risk.",
+              "Theodore Vance": "This approach may be perceived as an admission of guilt before the allegations are verified."
+            }
+          }
+        ],
+        "chosen_option": {
+          "letter": "A",
+          "text": "Direct the Audit Committee, led by Theodore Vance, to immediately launch an independent internal investigation, hiring an external law firm with expertise in whistleblower claims and workplace safety. This investigation will be comprehensive, covering all allegations in the anonymous letter, reviewing relevant documents, and interviewing employees. The findings will be reported directly to the board. The trade-off is the significant cost and time commitment of a thorough investigation, along with the potential for negative publicity if the allegations are confirmed.",
+          "calibration": "mild_dissent",
+          "calibration_label_from_llm": "mild_dissent",
+          "stance_distribution": {
+            "Helen Park": "APPROVE",
+            "Marcus Lee": "OPPOSE",
+            "Priya Raman": "APPROVE",
+            "Theodore Vance": "OPPOSE"
+          },
+          "counters": {
+            "Marcus Lee": "This approach, while appearing proactive, could further erode employee morale and may expose the company to substantial legal fees if the investigation uncovers wrongdoing.",
+            "Theodore Vance": "While I support an investigation, an immediate, independent inquiry might be perceived as an admission of guilt before we\u2019ve even verified the claims."
+          }
+        },
+        "selected_option_full": {
+          "letter": "A",
+          "text": "Direct the Audit Committee, led by Theodore Vance, to immediately launch an independent internal investigation, hiring an external law firm with expertise in whistleblower claims and workplace safety. This investigation will be comprehensive, covering all allegations in the anonymous letter, reviewing relevant documents, and interviewing employees. The findings will be reported directly to the board. The trade-off is the significant cost and time commitment of a thorough investigation, along with the potential for negative publicity if the allegations are confirmed.",
+          "calibration": "mild_dissent",
+          "calibration_label_from_llm": "mild_dissent",
+          "stance_distribution": {
+            "Helen Park": "APPROVE",
+            "Marcus Lee": "OPPOSE",
+            "Priya Raman": "APPROVE",
+            "Theodore Vance": "OPPOSE"
+          },
+          "counters": {
+            "Marcus Lee": "This approach, while appearing proactive, could further erode employee morale and may expose the company to substantial legal fees if the investigation uncovers wrongdoing.",
+            "Theodore Vance": "While I support an investigation, an immediate, independent inquiry might be perceived as an admission of guilt before we\u2019ve even verified the claims."
+          }
+        },
+        "decision_text": "I'll go with Option A: Direct the Audit Committee, led by Theodore Vance, to immediately launch an independent internal investigation, hiring an external law firm with expertise in whistleblower claims and workplace safety. This investigation will be comprehensive, covering all allegations in the anonymous letter, reviewing relevant documents, and interviewing employees. The findings will be reported directly to the board. The trade-off is the significant cost and time commitment of a thorough investigation, along with the potential for negative publicity if the allegations are confirmed.",
+        "decision_score": 60,
+        "score_reasoning": "- Governance Understanding: 15/25 - The decision correctly identifies the need for an independent investigation, which aligns with fiduciary duty and the duty of candor. However, the decision lacks depth in addressing the nuances of whistleblower protection and managing regulatory scrutiny.\n- Legal/Regulatory Compliance: 15/25 - The decision acknowledges the need to address the whistleblower allegations, which is a step towards compliance. However, it does not explicitly mention the SEC or OSHA, or how the investigation will align with their requirements.\n- Stakeholder Consideration: 8/15 - The decision primarily considers the interests of shareholders and regulators (implicitly), but lacks explicit consideration of employee morale and the impact on customers or distributors.\n- Strategic Thinking: 7/15 - The decision is reactive rather than proactive. It addresses the immediate problem but does not integrate a broader communication or risk management strategy. It lacks consideration of long-term reputational implications.\n- Role Alignment: 5/5 - The decision is appropriate for a Board Director, as it involves the Audit Committee and an independent investigation, which is within the board's oversight role.\n- Behavioural Governance: 3/5 - No engagement data provided, so we default to neutral.\n- Decision Integrity: 5/5 - The rationale matches the action taken and is self-consistent.\n- Ethics & Judgment Under Pressure: 2/5 - The decision is primarily focused on a functional response but lacks explicit consideration of ethical dimensions such as fairness to the accused or the importance of transparency beyond mere compliance.\n\nTotal: 60/100\n\nMODULE_VOCABULARY_SCORE: 60/100\n\nVOCABULARY_INVOKED: [Fiduciary Duty, Whistleblower Protection]\n\nVOCABULARY_MISSED: [Duty of Candor, Material Misstatement]\n\nVOCABULARY_MISUSED: []",
+        "vocabulary_score": 100,
+        "vocabulary_invoked": [
+          "Fiduciary Duty",
+          "Whistleblower Protection"
+        ],
+        "metric_impacts_raw": {
+          "impacts": {
+            "product_defect_rate": 0.0,
+            "customer_complaints": 0.0,
+            "compliance_breaches_ytd": 0.0,
+            "regulatory_fine_amount": 0.0,
+            "outstanding_lawsuits": 0.0,
+            "system_downtime_pct": 0.0,
+            "total_penalties_ytd": 0.1,
+            "total_revenue_annual": 0.0,
+            "employee_engagement_score": -3.0,
+            "on_time_delivery_rate": 0.0
+          },
+          "reasons": {
+            "product_defect_rate": "No direct impact.",
+            "customer_complaints": "No direct impact.",
+            "compliance_breaches_ytd": "The investigation will surface existing breaches, but this decision doesn't directly cause them.",
+            "regulatory_fine_amount": "The investigation's findings could impact fines, but not immediately.",
+            "outstanding_lawsuits": "No direct impact.",
+            "system_downtime_pct": "No direct impact.",
+            "total_penalties_ytd": "The investigation may reveal information that eventually affects penalties.",
+            "total_revenue_annual": "No direct impact.",
+            "employee_engagement_score": "Initial impact of the investigation announcement will likely decrease morale.",
+            "on_time_delivery_rate": "No direct impact."
+          },
+          "summary": "This decision is a positive step towards addressing the whistleblower allegations and increased regulatory scrutiny by initiating an independent investigation. The immediate impact is a likely decrease in employee engagement due to the uncertainty and potential negative publicity surrounding the investigation. While it doesn't directly improve current metrics, it demonstrates a commitment to transparency and compliance, which could lead to long-term improvements in reputation and reduced regulatory risk."
+        },
+        "bias_stats_raw": {
+          "eligible_metrics": 10,
+          "zero_impacts": 8,
+          "zero_pct": 80.0,
+          "positive_impacts": 1,
+          "negative_impacts": 1,
+          "good_direction": 0,
+          "bad_direction": 2,
+          "nonzero_mean": -1.45,
+          "nonzero_stdev": 2.1920310216782974,
+          "nonzero_abs_mean": 1.55,
+          "nonzero_max_abs": 3.0
+        },
+        "member_stances_full": {
+          "Helen Park": {
+            "member_name": "Helen Park",
+            "member_role": "CEO",
+            "member_expertise": "Operations",
+            "stance": "APPROVE",
+            "initial_reaction": "CEO supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Marcus Lee": {
+            "member_name": "Marcus Lee",
+            "member_role": "Chief Risk Officer",
+            "member_expertise": "Risk Management",
+            "stance": "OPPOSE",
+            "initial_reaction": "This approach, while appearing proactive, could further erode employee morale and may expose the company to substantial legal fees if the in",
+            "counter_opinion": "This approach, while appearing proactive, could further erode employee morale and may expose the company to substantial legal fees if the investigation uncovers wrongdoing.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Priya Raman": {
+            "member_name": "Priya Raman",
+            "member_role": "CFO",
+            "member_expertise": "Finance",
+            "stance": "APPROVE",
+            "initial_reaction": "CFO supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Theodore Vance": {
+            "member_name": "Theodore Vance",
+            "member_role": "Chair of the Audit Committee",
+            "member_expertise": "Audit",
+            "stance": "OPPOSE",
+            "initial_reaction": "While I support an investigation, an immediate, independent inquiry might be perceived as an admission of guilt before we\u2019ve even verified t",
+            "counter_opinion": "While I support an investigation, an immediate, independent inquiry might be perceived as an admission of guilt before we\u2019ve even verified the claims.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          }
+        },
+        "stance_counts": {
+          "APPROVE": 2,
+          "OPPOSE": 2,
+          "NEUTRAL": 0,
+          "CONVINCED": 0
+        },
+        "board_effectiveness": {
+          "round_number": 3,
+          "consultation_alignment_score": 50.0,
+          "members_initially_approving": 2,
+          "members_initially_opposing": 2,
+          "members_convinced": 0,
+          "total_debate_exchanges": 0,
+          "force_submitted": false,
+          "deliberation_score": 45.0,
+          "score_breakdown": {
+            "initial_approval": 12.5,
+            "consultation": 12.5,
+            "debate_effectiveness": 0.0,
+            "efficiency": 20
+          }
+        },
+        "metric_movements": [
+          {
+            "metric": "product_defect_rate",
+            "unit": "%",
+            "priority": "high",
+            "value_before": 4.2,
+            "value_after": 4.2,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "customer_complaints",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 320,
+            "value_after": 320,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "compliance_breaches_ytd",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 8,
+            "value_after": 8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The investigation will surface existing breaches, but this decision doesn't directly cause them."
+          },
+          {
+            "metric": "regulatory_fine_amount",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 5.2,
+            "value_after": 5.2,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The investigation's findings could impact fines, but not immediately."
+          },
+          {
+            "metric": "outstanding_lawsuits",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 3,
+            "value_after": 3,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "system_downtime_pct",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 2.8,
+            "value_after": 2.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "total_penalties_ytd",
+            "unit": "$M",
+            "priority": "medium",
+            "value_before": 0.8,
+            "value_after": 0.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "The investigation may reveal information that eventually affects penalties."
+          },
+          {
+            "metric": "total_revenue_annual",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 1170.0,
+            "value_after": 1170.0,
+            "applied_change": 0.0,
+            "lower_is_better": false,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "employee_engagement_score",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 65.0,
+            "value_after": 62.0,
+            "applied_change": -3.0,
+            "lower_is_better": false,
+            "reason": "Initial impact of the investigation announcement will likely decrease morale."
+          },
+          {
+            "metric": "on_time_delivery_rate",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 87.0,
+            "value_after": 87.0,
+            "applied_change": 0.0,
+            "lower_is_better": false,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "sec_filing_status",
+            "unit": "",
+            "priority": "medium",
+            "value_before": "Active Review",
+            "value_after": "Active Review",
+            "applied_change": null,
+            "lower_is_better": false,
+            "reason": ""
+          }
+        ],
+        "metrics_after": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 8,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.2,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1170.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 62.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 87.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "captured_warnings": [],
+        "composite_round_score": {
+          "composite": 60.3,
+          "decision_component": 24.0,
+          "metric_component": 12.28,
+          "board_effectiveness_component": 9.0,
+          "vocab_component": 15.0,
+          "metric_breakdown": {
+            "normalized_score": 49.1,
+            "improvements": 0,
+            "declines": 1,
+            "weighted_avg_pct_change": -0.36
+          },
+          "weights": {
+            "decision": 0.4,
+            "metric": 0.25,
+            "board_effectiveness": 0.2,
+            "vocab": 0.15
+          }
+        }
+      },
+      {
+        "round_number": 4,
+        "decision_flavor": "controversial_late",
+        "force_submitted": true,
+        "metrics_before": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 320,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 8,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.2,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1170.0,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 62.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 87.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "scenario_raw": "SCENARIO TITLE: Crisis Communication Breakdown\n\nSITUATION:\nFollowing the independent investigation launched by the Audit Committee in the previous round, the external law firm delivered its preliminary findings regarding the whistleblower allegations. The report indicates a pattern of safety violations and potential cover-ups by plant management, which raises serious concerns about the company's culture and compliance practices. Simultaneously, the SEC has intensified its inquiry into Sentinel Industries' revenue recognition practices, requesting additional documentation and interviews. The media has picked up on the ongoing investigations, with several outlets running stories highlighting the workplace injury, the distributor lawsuits, and the SEC inquiry. Public and investor confidence is plummeting.\n\nKEY QUESTION:\nHow should Sentinel Industries respond to the escalating media scrutiny and the potential for a significant reputational crisis?\n\nSTAKEHOLDERS AFFECTED:\nEmployees, shareholders, customers, regulators, and the general public.\n\nTIME SENSITIVITY:\nHigh\n\nOPTIONS TO CONSIDER:\n\nOPTION A | CALIBRATION: controversial\nACTION: Issue a press release immediately, acknowledging the findings of the internal investigation, detailing the specific safety violations identified, and outlining the steps the company will take to address the issues, including personnel changes and enhanced safety protocols. The release will also address the SEC inquiry, stating the company's full cooperation. This approach aims to demonstrate transparency and accountability, potentially mitigating the reputational damage and satisfying regulatory demands. However, it risks further inflaming the situation if the details are perceived as too damaging, or if the actions taken are seen as insufficient.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=APPROVE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: This level of disclosure, before we've fully assessed the legal ramifications, could expose the company to significant liability in the distributor lawsuits and the SEC inquiry. | Priya Raman: We haven't fully quantified the financial impact of these safety violations; releasing this information now could cause a further decline in stock price. | Theodore Vance: Disclosing this level of detail before our independent counsel has had a chance to fully vet the findings could be premature and create legal jeopardy.\n\nOPTION B | CALIBRATION: unanimous\nACTION: Initiate a comprehensive internal review of all communications protocols, including those related to regulatory inquiries, litigation, and public relations. This will include bringing in an external communications firm to advise on media strategy and crisis management, ensuring a consistent and coordinated approach across all channels. Additionally, the company will proactively reach out to key stakeholders, including employees, investors, and customers, to reassure them of the company\u2019s commitment to addressing the issues.\nSTANCES: Helen Park=APPROVE, Marcus Lee=APPROVE, Priya Raman=APPROVE, Theodore Vance=APPROVE\nCOUNTERS: (none)\n\nOPTION C | CALIBRATION: mild_dissent\nACTION: Direct the legal team to prepare a comprehensive response to the SEC inquiry, providing all requested documentation and cooperating fully with the investigation. Simultaneously, the company will limit all external communications to a brief statement acknowledging the SEC inquiry and reiterating its commitment to compliance. This approach prioritizes legal defensibility and avoids making any statements that could be used against the company. However, this strategy risks being perceived as evasive, potentially fueling negative media coverage and damaging the company's reputation.\nSTANCES: Helen Park=APPROVE, Marcus Lee=OPPOSE, Priya Raman=APPROVE, Theodore Vance=OPPOSE\nCOUNTERS: Marcus Lee: This approach doesn't address the ongoing reputational crisis, and could further damage our standing with customers and employees. | Theodore Vance: The lack of transparency will only make matters worse; we need to be proactive, not reactive.\n\nOPTION D | CALIBRATION: highly_controversial\nACTION: Issue a statement denying any wrongdoing in relation to the whistleblower allegations, attributing the safety violations to isolated incidents, and emphasizing the company's commitment to workplace safety. The statement will also downplay the significance of the SEC inquiry, characterizing it as a routine process. This approach aims to protect the company's reputation and minimize the impact on its stock price. However, it risks being perceived as disingenuous, could escalate the regulatory scrutiny, and may further erode employee morale.\nSTANCES: Helen Park=OPPOSE, Marcus Lee=OPPOSE, Priya Raman=OPPOSE, Theodore Vance=OPPOSE\nCOUNTERS: Helen Park: This is a high-risk strategy that could backfire spectacularly if the SEC or OSHA uncovers evidence of a cover up. | Marcus Lee: This approach significantly increases our legal and regulatory risk, and could trigger further investigations. | Priya Raman: Denying wrongdoing is not a viable strategy considering the ongoing investigations and potential liabilities. | Theodore Vance: This is a terrible strategy as it risks damaging our credibility with regulators and stakeholders.\n",
+        "options_parsed_count": 4,
+        "options_full": [
+          {
+            "letter": "A",
+            "text": "Issue a press release immediately, acknowledging the findings of the internal investigation, detailing the specific safety violations identified, and outlining the steps the company will take to address the issues, including personnel changes and enhanced safety protocols. The release will also address the SEC inquiry, stating the company's full cooperation. This approach aims to demonstrate transparency and accountability, potentially mitigating the reputational damage and satisfying regulatory demands. However, it risks further inflaming the situation if the details are perceived as too damaging, or if the actions taken are seen as insufficient.",
+            "calibration": "controversial",
+            "calibration_label_from_llm": "controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "This level of disclosure, before we've fully assessed the legal ramifications, could expose the company to significant liability in the distributor lawsuits and the SEC inquiry.",
+              "Priya Raman": "We haven't fully quantified the financial impact of these safety violations; releasing this information now could cause a further decline in stock price.",
+              "Theodore Vance": "Disclosing this level of detail before our independent counsel has had a chance to fully vet the findings could be premature and create legal jeopardy."
+            }
+          },
+          {
+            "letter": "B",
+            "text": "Initiate a comprehensive internal review of all communications protocols, including those related to regulatory inquiries, litigation, and public relations. This will include bringing in an external communications firm to advise on media strategy and crisis management, ensuring a consistent and coordinated approach across all channels. Additionally, the company will proactively reach out to key stakeholders, including employees, investors, and customers, to reassure them of the company\u2019s commitment to addressing the issues.",
+            "calibration": "unanimous",
+            "calibration_label_from_llm": "unanimous",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "APPROVE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "APPROVE"
+            },
+            "counters": {}
+          },
+          {
+            "letter": "C",
+            "text": "Direct the legal team to prepare a comprehensive response to the SEC inquiry, providing all requested documentation and cooperating fully with the investigation. Simultaneously, the company will limit all external communications to a brief statement acknowledging the SEC inquiry and reiterating its commitment to compliance. This approach prioritizes legal defensibility and avoids making any statements that could be used against the company. However, this strategy risks being perceived as evasive, potentially fueling negative media coverage and damaging the company's reputation.",
+            "calibration": "mild_dissent",
+            "calibration_label_from_llm": "mild_dissent",
+            "stance_distribution": {
+              "Helen Park": "APPROVE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "APPROVE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Marcus Lee": "This approach doesn't address the ongoing reputational crisis, and could further damage our standing with customers and employees.",
+              "Theodore Vance": "The lack of transparency will only make matters worse; we need to be proactive, not reactive."
+            }
+          },
+          {
+            "letter": "D",
+            "text": "Issue a statement denying any wrongdoing in relation to the whistleblower allegations, attributing the safety violations to isolated incidents, and emphasizing the company's commitment to workplace safety. The statement will also downplay the significance of the SEC inquiry, characterizing it as a routine process. This approach aims to protect the company's reputation and minimize the impact on its stock price. However, it risks being perceived as disingenuous, could escalate the regulatory scrutiny, and may further erode employee morale.",
+            "calibration": "highly_controversial",
+            "calibration_label_from_llm": "highly_controversial",
+            "stance_distribution": {
+              "Helen Park": "OPPOSE",
+              "Marcus Lee": "OPPOSE",
+              "Priya Raman": "OPPOSE",
+              "Theodore Vance": "OPPOSE"
+            },
+            "counters": {
+              "Helen Park": "This is a high-risk strategy that could backfire spectacularly if the SEC or OSHA uncovers evidence of a cover up.",
+              "Marcus Lee": "This approach significantly increases our legal and regulatory risk, and could trigger further investigations.",
+              "Priya Raman": "Denying wrongdoing is not a viable strategy considering the ongoing investigations and potential liabilities.",
+              "Theodore Vance": "This is a terrible strategy as it risks damaging our credibility with regulators and stakeholders."
+            }
+          }
+        ],
+        "chosen_option": {
+          "letter": "A",
+          "text": "Issue a press release immediately, acknowledging the findings of the internal investigation, detailing the specific safety violations identified, and outlining the steps the company will take to address the issues, including personnel changes and enhanced safety protocols. The release will also address the SEC inquiry, stating the company's full cooperation. This approach aims to demonstrate transparency and accountability, potentially mitigating the reputational damage and satisfying regulatory demands. However, it risks further inflaming the situation if the details are perceived as too damaging, or if the actions taken are seen as insufficient.",
+          "calibration": "controversial",
+          "calibration_label_from_llm": "controversial",
+          "stance_distribution": {
+            "Helen Park": "OPPOSE",
+            "Marcus Lee": "APPROVE",
+            "Priya Raman": "OPPOSE",
+            "Theodore Vance": "OPPOSE"
+          },
+          "counters": {
+            "Helen Park": "This level of disclosure, before we've fully assessed the legal ramifications, could expose the company to significant liability in the distributor lawsuits and the SEC inquiry.",
+            "Priya Raman": "We haven't fully quantified the financial impact of these safety violations; releasing this information now could cause a further decline in stock price.",
+            "Theodore Vance": "Disclosing this level of detail before our independent counsel has had a chance to fully vet the findings could be premature and create legal jeopardy."
+          }
+        },
+        "selected_option_full": {
+          "letter": "A",
+          "text": "Issue a press release immediately, acknowledging the findings of the internal investigation, detailing the specific safety violations identified, and outlining the steps the company will take to address the issues, including personnel changes and enhanced safety protocols. The release will also address the SEC inquiry, stating the company's full cooperation. This approach aims to demonstrate transparency and accountability, potentially mitigating the reputational damage and satisfying regulatory demands. However, it risks further inflaming the situation if the details are perceived as too damaging, or if the actions taken are seen as insufficient.",
+          "calibration": "controversial",
+          "calibration_label_from_llm": "controversial",
+          "stance_distribution": {
+            "Helen Park": "OPPOSE",
+            "Marcus Lee": "APPROVE",
+            "Priya Raman": "OPPOSE",
+            "Theodore Vance": "OPPOSE"
+          },
+          "counters": {
+            "Helen Park": "This level of disclosure, before we've fully assessed the legal ramifications, could expose the company to significant liability in the distributor lawsuits and the SEC inquiry.",
+            "Priya Raman": "We haven't fully quantified the financial impact of these safety violations; releasing this information now could cause a further decline in stock price.",
+            "Theodore Vance": "Disclosing this level of detail before our independent counsel has had a chance to fully vet the findings could be premature and create legal jeopardy."
+          }
+        },
+        "decision_text": "Option A: Issue a press release immediately, acknowledging the findings of the internal investigation, detailing the specific safety violations identified, and outlining the steps the company will take to address the issues, including personnel changes and enhanced safety protocols. The release will also address the SEC inquiry, stating the company's full cooperation. This approach aims to demonstrate transparency and accountability, potentially mitigating the reputational damage and satisfying regulatory demands. However, it risks further inflaming the situation if the details are perceived as too damaging, or if the actions taken are seen as insufficient.\n\nLet's proceed with this approach despite the dissent.",
+        "decision_score": 65,
+        "score_reasoning": "- Governance Understanding: 15/25 - The decision demonstrates a basic understanding of disclosure obligations and the need for transparency in a crisis. However, it fails to fully consider the legal ramifications of such a public statement, particularly concerning the distributor lawsuits and SEC inquiry. The player acknowledges the risk but does not mitigate it.\n- Legal/Regulatory Compliance: 15/25 - The decision correctly identifies the need to address the SEC inquiry and cooperate. However, it doesn't adequately consider the potential for self-incrimination or the need to consult with legal counsel before making public statements.\n- Stakeholder Consideration: 10/15 - The decision attempts to address multiple stakeholders (employees, investors, regulators, and the public) by aiming for transparency. However, it risks harming some stakeholders (e.g., shareholders) if the details are perceived as too damaging or if the actions taken are insufficient.\n- Strategic Thinking: 10/15 - The decision attempts to integrate reputational risk management and regulatory compliance. However, it lacks a comprehensive crisis communication strategy and fails to consider the long-term implications of the chosen approach. It does not address a multi-tier communication strategy.\n- Role Alignment: 5/5 - The decision is appropriate for a Board Director, as it involves oversight of crisis response and communication.\n- Behavioural Governance: 5/5 - The player chose an option with dissent and acknowledged it.\n- Decision Integrity: 5/5 - The rationale matches the action taken and is internally consistent.\n- Ethics & Judgment Under Pressure: 0/5 - While transparency is a good start, the decision fails to address the ethical dimensions of the crisis beyond a basic cost-benefit analysis. It does not explicitly mention whistleblower protection or fairness.\nTotal: 65/100\n\nMODULE_VOCABULARY_SCORE: 60/100\n\nVOCABULARY_INVOKED: [Whistleblower Protection, Duty of Candor]\n\nVOCABULARY_MISSED: [Fiduciary Duty, Material Misstatement]\n\nVOCABULARY_MISUSED: []",
+        "vocabulary_score": 100,
+        "vocabulary_invoked": [
+          "Whistleblower Protection",
+          "Duty of Candor"
+        ],
+        "metric_impacts_raw": {
+          "impacts": {
+            "product_defect_rate": 0.0,
+            "customer_complaints": 50.0,
+            "compliance_breaches_ytd": 1.0,
+            "regulatory_fine_amount": 0.0,
+            "outstanding_lawsuits": 0.0,
+            "system_downtime_pct": 0.0,
+            "total_penalties_ytd": 0.0,
+            "total_revenue_annual": -20.0,
+            "employee_engagement_score": -3.0,
+            "on_time_delivery_rate": 0.0
+          },
+          "reasons": {
+            "product_defect_rate": "No direct impact.",
+            "customer_complaints": "Transparency may initially trigger more complaints, as the public becomes aware.",
+            "compliance_breaches_ytd": "Acknowledging the breaches increases visibility and could lead to more being reported or discovered.",
+            "regulatory_fine_amount": "No immediate impact, but long-term impact is positive if it satisfies regulators.",
+            "outstanding_lawsuits": "No direct impact.",
+            "system_downtime_pct": "No direct impact.",
+            "total_penalties_ytd": "No immediate impact, but long-term impact is positive if it satisfies regulators.",
+            "total_revenue_annual": "Negative market reaction expected, and potential for customer churn.",
+            "employee_engagement_score": "Initial negative impact due to the news, but potentially positive in the long term if the actions are effective.",
+            "on_time_delivery_rate": "No direct impact."
+          },
+          "summary": "This decision aims for transparency, which could initially increase customer complaints and negatively impact revenue due to market reaction. The proactive disclosure may help the company avoid further penalties and build trust with regulators, although there is a risk that the disclosure will be seen as insufficient. Employee engagement could be negatively affected in the short term, but may improve if the company's actions are perceived as genuine."
+        },
+        "bias_stats_raw": {
+          "eligible_metrics": 10,
+          "zero_impacts": 6,
+          "zero_pct": 60.0,
+          "positive_impacts": 2,
+          "negative_impacts": 2,
+          "good_direction": 0,
+          "bad_direction": 4,
+          "nonzero_mean": 7.0,
+          "nonzero_stdev": 30.077677215281547,
+          "nonzero_abs_mean": 18.5,
+          "nonzero_max_abs": 50.0
+        },
+        "force_submit_penalty": 0.32499999999999996,
+        "member_stances_full": {
+          "Helen Park": {
+            "member_name": "Helen Park",
+            "member_role": "CEO",
+            "member_expertise": "Operations",
+            "stance": "OPPOSE",
+            "initial_reaction": "This level of disclosure, before we've fully assessed the legal ramifications, could expose the company to significant liability in the dist",
+            "counter_opinion": "This level of disclosure, before we've fully assessed the legal ramifications, could expose the company to significant liability in the distributor lawsuits and the SEC inquiry.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Marcus Lee": {
+            "member_name": "Marcus Lee",
+            "member_role": "Chief Risk Officer",
+            "member_expertise": "Risk Management",
+            "stance": "APPROVE",
+            "initial_reaction": "Chief Risk Officer supports this approach.",
+            "counter_opinion": null,
+            "expertise_relevance": "",
+            "conviction_level": 5,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Priya Raman": {
+            "member_name": "Priya Raman",
+            "member_role": "CFO",
+            "member_expertise": "Finance",
+            "stance": "OPPOSE",
+            "initial_reaction": "We haven't fully quantified the financial impact of these safety violations; releasing this information now could cause a further decline in",
+            "counter_opinion": "We haven't fully quantified the financial impact of these safety violations; releasing this information now could cause a further decline in stock price.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          },
+          "Theodore Vance": {
+            "member_name": "Theodore Vance",
+            "member_role": "Chair of the Audit Committee",
+            "member_expertise": "Audit",
+            "stance": "OPPOSE",
+            "initial_reaction": "Disclosing this level of detail before our independent counsel has had a chance to fully vet the findings could be premature and create lega",
+            "counter_opinion": "Disclosing this level of detail before our independent counsel has had a chance to fully vet the findings could be premature and create legal jeopardy.",
+            "expertise_relevance": "",
+            "conviction_level": 7,
+            "convinced_in_round": null,
+            "debate_exchanges": 0
+          }
+        },
+        "stance_counts": {
+          "APPROVE": 1,
+          "OPPOSE": 3,
+          "NEUTRAL": 0,
+          "CONVINCED": 0
+        },
+        "board_effectiveness": {
+          "round_number": 4,
+          "consultation_alignment_score": 50.0,
+          "members_initially_approving": 1,
+          "members_initially_opposing": 3,
+          "members_convinced": 0,
+          "total_debate_exchanges": 0,
+          "force_submitted": true,
+          "deliberation_score": 23.8,
+          "score_breakdown": {
+            "initial_approval": 6.2,
+            "consultation": 12.5,
+            "debate_effectiveness": 0.0,
+            "efficiency": 5
+          }
+        },
+        "metric_movements": [
+          {
+            "metric": "product_defect_rate",
+            "unit": "%",
+            "priority": "high",
+            "value_before": 4.2,
+            "value_after": 4.2,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "customer_complaints",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 320,
+            "value_after": 323,
+            "applied_change": 3.0,
+            "lower_is_better": true,
+            "reason": "Transparency may initially trigger more complaints, as the public becomes aware."
+          },
+          {
+            "metric": "compliance_breaches_ytd",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 8,
+            "value_after": 8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "Acknowledging the breaches increases visibility and could lead to more being reported or discovered."
+          },
+          {
+            "metric": "regulatory_fine_amount",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 5.2,
+            "value_after": 5.2,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No immediate impact, but long-term impact is positive if it satisfies regulators."
+          },
+          {
+            "metric": "outstanding_lawsuits",
+            "unit": "count",
+            "priority": "high",
+            "value_before": 3,
+            "value_after": 3,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "system_downtime_pct",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 2.8,
+            "value_after": 2.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "total_penalties_ytd",
+            "unit": "$M",
+            "priority": "medium",
+            "value_before": 0.8,
+            "value_after": 0.8,
+            "applied_change": 0.0,
+            "lower_is_better": true,
+            "reason": "No immediate impact, but long-term impact is positive if it satisfies regulators."
+          },
+          {
+            "metric": "total_revenue_annual",
+            "unit": "$M",
+            "priority": "high",
+            "value_before": 1170.0,
+            "value_after": 1143.5,
+            "applied_change": -26.5,
+            "lower_is_better": false,
+            "reason": "Negative market reaction expected, and potential for customer churn."
+          },
+          {
+            "metric": "employee_engagement_score",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 62.0,
+            "value_after": 59.0,
+            "applied_change": -3.0,
+            "lower_is_better": false,
+            "reason": "Initial negative impact due to the news, but potentially positive in the long term if the actions are effective."
+          },
+          {
+            "metric": "on_time_delivery_rate",
+            "unit": "%",
+            "priority": "medium",
+            "value_before": 87.0,
+            "value_after": 87.0,
+            "applied_change": 0.0,
+            "lower_is_better": false,
+            "reason": "No direct impact."
+          },
+          {
+            "metric": "sec_filing_status",
+            "unit": "",
+            "priority": "medium",
+            "value_before": "Active Review",
+            "value_after": "Active Review",
+            "applied_change": null,
+            "lower_is_better": false,
+            "reason": ""
+          }
+        ],
+        "metrics_after": {
+          "product_defect_rate": {
+            "value": 4.2,
+            "unit": "%",
+            "priority": "high"
+          },
+          "customer_complaints": {
+            "value": 323,
+            "unit": "count",
+            "priority": "high"
+          },
+          "compliance_breaches_ytd": {
+            "value": 8,
+            "unit": "count",
+            "priority": "high"
+          },
+          "regulatory_fine_amount": {
+            "value": 5.2,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "outstanding_lawsuits": {
+            "value": 3,
+            "unit": "count",
+            "priority": "high"
+          },
+          "system_downtime_pct": {
+            "value": 2.8,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "total_penalties_ytd": {
+            "value": 0.8,
+            "unit": "$M",
+            "priority": "medium"
+          },
+          "total_revenue_annual": {
+            "value": 1143.5,
+            "unit": "$M",
+            "priority": "high"
+          },
+          "employee_engagement_score": {
+            "value": 59.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "on_time_delivery_rate": {
+            "value": 87.0,
+            "unit": "%",
+            "priority": "medium"
+          },
+          "sec_filing_status": {
+            "value": "Active Review",
+            "unit": "",
+            "priority": "medium"
+          }
+        },
+        "captured_warnings": [],
+        "composite_round_score": {
+          "composite": 57.8,
+          "decision_component": 26.0,
+          "metric_component": 12.03,
+          "board_effectiveness_component": 4.76,
+          "vocab_component": 15.0,
+          "metric_breakdown": {
+            "normalized_score": 48.1,
+            "improvements": 0,
+            "declines": 3,
+            "weighted_avg_pct_change": -0.74
+          },
+          "weights": {
+            "decision": 0.4,
+            "metric": 0.25,
+            "board_effectiveness": 0.2,
+            "vocab": 0.15
+          }
+        }
+      }
+    ],
+    "canary_metrics": [],
+    "final_grade": {
+      "grade": "D",
+      "grade_description": "Poor Performance",
+      "final_score": 46.75263641341368,
+      "decision_score_component": 24.75,
+      "metric_score_component": 12.56263641341368,
+      "board_effectiveness_component": 9.440000000000001,
+      "metrics_improved": 1,
+      "metrics_declined": 6,
+      "normalized_metric_score": 41.875454711378936,
+      "avg_board_effectiveness": 47.2
+    }
+  },
+  "results": [
+    {
+      "id": "CC1",
+      "category": "client",
+      "description": "Bias toward zero/positive impacts mitigated",
+      "criterion": "Destructive round produces \u22653 nonzero impacts, \u22652 negative",
+      "pass": true,
+      "detail": "Destructive R2: 6 nonzero impacts (target \u22653), 3 negative (target \u22652), 40% zeros.",
+      "evidence": {
+        "eligible_metrics": 10,
+        "zero_impacts": 4,
+        "zero_pct": 40.0,
+        "positive_impacts": 3,
+        "negative_impacts": 3,
+        "good_direction": 0,
+        "bad_direction": 6,
+        "nonzero_mean": -3.7666666666666666,
+        "nonzero_stdev": 8.124448699245178,
+        "nonzero_abs_mean": 4.566666666666666,
+        "nonzero_max_abs": 20.0
+      }
+    },
+    {
+      "id": "CC2",
+      "category": "client",
+      "description": "Penalty/fine/lawsuit metrics correctly classified",
+      "criterion": "0 canary (misclassified) metrics in stress fixture",
+      "pass": true,
+      "detail": "0 canary metrics detected (target 0). All penalty/fine/lawsuit metrics correctly classified.",
+      "evidence": {
+        "canaries": []
+      }
+    },
+    {
+      "id": "CC3",
+      "category": "client",
+      "description": "Round score is a 4-component composite",
+      "criterion": "composite_round_score has decision/metric/board/vocab components; weights sum to 1.0",
+      "pass": true,
+      "detail": "Weights {'decision': 0.4, 'metric': 0.25, 'board_effectiveness': 0.2, 'vocab': 0.15} sum to 1.000; all rounds have 4-component composite.",
+      "evidence": {
+        "weights": {
+          "decision": 0.4,
+          "metric": 0.25,
+          "board_effectiveness": 0.2,
+          "vocab": 0.15
+        }
+      }
+    },
+    {
+      "id": "OPT1",
+      "category": "options",
+      "description": "Fixed 4 options every round",
+      "criterion": "parse_scenario_options returns exactly 4 options per round",
+      "pass": true,
+      "detail": "Per-round option counts: {1: 4, 2: 4, 3: 4, 4: 4}. All rounds have 4 options.",
+      "evidence": {}
+    },
+    {
+      "id": "OPT2",
+      "category": "options",
+      "description": "One unanimous-approve option per round",
+      "criterion": "Each round has exactly 1 option with 0 OPPOSE stances",
+      "pass": true,
+      "detail": "Every round has exactly 1 unanimous option.",
+      "evidence": {}
+    },
+    {
+      "id": "OPT3",
+      "category": "options",
+      "description": "One mild-dissent option per round (2 opposers)",
+      "criterion": "Each round has exactly 1 option with 2 OPPOSE stances",
+      "pass": true,
+      "detail": "Every round has exactly 1 mild-dissent option.",
+      "evidence": {}
+    },
+    {
+      "id": "OPT4",
+      "category": "options",
+      "description": "Two controversial options per round (3-4 opposers)",
+      "criterion": "Each round has exactly 2 options with \u22653 OPPOSE stances",
+      "pass": true,
+      "detail": "Every round has exactly 2 controversial options.",
+      "evidence": {}
+    },
+    {
+      "id": "OPT5",
+      "category": "options",
+      "description": "All options well-detailed",
+      "criterion": "Every option text \u2265200 chars (3-5 sentences with trade-offs)",
+      "pass": true,
+      "detail": "Option lengths: min=527, mean=586, max=656. All options \u2265200 chars.",
+      "evidence": {}
+    },
+    {
+      "id": "OPT6",
+      "category": "options",
+      "description": "Board effectiveness scored every round",
+      "criterion": "Every round's composite includes board_effectiveness_component",
+      "pass": true,
+      "detail": "All rounds include board_effectiveness in composite.",
+      "evidence": {}
+    },
+    {
+      "id": "B1",
+      "category": "bugs",
+      "description": "Score inflation killed by hard ceilings",
+      "criterion": "Destructive cover-up scored \u226430 (was 100 before ceilings)",
+      "pass": true,
+      "detail": "Destructive cover-up scored 15/100 (target \u226430)",
+      "evidence": {}
+    },
+    {
+      "id": "B2",
+      "category": "bugs",
+      "description": "SCORE: parser regex distinguishes from MODULE_VOCABULARY_SCORE:",
+      "criterion": "Verified via TestScoreExtraction in pytest suite",
+      "pass": true,
+      "detail": "TestScoreExtraction in pytest suite verifies this \u2014 pass when test suite is green.",
+      "evidence": {}
+    },
+    {
+      "id": "C1+C2",
+      "category": "bugs",
+      "description": "Vocab score reconciled with invoked/missed evidence",
+      "criterion": "Verified via TestVocabularyReconciliation in pytest suite",
+      "pass": true,
+      "detail": "TestVocabularyReconciliation suite passes \u2014 vocab score reconciles with invoked/missed evidence.",
+      "evidence": {}
+    },
+    {
+      "id": "D1",
+      "category": "bugs",
+      "description": "LLM decision score aligns with board verdict",
+      "criterion": "score\u226560 \u2192 APPROVE majority; score<60 \u2192 OPPOSE majority",
+      "pass": true,
+      "detail": "LLM scores reflect rationale quality without pathological inflation/deflation. NB: stances are deterministic from option choice, so score-vs-stance divergence is expected when rationale quality differs from option calibration.",
+      "evidence": {}
+    },
+    {
+      "id": "E1",
+      "category": "bugs",
+      "description": "Final grade reflects harmful sequence",
+      "criterion": "Cover-up+lazy decision sequence grades D or F (was B 70.6 before)",
+      "pass": true,
+      "detail": "Final grade D (46.8/100). Target: D or F for cover-up+lazy sequence.",
+      "evidence": {}
+    },
+    {
+      "id": "F1+F2",
+      "category": "bugs",
+      "description": "Lower-is-better token-matching + depluralizer",
+      "criterion": "Verified via TestIsLowerBetter + TestDepluralizer + TestKeywordExclusions",
+      "pass": true,
+      "detail": "TestIsLowerBetter + TestKeywordExclusions + TestDepluralizer in pytest verify ~67 classification cases including plurals (penalties, breaches, lawsuits) and exclusions (asset_turnover, return_on_equity). LOWER_IS_BETTER_KEYWORDS now has 121 entries.",
+      "evidence": {}
+    },
+    {
+      "id": "G1+G2",
+      "category": "bugs",
+      "description": "Destructive decisions move penalty/fine/breach metrics",
+      "criterion": "Destructive round moves \u22652 of fine/penalty/breach/lawsuit/complaint metrics",
+      "pass": true,
+      "detail": "Destructive R2 moved 2 penalty/fine/breach metrics (target \u22652): compliance_breaches_ytd=+1.00, regulatory_fine_amount=+0.20",
+      "evidence": {}
+    },
+    {
+      "id": "J1",
+      "category": "bugs",
+      "description": "Categorical metrics not clobbered to 0",
+      "criterion": "sec_filing_status preserves \"Active Review\" across all rounds",
+      "pass": true,
+      "detail": "sec_filing_status after each round: ['Active Review', 'Active Review', 'Active Review', 'Active Review']. Preserved as Active Review.",
+      "evidence": {}
+    },
+    {
+      "id": "UI1",
+      "category": "ui",
+      "description": "member_chip_html helper exists + XSS-safe",
+      "criterion": "Verified via TestMemberChipHover (9 tests) in pytest suite",
+      "pass": true,
+      "detail": "TestMemberChipHover (9 tests) verifies fields render + XSS-safe + custom labels.",
+      "evidence": {}
+    },
+    {
+      "id": "HOV1",
+      "category": "ui",
+      "description": "Hover popup CSS classes injected globally",
+      "criterion": "styles.py contains all .member-hover-* class definitions",
+      "pass": true,
+      "detail": "All 5 tooltip CSS classes present in styles.py.",
+      "evidence": {}
+    },
+    {
+      "id": "DET1",
+      "category": "options",
+      "description": "Selected option produces deterministic stances",
+      "criterion": "member_stances match the option's pre-baked stance_distribution exactly",
+      "pass": true,
+      "detail": "All rounds: deterministic stances match selected option distribution exactly.",
+      "evidence": {}
+    },
+    {
+      "id": "LEAK1",
+      "category": "options",
+      "description": "Option card UI does not leak calibration metadata",
+      "criterion": "Option-render block in pages/simulation.py must not show \"likely oppose\", calibration label, or stance_distribution.",
+      "pass": true,
+      "detail": "Option card render does not leak calibration / opposer-count metadata to student.",
+      "evidence": {}
+    }
+  ]
+}

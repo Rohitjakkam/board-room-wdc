@@ -786,6 +786,257 @@ ENCOURAGEMENT: ok"""
         assert result['score'] == 57, f"Parser recovered {result['score']} (expected 57)"
 
 
+class TestParserFormatTolerance:
+    """v1.4.10 — parser must tolerate LLM format variations so the user always
+    gets 4 options even when the model wanders from the prescribed template.
+
+    Each variation below was observed in real LLM outputs (or close to them)
+    that previously caused the user to see <4 options.
+    """
+
+    @staticmethod
+    def _make_scenario(header_template):
+        """Build a 4-option scenario where each header uses the given template
+        (with {letter} and {calib} placeholders)."""
+        opts = [
+            (header_template.format(letter='A', calib='unanimous'),
+             'Convene Audit Committee and engage external counsel proactively.',
+             'Sandra Cho=APPROVE, David Sung=APPROVE, Patricia Delgado=APPROVE, Jonathan Marsh=APPROVE',
+             '(none)'),
+            (header_template.format(letter='B', calib='mild_dissent'),
+             'Defer disclosure pending further investigation by management.',
+             'Sandra Cho=OPPOSE, David Sung=APPROVE, Patricia Delgado=OPPOSE, Jonathan Marsh=APPROVE',
+             'Sandra Cho: timing wrong | Patricia Delgado: financial concerns'),
+            (header_template.format(letter='C', calib='controversial'),
+             'Issue narrow disclosure to downplay severity to regulators.',
+             'Sandra Cho=OPPOSE, David Sung=OPPOSE, Patricia Delgado=OPPOSE, Jonathan Marsh=APPROVE',
+             'Sandra Cho: violates rules | David Sung: risk unmitigated | Patricia Delgado: restatement risk'),
+            (header_template.format(letter='D', calib='highly_controversial'),
+             'Conceal the issue and intimidate the whistleblower into silence.',
+             'Sandra Cho=OPPOSE, David Sung=OPPOSE, Patricia Delgado=OPPOSE, Jonathan Marsh=OPPOSE',
+             'Sandra Cho: illegal | David Sung: catastrophic | Patricia Delgado: SOX | Jonathan Marsh: obstruction'),
+        ]
+        blocks = []
+        for header, action, stances, counters in opts:
+            blocks.append(f"{header}\nACTION: {action}\nSTANCES: {stances}\nCOUNTERS: {counters}\n")
+        return "SCENARIO TITLE: Test\nSITUATION: blah\n\nOPTIONS TO CONSIDER:\n\n" + "\n".join(blocks)
+
+    @staticmethod
+    def _parse(scenario):
+        from core.simulation_engine import parse_scenario_options
+        return parse_scenario_options(scenario)
+
+    def test_canonical_format(self):
+        s = self._make_scenario('OPTION {letter} | CALIBRATION: {calib}')
+        opts = self._parse(s)
+        assert len(opts) == 4
+        assert [o['letter'] for o in opts] == ['A', 'B', 'C', 'D']
+
+    def test_markdown_bold_around_option(self):
+        """LLM sometimes wraps the header in **OPTION A**."""
+        s = self._make_scenario('**OPTION {letter}** | CALIBRATION: {calib}')
+        opts = self._parse(s)
+        assert len(opts) == 4
+
+    def test_colon_separator_instead_of_pipe(self):
+        """LLM substitutes ':' for '|' between OPTION and CALIBRATION."""
+        s = self._make_scenario('OPTION {letter}: CALIBRATION: {calib}')
+        opts = self._parse(s)
+        assert len(opts) == 4
+
+    def test_em_dash_separator(self):
+        s = self._make_scenario('OPTION {letter} — CALIBRATION: {calib}')
+        opts = self._parse(s)
+        assert len(opts) == 4
+
+    def test_calibration_word_omitted(self):
+        """LLM writes 'OPTION A | unanimous' (skipping the CALIBRATION: prefix)."""
+        s = self._make_scenario('OPTION {letter} | {calib}')
+        opts = self._parse(s)
+        assert len(opts) == 4
+        # Calibration should still be derived from opposer counts even if header
+        # didn't carry the label explicitly
+        unanimous = [o for o in opts if sum(1 for v in o['stance_distribution'].values()
+                                              if v == 'OPPOSE') == 0]
+        assert len(unanimous) == 1
+        assert unanimous[0]['calibration'] == 'unanimous'
+
+    def test_parens_around_calibration(self):
+        s = self._make_scenario('OPTION {letter} ({calib})')
+        opts = self._parse(s)
+        assert len(opts) == 4
+
+    def test_header_with_no_calibration_at_all(self):
+        """LLM emits bare 'OPTION A' header — calibration derived from stances."""
+        s = self._make_scenario('OPTION {letter}')
+        opts = self._parse(s)
+        assert len(opts) == 4
+        # All 4 calibrations should still be derived correctly from data
+        cals = sorted(o['calibration'] for o in opts if o['calibration'])
+        assert cals == sorted(['unanimous', 'mild_dissent', 'controversial',
+                                'highly_controversial'])
+
+    def test_hybrid_fallback_when_new_format_partial(self):
+        """LLM produces new format for A/B but bare 'C) ...' / 'D) ...' for C/D.
+        Hybrid fallback fills the gaps so the user still sees 4 options."""
+        scenario = """SCENARIO TITLE: Test
+SITUATION: blah
+
+OPTIONS TO CONSIDER:
+
+OPTION A | CALIBRATION: unanimous
+ACTION: Convene audit committee.
+STANCES: Sandra Cho=APPROVE, David Sung=APPROVE, Patricia Delgado=APPROVE, Jonathan Marsh=APPROVE
+COUNTERS: (none)
+
+OPTION B | CALIBRATION: mild_dissent
+ACTION: Defer disclosure pending investigation.
+STANCES: Sandra Cho=OPPOSE, David Sung=APPROVE, Patricia Delgado=OPPOSE, Jonathan Marsh=APPROVE
+COUNTERS: Sandra Cho: wrong timing | Patricia Delgado: financial concerns
+
+C) Issue a narrow disclosure to minimize damage to the company.
+D) Conceal the matter entirely from regulators.
+"""
+        opts = self._parse(scenario)
+        assert len(opts) == 4, f"Hybrid fallback should give 4 options, got {len(opts)}"
+        letters = [o['letter'] for o in opts]
+        assert letters == ['A', 'B', 'C', 'D']
+        # A and B have full new-format data
+        assert opts[0]['stance_distribution']
+        assert opts[1]['stance_distribution']
+        # C and D come from old format — no stance metadata
+        assert opts[2]['stance_distribution'] == {}
+        assert opts[3]['stance_distribution'] == {}
+        assert 'narrow disclosure' in opts[2]['text']
+
+    def test_action_without_explicit_marker(self):
+        """LLM forgets 'ACTION:' marker and just writes the text under the header."""
+        scenario = """OPTIONS TO CONSIDER:
+
+OPTION A | CALIBRATION: unanimous
+Convene the audit committee immediately and engage external counsel.
+STANCES: Sandra Cho=APPROVE, David Sung=APPROVE, Patricia Delgado=APPROVE, Jonathan Marsh=APPROVE
+COUNTERS: (none)
+"""
+        opts = self._parse(scenario)
+        assert len(opts) == 1
+        assert 'audit committee' in opts[0]['text'].lower()
+
+
+class TestSynthesizedFallback:
+    """v1.4.10 — the synthesized fallback guarantees the player ALWAYS sees 4
+    options, even if the LLM produces 0/1/2/3 valid options after all retries.
+
+    This is the last line of defense after parser tolerance + hybrid fallback +
+    retry loop. Only fires when those upstream mechanisms haven't yielded 4.
+    """
+
+    COMPANY = {
+        'company_name': 'TestCo',
+        'board_members': [
+            {'name': 'Alice', 'role': 'CEO', 'expertise': 'Strategy'},
+            {'name': 'Bob', 'role': 'CFO', 'expertise': 'Finance'},
+            {'name': 'Carol', 'role': 'CRO', 'expertise': 'Risk'},
+            {'name': 'Dave', 'role': 'Audit Chair', 'expertise': 'Audit'},
+        ],
+    }
+    PLAYER = {'name': 'Player', 'role': 'Board Director'}
+
+    def test_ensure_four_with_zero_options(self):
+        """When parse yields 0 options, all 4 must be synthesized."""
+        from core.simulation_engine import _ensure_four_options
+        result = _ensure_four_options([], self.COMPANY, self.PLAYER)
+        assert len(result) == 4
+        assert [o['letter'] for o in result] == ['A', 'B', 'C', 'D']
+        # All 4 synthesized
+        assert all(o.get('synthesized') for o in result)
+        # All 4 calibration tiers present
+        cals = sorted(o['calibration'] for o in result)
+        assert cals == sorted(['unanimous', 'mild_dissent',
+                                'controversial', 'highly_controversial'])
+
+    def test_ensure_four_with_partial_options(self):
+        """When parse yields 2 options, the other 2 must be synthesized with
+        the missing calibration tiers."""
+        from core.simulation_engine import _ensure_four_options
+        partial = [
+            {'letter': 'A', 'text': 'Real LLM option A',
+             'calibration': 'unanimous', 'stance_distribution': {},
+             'counters': {}},
+            {'letter': 'B', 'text': 'Real LLM option B',
+             'calibration': 'mild_dissent', 'stance_distribution': {},
+             'counters': {}},
+        ]
+        result = _ensure_four_options(partial, self.COMPANY, self.PLAYER)
+        assert len(result) == 4
+        # Real options preserved (no synthesized flag)
+        assert not result[0].get('synthesized')
+        assert not result[1].get('synthesized')
+        # Missing letters synthesized
+        assert result[2].get('synthesized') and result[2]['letter'] == 'C'
+        assert result[3].get('synthesized') and result[3]['letter'] == 'D'
+        # Missing calibration tiers filled
+        synth_cals = {result[2]['calibration'], result[3]['calibration']}
+        assert synth_cals == {'controversial', 'highly_controversial'}
+
+    def test_ensure_four_is_noop_when_already_four(self):
+        from core.simulation_engine import _ensure_four_options
+        existing = [
+            {'letter': l, 'text': f'opt {l}', 'calibration': c,
+             'stance_distribution': {}, 'counters': {}}
+            for l, c in zip('ABCD', _CALIB_LABELS_FOR_TEST)
+        ]
+        result = _ensure_four_options(list(existing), self.COMPANY, self.PLAYER)
+        assert len(result) == 4
+        assert not any(o.get('synthesized') for o in result), \
+            "Already-four list must not get synthesized additions"
+
+    def test_synthesized_option_has_stance_distribution(self):
+        """Synthesized options must have a valid stance distribution so
+        deterministic stance generation works on them."""
+        from core.simulation_engine import _synthesize_placeholder_option
+        non_player = [{'name': n, 'role': 'X', 'expertise': 'Y'}
+                       for n in ['M1', 'M2', 'M3', 'M4']]
+        opt = _synthesize_placeholder_option('D', 'highly_controversial', non_player)
+        sd = opt['stance_distribution']
+        assert len(sd) == 4
+        opposers = sum(1 for v in sd.values() if v == 'OPPOSE')
+        assert opposers == 4  # highly_controversial = all oppose
+
+    def test_synthesized_option_marked_clearly_in_text(self):
+        """Player should be able to tell they're seeing a synthesized option."""
+        from core.simulation_engine import _synthesize_placeholder_option
+        opt = _synthesize_placeholder_option('A', 'unanimous',
+                                              [{'name': 'X', 'role': 'R'}])
+        assert 'Synthesized fallback' in opt['text']
+
+    def test_format_option_as_scenario_block_roundtrips(self):
+        """A synthesized option, when serialized and re-parsed, must round-trip
+        to the same letter / calibration / opposer count."""
+        from core.simulation_engine import (_synthesize_placeholder_option,
+                                              _format_option_as_scenario_block,
+                                              parse_scenario_options)
+        non_player = [{'name': n, 'role': 'X', 'expertise': 'Y'}
+                       for n in ['M1', 'M2', 'M3', 'M4']]
+        original = _synthesize_placeholder_option('C', 'controversial', non_player)
+        block = _format_option_as_scenario_block(original)
+        # Wrap in minimal scenario shell
+        scenario = f"SCENARIO TITLE: Test\n\nOPTIONS TO CONSIDER:\n{block}"
+        parsed = parse_scenario_options(scenario)
+        assert len(parsed) == 1
+        assert parsed[0]['letter'] == 'C'
+        # Calibration derived from data should match
+        opposers = sum(1 for v in parsed[0]['stance_distribution'].values() if v == 'OPPOSE')
+        assert opposers == 3
+        assert parsed[0]['calibration'] == 'controversial'
+
+
+# Tiny helper so the test above can reference the canonical list without
+# requiring the import to be inside the class definition.
+_CALIB_LABELS_FOR_TEST = ('unanimous', 'mild_dissent', 'controversial',
+                          'highly_controversial')
+
+
 class TestOptionUINoCalibrationLeak:
     """v1.4.8 — Option-card UI must not reveal calibration / opposer-count.
 

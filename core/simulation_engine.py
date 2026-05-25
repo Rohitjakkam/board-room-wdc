@@ -108,7 +108,87 @@ def generate_scenario(llm: object, company_data: Dict,
             "(unresolved: %s). Stances will fall back to dynamic generation.",
             max_attempts, "; ".join(last_errors),
         )
+        # Diagnostic capture — dump the raw scenario + parse result + errors so
+        # we can investigate why the LLM consistently produced bad output.
+        try:
+            _dump_scenario_debug(last_scenario, opts if 'opts' in dir() else [], last_errors,
+                                  round_config, company_data, player_role)
+        except Exception:
+            logger.exception("Failed to dump scenario debug artifact (non-fatal)")
+
+    # ── FINAL SAFETY NET — guarantee the player always sees 4 options ──
+    # Reparse the (possibly best-effort) scenario, then synthesize placeholders
+    # for any missing option slots. The synthesized options are appended to the
+    # scenario string in new format so any downstream re-parse will pick them up.
+    # Closes the unconditional "always 4 options" requirement.
+    final_opts = parse_scenario_options(last_scenario)
+    if len(final_opts) < 4:
+        before = len(final_opts)
+        padded = _ensure_four_options(list(final_opts), company_data, player_role)
+        synthesized = [o for o in padded if o.get('synthesized')]
+        logger.warning(
+            "generate_scenario: synthesizing %d placeholder option(s) after parsing yielded "
+            "only %d. Letters synthesized: %s. Guarantees the player sees 4 options.",
+            len(synthesized), before, [o['letter'] for o in synthesized],
+        )
+        # Append synthesized options to the scenario text in new format so any
+        # caller that re-parses last_scenario gets the full 4.
+        for opt in synthesized:
+            last_scenario += _format_option_as_scenario_block(opt)
     return last_scenario
+
+
+def _dump_scenario_debug(scenario: str, parsed_options: List[Dict],
+                          errors: List[str], round_config: Dict,
+                          company_data: Dict, player_role: Dict) -> None:
+    """Persist the raw LLM scenario + parse result + validation errors when
+    generate_scenario falls back to best-effort. Files are written to
+    `_scenario_debug/` at the project root so they survive across sessions and
+    can be reviewed without needing to reproduce the exact failure."""
+    import datetime
+    import json
+    import os
+
+    debug_dir = os.path.join(os.getcwd(), '_scenario_debug')
+    try:
+        os.makedirs(debug_dir, exist_ok=True)
+    except OSError:
+        return  # CWD might be read-only; don't crash the game
+
+    stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+    company = (company_data.get('company_name', 'unknown')[:40]
+               .replace(' ', '_').replace('/', '_'))
+    fname = f"scenario_failure_{stamp}_{company}_r{round_config.get('round_number', '?')}.json"
+    path = os.path.join(debug_dir, fname)
+
+    artifact = {
+        'timestamp': datetime.datetime.now().isoformat(timespec='seconds'),
+        'company': company_data.get('company_name'),
+        'round_config': round_config,
+        'player_role': player_role,
+        'parse_errors': errors,
+        'parsed_options_count': len(parsed_options),
+        'parsed_options_summary': [
+            {
+                'letter': o.get('letter'),
+                'calibration': o.get('calibration'),
+                'calibration_label_from_llm': o.get('calibration_label_from_llm'),
+                'opposers': sum(1 for v in (o.get('stance_distribution') or {}).values()
+                                if v == 'OPPOSE'),
+                'text_chars': len(o.get('text', '')),
+                'text_preview': (o.get('text') or '')[:200],
+            }
+            for o in parsed_options
+        ],
+        'raw_scenario_chars': len(scenario),
+        'raw_scenario': scenario,
+    }
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(artifact, f, indent=2, default=str)
+        logger.warning("Scenario debug artifact saved: %s", path)
+    except Exception:
+        logger.exception("Could not write scenario debug artifact to %s", path)
 
 
 def get_board_member_response(llm: object, members: List[Dict],
@@ -1280,106 +1360,242 @@ def _parse_counters_line(line: str) -> Dict[str, str]:
     return result
 
 
-def parse_scenario_options(scenario: str) -> List[Dict]:
-    """Parse options from scenario text.
+_CALIB_LABELS = ('unanimous', 'mild_dissent', 'controversial', 'highly_controversial')
 
-    Supports two formats:
 
-    1. NEW (v1.4.7+) — calibrated, with pre-baked stance distribution:
-           OPTION A | CALIBRATION: unanimous
-           ACTION: [text]
-           STANCES: Name1=APPROVE, ...
-           COUNTERS: Name1: text | Name2: text
+# Generic placeholder ACTION text per calibration tier — used by the synthesized
+# fallback when the LLM fails to produce 4 options after all retries. Designed
+# to be plausible boardroom actions independent of the specific scenario, with
+# clear progression from consensus to highly contested.
+_PLACEHOLDER_ACTIONS = {
+    'unanimous': (
+        "Convene the relevant standing committee, engage external counsel as needed, "
+        "and prepare a transparent communication plan with all material stakeholders "
+        "before taking further action. Document the deliberation process and rationale "
+        "for the board record, and disclose findings promptly per the board's duty of candor."
+    ),
+    'mild_dissent': (
+        "Take measured action within the board's existing governance authority, balancing "
+        "speed against thoroughness. Engage with affected committees and key external "
+        "advisors. Some board members may raise concerns about timing or implementation "
+        "specifics, but the overall direction aligns with established governance practice."
+    ),
+    'controversial': (
+        "Pursue an assertive approach that prioritizes decisiveness over consensus, "
+        "accepting that several board members will object on procedural or risk-management "
+        "grounds. The chair and management would need to actively rally support and address "
+        "specific concerns about the direction before the board fully aligns."
+    ),
+    'highly_controversial': (
+        "Take a decisive, high-risk action that materially departs from established governance "
+        "norms and customary board oversight. The board would largely oppose this on multiple "
+        "grounds — legal exposure, reputational risk, procedural propriety, or fiduciary duty. "
+        "Significant persuasion and additional safeguards would be required to proceed."
+    ),
+}
 
-       Returned dict keys: letter, text, calibration, stance_distribution, counters
 
-    2. OLD — bare letter lines (A) text, B) text, ...). Returned dict keys:
-           letter, text  (no stance metadata — caller falls back to dynamic LLM stances).
+def _synthesize_placeholder_option(letter: str, calibration: str,
+                                    non_player_members: List[Dict]) -> Dict:
+    """Build a generic placeholder option for a missing letter + calibration tier.
 
-    The parser tries NEW format first; on failure (zero blocks matched) it
-    falls back to OLD format. This preserves backward compat with checkpointed
-    scenarios from earlier sessions.
+    Used as a last-resort fallback when the LLM consistently fails to produce
+    4 options after all retries. The result is clearly tagged so the UI can
+    surface the synthesis to the player and so audit harnesses can distinguish
+    real LLM content from filler.
+    """
+    opposer_targets = {'unanimous': 0, 'mild_dissent': 2,
+                       'controversial': 3, 'highly_controversial': 4}
+    opposers_target = opposer_targets.get(calibration, 2)
+    # Cap at the non-player member count for small boards
+    opposers_target = min(opposers_target, len(non_player_members))
+
+    # Round-robin assignment so different placeholders don't always pick the same opposers
+    opposing = non_player_members[:opposers_target]
+    opposing_names = {m['name'] for m in opposing}
+    stances = {m['name']: ('OPPOSE' if m['name'] in opposing_names else 'APPROVE')
+               for m in non_player_members}
+    counters = {
+        m['name']: (f"{m.get('role', 'Board member')} raises concerns about this approach "
+                    f"based on their {m.get('expertise', 'domain')} expertise.")
+        for m in opposing
+    }
+    action = (_PLACEHOLDER_ACTIONS.get(calibration, _PLACEHOLDER_ACTIONS['mild_dissent'])
+              + " [Synthesized fallback — the model did not produce a complete option in time.]")
+
+    return {
+        'letter': letter,
+        'text': action,
+        'calibration': calibration,
+        'calibration_label_from_llm': None,
+        'stance_distribution': stances,
+        'counters': counters,
+        'synthesized': True,
+    }
+
+
+def _ensure_four_options(options: List[Dict], company_data: Dict,
+                         player_role: Dict) -> List[Dict]:
+    """Pad an options list to exactly 4 by synthesizing placeholders for the
+    missing letters and missing calibration tiers. Called as the LAST step
+    after all LLM retries — guarantees the player always sees 4 options."""
+    if len(options) >= 4:
+        return options
+
+    have_letters = {o.get('letter') for o in options if o.get('letter')}
+    have_calibrations = {o.get('calibration') for o in options if o.get('calibration')}
+    all_letters = ['A', 'B', 'C', 'D']
+    all_calibrations = list(_CALIB_LABELS)
+    missing_letters = [l for l in all_letters if l not in have_letters]
+    missing_calibrations = [c for c in all_calibrations if c not in have_calibrations]
+
+    non_player_members = [m for m in company_data.get('board_members', [])
+                          if m.get('name') != player_role.get('name')]
+
+    # Pair missing letters with missing calibrations one-to-one; if more letters
+    # than calibrations (e.g., LLM produced 2 controversial options), reuse
+    # mild_dissent as a sensible default for the leftover slots.
+    for i, letter in enumerate(missing_letters):
+        if i < len(missing_calibrations):
+            calibration = missing_calibrations[i]
+        else:
+            calibration = 'mild_dissent'
+        options.append(_synthesize_placeholder_option(letter, calibration, non_player_members))
+
+    options.sort(key=lambda o: o.get('letter', 'Z'))
+    return options
+
+
+def _format_option_as_scenario_block(opt: Dict) -> str:
+    """Serialize a synthesized option back into the new-format text block so
+    callers can append it to the raw scenario string and re-parse cleanly."""
+    stances_line = ', '.join(f"{name}={stance}"
+                              for name, stance in (opt.get('stance_distribution') or {}).items())
+    counters = opt.get('counters') or {}
+    if counters:
+        counters_line = ' | '.join(f"{name}: {text}" for name, text in counters.items())
+    else:
+        counters_line = '(none)'
+    return (
+        f"\n\nOPTION {opt['letter']} | CALIBRATION: {opt.get('calibration', 'mild_dissent')}\n"
+        f"ACTION: {opt['text']}\n"
+        f"STANCES: {stances_line}\n"
+        f"COUNTERS: {counters_line}\n"
+    )
+
+
+def _parse_new_format_options(scenario: str) -> List[Dict]:
+    """Parse v1.4.7+ calibrated-format options. Tolerant of format variations
+    the LLM commonly produces.
+
+    Tolerated variations on the OPTION header line:
+      OPTION A | CALIBRATION: unanimous          (canonical)
+      **OPTION A** | CALIBRATION: unanimous       (markdown bold)
+      OPTION A: CALIBRATION: unanimous            (colon instead of pipe)
+      OPTION A | unanimous                        (missing CALIBRATION: prefix)
+      OPTION A (unanimous)                        (parens)
+      OPTION A — CALIBRATION: unanimous           (em-dash separator)
+      OPTION A                                    (no calibration on header — derive from stances)
     """
     import re
 
-    options: List[Dict] = []
-
-    # ── NEW format: blocks like 'OPTION A | CALIBRATION: ...' ──
-    block_pattern = re.compile(
-        r'(?ms)^\s*OPTION\s+([A-D])\s*(?:\|\s*CALIBRATION:\s*(\w+))?\s*\n'
-        r'(?:\s*ACTION:\s*(.*?))?'
-        r'(?=^\s*OPTION\s+[A-D]|^\s*IMPACT_SUMMARY:|^\s*$\Z|\Z)'
+    # Find every line that looks like an OPTION header, regardless of separator.
+    # We capture the letter and the rest of the line (for calibration extraction).
+    header_re = re.compile(
+        r'(?m)^[\s\*_]*OPTION\s+([A-D])\b[\s\*_]*([^\n]*)',
+        re.IGNORECASE,
     )
-    # The above is awkward — easier to split on ^OPTION X lines and parse each chunk
-    # Split on the OPTION header line and process each chunk
-    blocks = re.split(r'(?m)^\s*OPTION\s+([A-D])\s*(?:\|\s*CALIBRATION:\s*(\w+))?\s*$',
-                      scenario)
-    # blocks = [preamble, letter1, calib1, content1, letter2, calib2, content2, ...]
-    if len(blocks) >= 4:  # at least one block produced
-        i = 1
-        while i + 2 < len(blocks):
-            letter = blocks[i]
-            calibration = (blocks[i + 1] or '').strip().lower() or None
-            content = blocks[i + 2] or ''
-            i += 3
+    # Extract a calibration label from anywhere in the header's trailing text
+    calib_re = re.compile(
+        r'\b(' + '|'.join(_CALIB_LABELS) + r')\b',
+        re.IGNORECASE,
+    )
 
-            action_text = ''
-            stances = {}
-            counters = {}
+    matches = list(header_re.finditer(scenario))
+    if not matches:
+        return []
 
-            # Within this block, look for ACTION:, STANCES:, COUNTERS:
-            for field, regex in (
-                ('action',   r'(?ms)^\s*ACTION:\s*(.*?)(?=^\s*(?:STANCES|COUNTERS):|\Z)'),
-                ('stances',  r'(?m)^\s*STANCES:\s*(.+?)$'),
-                ('counters', r'(?m)^\s*COUNTERS:\s*(.+?)$'),
-            ):
-                m = re.search(regex, content)
-                if not m:
-                    continue
-                val = m.group(1).strip()
-                if field == 'action':
-                    action_text = val
-                elif field == 'stances':
-                    stances = _parse_stances_line(val)
-                elif field == 'counters':
-                    counters = _parse_counters_line(val)
+    options: List[Dict] = []
+    for idx, m in enumerate(matches):
+        letter = m.group(1).upper()
+        header_trail = m.group(2) or ''
+        calib_match = calib_re.search(header_trail)
+        calibration = calib_match.group(1).lower() if calib_match else None
 
-            if action_text or stances:
-                # Derive calibration from the ACTUAL opposer count rather than
-                # trusting the LLM's label (the LLM sometimes mislabels — e.g.
-                # writes "controversial" but only emits 2 OPPOSE). The opposer
-                # count is the ground truth used by deterministic stance generation
-                # and by the calibration validator, so any audit / UI / picker
-                # that uses 'calibration' stays consistent with the data.
-                opposer_count = sum(1 for v in stances.values() if v == 'OPPOSE')
-                derived_calibration = _calibration_from_opposers(opposer_count, len(stances))
-                if calibration and derived_calibration and calibration != derived_calibration:
-                    logger.warning(
-                        "parse_scenario_options: option %s label '%s' disagrees with "
-                        "opposer count %d (derived='%s') — using derived value.",
-                        letter, calibration, opposer_count, derived_calibration,
-                    )
-                options.append({
-                    'letter': letter,
-                    'text': action_text,
-                    'calibration': derived_calibration or calibration,
-                    'calibration_label_from_llm': calibration,  # kept for audit / debugging
-                    'stance_distribution': stances,
-                    'counters': counters,
-                })
+        # Block content runs from end of this header to start of next header (or EOF)
+        block_start = m.end()
+        block_end = matches[idx + 1].start() if idx + 1 < len(matches) else len(scenario)
+        content = scenario[block_start:block_end]
 
-    if options:
-        if len(options) < 4:
+        # ── ACTION (the option text) ──
+        # Tolerate: ACTION:, ACTION —, ACTION -, just text after the header,
+        # markdown bold like **ACTION:**, etc.
+        action_text = ''
+        action_match = re.search(
+            r'(?ms)^[\s\*_]*ACTION[\s\*_]*[:\-—–]\s*(.*?)(?=^[\s\*_]*(?:STANCES|COUNTERS|OPTION)\b|\Z)',
+            content,
+        )
+        if action_match:
+            action_text = action_match.group(1).strip()
+        else:
+            # No explicit ACTION: marker — use everything before STANCES/COUNTERS
+            stripped = re.split(r'(?m)^[\s\*_]*(?:STANCES|COUNTERS)\b', content, maxsplit=1)
+            action_text = stripped[0].strip()
+        # Strip any trailing markdown bold markers + extra whitespace
+        action_text = action_text.strip('*_ \n\t')
+
+        # ── STANCES ──
+        stances: Dict[str, str] = {}
+        stances_match = re.search(
+            r'(?m)^[\s\*_]*STANCES[\s\*_]*[:\-—–]\s*(.+?)$',
+            content,
+        )
+        if stances_match:
+            stances = _parse_stances_line(stances_match.group(1))
+
+        # ── COUNTERS ──
+        counters: Dict[str, str] = {}
+        counters_match = re.search(
+            r'(?m)^[\s\*_]*COUNTERS[\s\*_]*[:\-—–]\s*(.+?)$',
+            content,
+        )
+        if counters_match:
+            counters = _parse_counters_line(counters_match.group(1))
+
+        # Skip options with nothing parseable (truncated by token limit, etc.)
+        if not (action_text or stances):
+            continue
+
+        opposer_count = sum(1 for v in stances.values() if v == 'OPPOSE')
+        derived_calibration = _calibration_from_opposers(opposer_count, len(stances))
+        if calibration and derived_calibration and calibration != derived_calibration:
             logger.warning(
-                f"parse_scenario_options (new format): only {len(options)} option(s) "
-                "parsed (expected 4). Scenario may be malformed."
+                "parse_scenario_options: option %s label '%s' disagrees with "
+                "opposer count %d (derived='%s') — using derived value.",
+                letter, calibration, opposer_count, derived_calibration,
             )
-        return options
 
-    # ── OLD format fallback: bare 'A)' / 'A.' line markers ──
+        options.append({
+            'letter': letter,
+            'text': action_text,
+            'calibration': derived_calibration or calibration,
+            'calibration_label_from_llm': calibration,
+            'stance_distribution': stances,
+            'counters': counters,
+        })
+
+    return options
+
+
+def _parse_old_format_options(scenario: str) -> List[Dict]:
+    """Parse the bare 'A) text' / 'A. text' format (legacy). Returns options
+    without stance_distribution — caller falls back to dynamic LLM stances."""
+    options: List[Dict] = []
     current_option = None
     for line in scenario.split('\n'):
         line = line.strip()
+        # Strip common markdown wrappers around the letter prefix
+        line = line.lstrip('*_# ').rstrip()
         for letter in ['A', 'B', 'C', 'D']:
             if line.startswith(f"{letter})") or line.startswith(f"{letter}."):
                 if current_option:
@@ -1387,15 +1603,61 @@ def parse_scenario_options(scenario: str) -> List[Dict]:
                 option_text = line[2:].strip()
                 current_option = {"letter": letter, "text": option_text}
                 break
-
     if current_option:
         options.append(current_option)
+    return options
+
+
+def parse_scenario_options(scenario: str) -> List[Dict]:
+    """Parse options from scenario text. Multi-tier parser.
+
+    Tries:
+      1. NEW v1.4.7+ calibrated format (tolerant of markdown bold, colons,
+         parens, missing CALIBRATION: prefix, em-dashes).
+      2. If new format yields <4 options, ALSO try OLD format and fill the
+         gaps (by letter) — useful when the LLM mixed formats or only the
+         first few options have the new headers.
+      3. If still <4 options, return what we have. Caller / generate_scenario's
+         retry loop decides whether to regenerate.
+
+    The hybrid step (2) closes a real failure mode reported by clients:
+    sometimes the LLM partially follows the new format (e.g. 2 options with
+    OPTION/CALIBRATION headers, 2 options with bare 'C)' / 'D)' lines).
+    Without the hybrid step the user would see only 2 options.
+
+    Returned dict keys:
+      letter, text, calibration (or None), stance_distribution (or {}), counters (or {}).
+    """
+    # ── Tier 1: NEW format with tolerant headers ──
+    options = _parse_new_format_options(scenario)
+    have_letters = {o['letter'] for o in options}
+
+    # ── Tier 2: hybrid fallback ──
+    if len(options) < 4:
+        old_options = _parse_old_format_options(scenario)
+        # Fill gaps by letter — don't overwrite a successfully parsed new-format option
+        for old in old_options:
+            if old['letter'] not in have_letters and old.get('text'):
+                # Old-format options have no stance metadata. Caller will fall
+                # back to dynamic LLM stance generation for these.
+                options.append({
+                    'letter': old['letter'],
+                    'text': old['text'],
+                    'calibration': None,
+                    'calibration_label_from_llm': None,
+                    'stance_distribution': {},
+                    'counters': {},
+                })
+                have_letters.add(old['letter'])
+
+    # Sort by letter so output order is stable
+    options.sort(key=lambda o: o.get('letter', 'Z'))
 
     if 0 < len(options) < 4:
         logger.warning(
-            f"parse_scenario_options (old format): only {len(options)} option(s) parsed "
-            "(expected 4). Scenario may be malformed or LLM did not follow the "
-            "OPTIONS TO CONSIDER format."
+            "parse_scenario_options: only %d option(s) parsed (expected 4). "
+            "Scenario may be malformed or truncated by token limit.",
+            len(options),
         )
 
     return options

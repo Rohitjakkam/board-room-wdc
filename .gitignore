@@ -28,3 +28,7 @@ Desktop.ini
 
 # Data (optional: uncomment to track simulation data)
 # data/
+
+# Runtime diagnostics — captured raw scenarios when parse falls back to
+# synthesized options. Reviewed locally; not for source control.
+_scenario_debug/

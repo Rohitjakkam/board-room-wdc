@@ -39,11 +39,19 @@ def initialize_scenario_llm(api_key: str) -> _GeminiModel:
 
     Uses a stronger model for better instruction following on scenarios
     (correct character perspective, accurate option-to-character mapping).
+
+    Token budget: a calibrated scenario emits 4 options × (3-5 sentence ACTION +
+    STANCES line listing every non-player member + COUNTERS line with one
+    objection per OPPOSE member) PLUS the SCENARIO TITLE / SITUATION / KEY
+    QUESTION / STAKEHOLDERS / TIME SENSITIVITY blocks. On a 4-5 member board
+    this lands around 1500-3000 tokens; we set 6144 so the 4th option can't be
+    truncated even when board sizes or sentence lengths run long (closes a
+    client-reported issue where the 4th option occasionally went missing).
     """
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
         temperature=0.7,
-        max_output_tokens=4096,
+        max_output_tokens=6144,
     )
     return _GeminiModel(client, "gemini-2.5-flash", config)
 
