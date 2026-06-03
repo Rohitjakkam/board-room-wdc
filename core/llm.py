@@ -16,11 +16,11 @@ class _GeminiModel:
         self._model = model_name
         self._config = config
 
-    def generate_content(self, prompt: str):
+    def generate_content(self, prompt: str, config_override: types.GenerateContentConfig | None = None):
         return self._client.models.generate_content(
             model=self._model,
             contents=prompt,
-            config=self._config,
+            config=config_override if config_override is not None else self._config,
         )
 
 

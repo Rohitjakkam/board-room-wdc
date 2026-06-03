@@ -17,6 +17,13 @@ from enum import Enum
 from google import genai as _genai_mod
 from google.genai import types as _genai_types
 
+# Canonical scenario generation + parsing — keeps app.py (legacy entry) in sync
+# with the structured-output path used by main.py / pages/simulation.py.
+from core.simulation_engine import (
+    generate_scenario,
+    parse_scenario_options,
+)
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -512,19 +519,6 @@ C) [Third option - brief description]
 D) [Fourth option - brief description]
 
 Make sure each option is distinct and represents a different strategic approach."""
-
-
-def generate_scenario(llm: object, company_data: Dict,
-                      module_data: Dict, round_config: Dict, player_role: Dict) -> str:
-    """Generate a new scenario for the current round"""
-    prompt = get_scenario_generator_prompt(company_data, module_data, round_config, player_role)
-
-    full_prompt = f"""You are an expert corporate governance simulation designer.
-
-{prompt}"""
-
-    response = llm.generate_content(full_prompt)
-    return response.text
 
 
 def get_board_member_response(llm: object, members: List[Dict],
@@ -1304,29 +1298,6 @@ def display_module_info(module_data: Dict):
             st.markdown(f"**{topic['name']}**")
             st.markdown(f"_{topic['description']}_")
             st.markdown("---")
-
-
-def parse_scenario_options(scenario: str) -> List[Dict]:
-    """Parse options from scenario text"""
-    options = []
-    lines = scenario.split('\n')
-
-    current_option = None
-    for line in lines:
-        line = line.strip()
-        # Look for options like A), B), C), D) or A., B., C., D.
-        for letter in ['A', 'B', 'C', 'D']:
-            if line.startswith(f"{letter})") or line.startswith(f"{letter}."):
-                if current_option:
-                    options.append(current_option)
-                option_text = line[2:].strip()
-                current_option = {"letter": letter, "text": option_text}
-                break
-
-    if current_option:
-        options.append(current_option)
-
-    return options
 
 
 def generate_game_goals(metrics: Dict, total_rounds: int) -> List[Dict]:

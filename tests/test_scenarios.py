@@ -2087,5 +2087,168 @@ class TestFullRoundSimulation:
         assert 'Round 2' in prompt
 
 
+# ===========================================================================
+# 10. STRUCTURED OUTPUT — v1.4.11 scenario_schema + generate_scenario rewrite
+# ===========================================================================
+class TestScenarioStructuredOutput:
+    """Verify the structured-output rewrite that replaced the regex parser.
+
+    Covers: schema validation, text rendering round-trip, generate_scenario
+    passes response_schema to the API, and the API call uses a config override
+    rather than mutating the LLM's baseline config.
+    """
+
+    def _valid_scenario_dict(self):
+        """A minimal-but-valid ScenarioResponse dict (5 board members, calibrated)."""
+        return {
+            'title': 'Quarterly Crisis',
+            'situation': 'Revenue is down. Costs are up.',
+            'key_question': 'How should the board respond?',
+            'stakeholders': ['Shareholders', 'Employees'],
+            'time_sensitivity': 'High',
+            'options': [
+                {'letter': 'A', 'calibration': 'unanimous', 'action': 'Do A.',
+                 'stances': [{'member_name': n, 'stance': 'APPROVE'}
+                             for n in ['M1', 'M2', 'M3', 'M4']],
+                 'counters': []},
+                {'letter': 'B', 'calibration': 'mild_dissent', 'action': 'Do B.',
+                 'stances': [{'member_name': 'M1', 'stance': 'APPROVE'},
+                             {'member_name': 'M2', 'stance': 'OPPOSE'},
+                             {'member_name': 'M3', 'stance': 'APPROVE'},
+                             {'member_name': 'M4', 'stance': 'OPPOSE'}],
+                 'counters': [{'member_name': 'M2', 'objection': 'too risky'},
+                              {'member_name': 'M4', 'objection': 'too slow'}]},
+                {'letter': 'C', 'calibration': 'controversial', 'action': 'Do C.',
+                 'stances': [{'member_name': 'M1', 'stance': 'OPPOSE'},
+                             {'member_name': 'M2', 'stance': 'OPPOSE'},
+                             {'member_name': 'M3', 'stance': 'APPROVE'},
+                             {'member_name': 'M4', 'stance': 'OPPOSE'}],
+                 'counters': [{'member_name': 'M1', 'objection': 'no'},
+                              {'member_name': 'M2', 'objection': 'bad'},
+                              {'member_name': 'M4', 'objection': 'wrong'}]},
+                {'letter': 'D', 'calibration': 'highly_controversial', 'action': 'Do D.',
+                 'stances': [{'member_name': n, 'stance': 'OPPOSE'}
+                             for n in ['M1', 'M2', 'M3', 'M4']],
+                 'counters': [{'member_name': n, 'objection': 'no'}
+                              for n in ['M1', 'M2', 'M3', 'M4']]},
+            ],
+        }
+
+    def test_schema_validates_well_formed_response(self):
+        from core.scenario_schema import ScenarioResponse
+        resp = ScenarioResponse.model_validate(self._valid_scenario_dict())
+        assert len(resp.options) == 4
+        assert resp.time_sensitivity == 'High'
+
+    def test_schema_rejects_fewer_than_four_options(self):
+        from core.scenario_schema import ScenarioResponse
+        from pydantic import ValidationError
+        d = self._valid_scenario_dict()
+        d['options'] = d['options'][:3]
+        with pytest.raises(ValidationError):
+            ScenarioResponse.model_validate(d)
+
+    def test_schema_rejects_invalid_calibration(self):
+        from core.scenario_schema import ScenarioResponse
+        from pydantic import ValidationError
+        d = self._valid_scenario_dict()
+        d['options'][0]['calibration'] = 'super_controversial'  # not in Literal
+        with pytest.raises(ValidationError):
+            ScenarioResponse.model_validate(d)
+
+    def test_schema_rejects_invalid_stance(self):
+        from core.scenario_schema import ScenarioResponse
+        from pydantic import ValidationError
+        d = self._valid_scenario_dict()
+        d['options'][0]['stances'][0]['stance'] = 'ABSTAIN'
+        with pytest.raises(ValidationError):
+            ScenarioResponse.model_validate(d)
+
+    def test_render_text_round_trips_through_parser(self):
+        """_render_scenario_text output must parse cleanly via parse_scenario_options."""
+        from core.scenario_schema import ScenarioResponse
+        from core.simulation_engine import _render_scenario_text, parse_scenario_options
+        resp = ScenarioResponse.model_validate(self._valid_scenario_dict())
+        text = _render_scenario_text(resp)
+        opts = parse_scenario_options(text)
+        assert len(opts) == 4
+        assert [o['letter'] for o in opts] == ['A', 'B', 'C', 'D']
+        # Calibration derived from opposer count — should match labels for our valid fixture
+        cals = [o['calibration'] for o in opts]
+        assert cals == ['unanimous', 'mild_dissent', 'controversial', 'highly_controversial']
+
+    def test_render_text_contains_canonical_section_headers(self):
+        from core.scenario_schema import ScenarioResponse
+        from core.simulation_engine import _render_scenario_text
+        resp = ScenarioResponse.model_validate(self._valid_scenario_dict())
+        text = _render_scenario_text(resp)
+        for header in ('SCENARIO TITLE:', 'SITUATION:', 'KEY QUESTION:',
+                       'STAKEHOLDERS AFFECTED:', 'TIME SENSITIVITY:',
+                       'OPTIONS TO CONSIDER:', 'OPTION A | CALIBRATION:'):
+            assert header in text, f"missing header: {header}"
+
+    def test_render_text_emits_none_for_options_without_counters(self):
+        from core.scenario_schema import ScenarioResponse
+        from core.simulation_engine import _render_scenario_text
+        resp = ScenarioResponse.model_validate(self._valid_scenario_dict())
+        text = _render_scenario_text(resp)
+        # Option A has no counters → renderer should emit "COUNTERS: (none)"
+        assert 'COUNTERS: (none)' in text
+
+    def test_generate_scenario_passes_response_schema_to_api(self):
+        """generate_scenario must call llm.generate_content with a config_override
+        whose response_schema is ScenarioResponse and mime type is application/json."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import generate_scenario
+        from core.scenario_schema import ScenarioResponse
+        import json
+
+        valid = self._valid_scenario_dict()
+        # Mock LLM returns a JSON string matching the schema
+        mock_llm = MagicMock()
+        mock_response = MagicMock()
+        mock_response.text = json.dumps(valid)
+        mock_llm.generate_content.return_value = mock_response
+
+        company = {
+            'company_name': 'TestCo',
+            'company_overview': 'overview',
+            'current_problems': ['p1', 'p2'],
+            'metrics': {},
+            'board_members': [
+                {'name': 'P', 'role': 'Player'},
+                {'name': 'M1', 'role': 'CFO'},
+                {'name': 'M2', 'role': 'CMO'},
+                {'name': 'M3', 'role': 'CRO'},
+                {'name': 'M4', 'role': 'Lead'},
+            ],
+        }
+        module = {'module_name': 'M', 'overview': 'o', 'learning_objectives': ['x']}
+        round_cfg = {'round_number': 1, 'difficulty': 'medium',
+                     'focus_area': 'Test', 'round_type': 'both'}
+        player = {'name': 'P', 'role': 'Player', 'expertise': 'x'}
+
+        result = generate_scenario(mock_llm, company, module, round_cfg, player)
+
+        # API was called with a config_override
+        call_kwargs = mock_llm.generate_content.call_args.kwargs
+        assert 'config_override' in call_kwargs, "generate_scenario must use config_override"
+        cfg = call_kwargs['config_override']
+        assert cfg.response_mime_type == 'application/json'
+        assert cfg.response_schema is ScenarioResponse
+
+        # Returned text is the canonical rendered format (not the raw JSON)
+        assert 'SCENARIO TITLE: Quarterly Crisis' in result
+        assert 'OPTION A | CALIBRATION: unanimous' in result
+
+    def test_app_py_re_exports_canonical_generate_scenario(self):
+        """app.py (legacy entry) must delegate to core.simulation_engine,
+        not redefine generate_scenario locally."""
+        import app
+        from core import simulation_engine
+        assert app.generate_scenario is simulation_engine.generate_scenario
+        assert app.parse_scenario_options is simulation_engine.parse_scenario_options
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])

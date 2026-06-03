@@ -3,10 +3,13 @@ LLM-driven simulation operations — scenario generation, board responses,
 decision evaluation, stance generation, debate evaluation.
 """
 
+import json
 import logging
 import time
 from google.api_core import exceptions as google_exceptions
-from typing import Dict, List
+from google.genai import types as genai_types
+from pydantic import ValidationError
+from typing import Dict, List, Optional
 
 from core.llm import (
     get_board_member_prompt,
@@ -16,6 +19,7 @@ from core.llm import (
     get_consultation_alignment_prompt,
     get_scenario_generator_prompt,
 )
+from core.scenario_schema import ScenarioResponse
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +31,18 @@ _RETRYABLE_EXCEPTIONS = (
 )
 
 
-def _call_llm(llm, prompt, max_retries=3):
-    """Call Gemini API with exponential backoff retry on transient errors."""
+def _call_llm(llm, prompt, max_retries=3, config_override: Optional[genai_types.GenerateContentConfig] = None):
+    """Call Gemini API with exponential backoff retry on transient errors.
+
+    config_override lets callers (e.g. structured-output scenario generation)
+    swap in a per-call config without affecting the model's baseline config.
+    """
     for attempt in range(max_retries + 1):
         try:
-            response = llm.generate_content(prompt)
+            if config_override is not None:
+                response = llm.generate_content(prompt, config_override=config_override)
+            else:
+                response = llm.generate_content(prompt)
             return response.text
         except _RETRYABLE_EXCEPTIONS as e:
             if attempt == max_retries:
@@ -49,34 +60,53 @@ def generate_scenario(llm: object, company_data: Dict,
                       max_attempts: int = 3) -> str:
     """Generate a new scenario for the current round.
 
-    Validates that the LLM produced 4 calibrated options matching the
-    distribution contract (0/2/3+/3+ opposers). Retries once with a stricter
-    addendum if validation fails. After max_attempts, returns the best-effort
-    output so the game can proceed — caller is responsible for falling back
-    to dynamic stances when calibration is missing.
+    Uses Gemini structured output (response_schema=ScenarioResponse) so the
+    model emits JSON conforming to the schema — eliminating regex parsing
+    failures that previously caused the "got 0 options" production bug.
+
+    The returned value is still the canonical text format (SCENARIO TITLE /
+    OPTIONS TO CONSIDER / OPTION X | CALIBRATION: ...) so downstream consumers
+    (member-stance prompts, session storage, debug artifacts, the legacy
+    parse_scenario_options) continue to work unchanged.
+
+    Retry loop targets the calibration distribution contract (0/2/3+/3+
+    opposers), not the format — schema enforcement makes format failures
+    impossible. The placeholder synthesizer remains as a defense-in-depth net.
     """
     prompt = get_scenario_generator_prompt(company_data, module_data, round_config, player_role,
                                            previous_rounds=previous_rounds)
     base_prompt = f"""You are an expert corporate governance simulation designer.
 
-{prompt}"""
+{prompt}
+
+OUTPUT FORMAT: Return your response as JSON matching the provided schema. The
+schema fields map to the format above as follows: title → SCENARIO TITLE,
+situation → SITUATION, key_question → KEY QUESTION, stakeholders → list of
+affected parties, time_sensitivity → one of Low / Moderate / High / Urgent,
+options → exactly 4 entries with letter / calibration / action / stances /
+counters. Every option's stances list must include every non-player board
+member exactly once."""
 
     non_player_count = max(1, sum(
         1 for m in company_data.get('board_members', [])
         if m.get('name') != player_role.get('name')
     ))
 
+    structured_config = genai_types.GenerateContentConfig(
+        temperature=0.7,
+        max_output_tokens=6144,
+        response_mime_type='application/json',
+        response_schema=ScenarioResponse,
+    )
+
     last_scenario = ''
     last_errors: List[str] = []
+    last_opts: List[Dict] = []
     for attempt in range(max_attempts):
         full_prompt = base_prompt
         if attempt > 0 and last_errors:
-            # Re-emit with a stricter calibration reminder. The recap below names
-            # the exact opposer counts because the LLM most often errs by producing
-            # two mild_dissent (2 opposers each) instead of one mild + one
-            # highly_controversial.
             full_prompt += (
-                "\n\nPREVIOUS ATTEMPT FAILED VALIDATION:\n"
+                "\n\nPREVIOUS ATTEMPT FAILED CALIBRATION VALIDATION:\n"
                 + "\n".join(f"- {e}" for e in last_errors)
                 + "\n\nFIX THESE ISSUES. The 4 options' OPPOSE counts MUST be EXACTLY one each of:\n"
                 "  - one option with 0 OPPOSE (unanimous)\n"
@@ -85,22 +115,30 @@ def generate_scenario(llm: object, company_data: Dict,
                 "  - one option with 4 OPPOSE (highly_controversial; or all non-player members "
                 f"if there are fewer than 4)\n"
                 "Count your OPPOSE entries before emitting. Do NOT produce two options at the "
-                "same calibration tier. Use the OPTION X | CALIBRATION format strictly."
+                "same calibration tier."
             )
-        last_scenario = _call_llm(llm, full_prompt)
+
+        raw_json = _call_llm(llm, full_prompt, config_override=structured_config)
         try:
-            opts = parse_scenario_options(last_scenario)
-            last_errors = validate_option_calibration(opts, non_player_count)
-            if not last_errors:
-                return last_scenario
-            logger.warning(
-                "generate_scenario attempt %d/%d failed validation: %s",
-                attempt + 1, max_attempts, "; ".join(last_errors),
-            )
-        except Exception as e:
-            logger.exception("generate_scenario parse/validate error on attempt %d: %s",
-                             attempt + 1, e)
-            last_errors = [str(e)]
+            parsed = ScenarioResponse.model_validate_json(raw_json)
+        except (ValidationError, ValueError) as e:
+            # Schema failure is rare with response_schema enforced, but possible
+            # if the API returns malformed JSON. Log and retry.
+            logger.warning("generate_scenario attempt %d/%d: schema validation failed: %s",
+                           attempt + 1, max_attempts, e)
+            last_errors = [f"schema validation: {e}"]
+            last_scenario = raw_json or ''
+            continue
+
+        last_scenario = _render_scenario_text(parsed)
+        last_opts = _scenario_response_to_options(parsed)
+        last_errors = validate_option_calibration(last_opts, non_player_count)
+        if not last_errors:
+            return last_scenario
+        logger.warning(
+            "generate_scenario attempt %d/%d failed calibration validation: %s",
+            attempt + 1, max_attempts, "; ".join(last_errors),
+        )
 
     if last_errors:
         logger.warning(
@@ -108,19 +146,15 @@ def generate_scenario(llm: object, company_data: Dict,
             "(unresolved: %s). Stances will fall back to dynamic generation.",
             max_attempts, "; ".join(last_errors),
         )
-        # Diagnostic capture — dump the raw scenario + parse result + errors so
-        # we can investigate why the LLM consistently produced bad output.
         try:
-            _dump_scenario_debug(last_scenario, opts if 'opts' in dir() else [], last_errors,
+            _dump_scenario_debug(last_scenario, last_opts, last_errors,
                                   round_config, company_data, player_role)
         except Exception:
             logger.exception("Failed to dump scenario debug artifact (non-fatal)")
 
     # ── FINAL SAFETY NET — guarantee the player always sees 4 options ──
-    # Reparse the (possibly best-effort) scenario, then synthesize placeholders
-    # for any missing option slots. The synthesized options are appended to the
-    # scenario string in new format so any downstream re-parse will pick them up.
-    # Closes the unconditional "always 4 options" requirement.
+    # With structured output this branch should be unreachable, but keeping it
+    # as defense-in-depth in case schema validation fails on every attempt.
     final_opts = parse_scenario_options(last_scenario)
     if len(final_opts) < 4:
         before = len(final_opts)
@@ -131,11 +165,67 @@ def generate_scenario(llm: object, company_data: Dict,
             "only %d. Letters synthesized: %s. Guarantees the player sees 4 options.",
             len(synthesized), before, [o['letter'] for o in synthesized],
         )
-        # Append synthesized options to the scenario text in new format so any
-        # caller that re-parses last_scenario gets the full 4.
         for opt in synthesized:
             last_scenario += _format_option_as_scenario_block(opt)
     return last_scenario
+
+
+def _render_scenario_text(resp: ScenarioResponse) -> str:
+    """Render a structured ScenarioResponse into the canonical text format
+    that downstream consumers (member-stance prompts, session storage,
+    parse_scenario_options, parse_scenario_sections, debug artifacts) expect.
+    """
+    parts = [
+        f"SCENARIO TITLE: {resp.title}",
+        "",
+        f"SITUATION:\n{resp.situation}",
+        "",
+        f"KEY QUESTION:\n{resp.key_question}",
+        "",
+        f"STAKEHOLDERS AFFECTED:\n{', '.join(resp.stakeholders)}",
+        "",
+        f"TIME SENSITIVITY:\n{resp.time_sensitivity}",
+        "",
+        "OPTIONS TO CONSIDER:",
+        "",
+    ]
+
+    for opt in resp.options:
+        stances_line = ', '.join(f"{s.member_name}={s.stance}" for s in opt.stances)
+        if opt.counters:
+            counters_line = ' | '.join(f"{c.member_name}: {c.objection}" for c in opt.counters)
+        else:
+            counters_line = '(none)'
+        parts.extend([
+            f"OPTION {opt.letter} | CALIBRATION: {opt.calibration}",
+            f"ACTION: {opt.action}",
+            f"STANCES: {stances_line}",
+            f"COUNTERS: {counters_line}",
+            "",
+        ])
+
+    return "\n".join(parts)
+
+
+def _scenario_response_to_options(resp: ScenarioResponse) -> List[Dict]:
+    """Convert a structured ScenarioResponse into the list-of-dicts shape that
+    validate_option_calibration and the rest of the codebase expect (matches
+    parse_scenario_options output)."""
+    out: List[Dict] = []
+    for opt in resp.options:
+        stance_distribution = {s.member_name: s.stance for s in opt.stances}
+        counters = {c.member_name: c.objection for c in opt.counters}
+        opposer_count = sum(1 for v in stance_distribution.values() if v == 'OPPOSE')
+        derived = _calibration_from_opposers(opposer_count, len(stance_distribution))
+        out.append({
+            'letter': opt.letter,
+            'text': opt.action,
+            'calibration': derived or opt.calibration,
+            'calibration_label_from_llm': opt.calibration,
+            'stance_distribution': stance_distribution,
+            'counters': counters,
+        })
+    return out
 
 
 def _dump_scenario_debug(scenario: str, parsed_options: List[Dict],
