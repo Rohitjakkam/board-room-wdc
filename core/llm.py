@@ -25,13 +25,13 @@ class _GeminiModel:
 
 
 def initialize_llm(api_key: str) -> _GeminiModel:
-    """Initialize Gemini 2.0 Flash Lite model (used for most LLM calls)."""
+    """Initialize Gemini 2.5 Flash Lite model (used for most LLM calls)."""
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
         temperature=0.7,
         max_output_tokens=2048,
     )
-    return _GeminiModel(client, "gemini-2.0-flash-lite", config)
+    return _GeminiModel(client, "gemini-2.5-flash-lite", config)
 
 
 def initialize_scenario_llm(api_key: str) -> _GeminiModel:

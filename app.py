@@ -273,13 +273,13 @@ class _AppGeminiModel:
             model=self._model, contents=prompt, config=self._config)
 
 def initialize_llm(api_key: str) -> _AppGeminiModel:
-    """Initialize Gemini 2.0 Flash Lite model"""
+    """Initialize Gemini 2.5 Flash Lite model"""
     client = _genai_mod.Client(api_key=api_key)
     config = _genai_types.GenerateContentConfig(
         temperature=0.7,
         max_output_tokens=2048,
     )
-    return _AppGeminiModel(client, "gemini-2.0-flash-lite", config)
+    return _AppGeminiModel(client, "gemini-2.5-flash-lite", config)
 
 
 def get_board_member_prompt(member: Dict, company_data: Dict, module_data: Dict) -> str:

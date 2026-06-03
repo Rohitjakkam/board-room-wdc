@@ -1979,11 +1979,11 @@ class TestScenarioModel:
         assert 'gemini-2.5-flash' in src
 
     def test_default_llm_uses_flash_lite(self):
-        """initialize_llm should still use the faster gemini-2.0-flash-lite."""
+        """initialize_llm should still use the faster gemini-2.5-flash-lite."""
         import inspect
         from core.llm import initialize_llm
         src = inspect.getsource(initialize_llm)
-        assert 'gemini-2.0-flash-lite' in src
+        assert 'gemini-2.5-flash-lite' in src
 
     def test_scenario_llm_has_higher_token_limit(self):
         """Scenario model needs MORE tokens than the default LLM so the 4th

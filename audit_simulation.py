@@ -642,7 +642,7 @@ def main():
     report = {
         'company_name': company_data['company_name'],
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds'),
-        'model': 'gemini-2.0-flash-lite',
+        'model': 'gemini-2.5-flash-lite',
         'total_rounds': TOTAL_ROUNDS,
         'round_scale': TOTAL_ROUNDS / 5.0,
         'player_role': player_role,

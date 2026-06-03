@@ -725,7 +725,7 @@ def main():
     report = {
         'company_name': company_data['company_name'],
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds'),
-        'model': 'gemini-2.0-flash-lite',
+        'model': 'gemini-2.5-flash-lite',
         'total_rounds': TOTAL_ROUNDS,
         'player_role': player_role,
         'initial_metrics': snapshot_metrics(initial_metrics),

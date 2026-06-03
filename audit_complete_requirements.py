@@ -883,7 +883,7 @@ def main() -> int:
 
     audit_data: Dict = {
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds'),
-        'model': 'gemini-2.0-flash-lite',
+        'model': 'gemini-2.5-flash-lite',
         'elapsed_seconds': elapsed,
         'pytest': pytest_result,
         'initial_metrics': snapshot_metrics(initial_metrics),
