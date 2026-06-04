@@ -20,6 +20,7 @@ from core.llm import (
     get_scenario_generator_prompt,
 )
 from core.scenario_schema import ScenarioResponse
+from core.admin_agents import _salvage_truncated_json
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +93,23 @@ member exactly once."""
         if m.get('name') != player_role.get('name')
     ))
 
+    # Token budget rationale (v1.4.12 hardening after JSON-truncation failures
+    # in production logs):
+    #   - max_output_tokens=16384: JSON output is ~25-40% more verbose than the
+    #     equivalent text format (key names, quotes, braces, indentation). A
+    #     calibrated scenario across 5-7 board members can run 2000-3000 tokens
+    #     of JSON; 16384 gives generous headroom plus room for unusually long
+    #     ACTION text in complex regulatory scenarios. Gemini 2.5 Flash supports
+    #     up to 65536, so we are nowhere near the model cap.
+    #   - thinking_budget=1024: empirically thinking on this prompt class lands
+    #     between 700-3500 tokens, with the tail-risk being the cause of the
+    #     production "EOF while parsing" failures (thinking consumed the
+    #     response budget). Capping at 1024 keeps useful chain-of-thought for
+    #     calibration logic while reserving 15000+ tokens for the actual JSON.
     structured_config = genai_types.GenerateContentConfig(
         temperature=0.7,
-        max_output_tokens=6144,
+        max_output_tokens=16384,
+        thinking_config=genai_types.ThinkingConfig(thinking_budget=1024),
         response_mime_type='application/json',
         response_schema=ScenarioResponse,
     )
@@ -102,6 +117,7 @@ member exactly once."""
     last_scenario = ''
     last_errors: List[str] = []
     last_opts: List[Dict] = []
+    last_raw_json = ''
     for attempt in range(max_attempts):
         full_prompt = base_prompt
         if attempt > 0 and last_errors:
@@ -118,16 +134,11 @@ member exactly once."""
                 "same calibration tier."
             )
 
-        raw_json = _call_llm(llm, full_prompt, config_override=structured_config)
-        try:
-            parsed = ScenarioResponse.model_validate_json(raw_json)
-        except (ValidationError, ValueError) as e:
-            # Schema failure is rare with response_schema enforced, but possible
-            # if the API returns malformed JSON. Log and retry.
-            logger.warning("generate_scenario attempt %d/%d: schema validation failed: %s",
-                           attempt + 1, max_attempts, e)
-            last_errors = [f"schema validation: {e}"]
-            last_scenario = raw_json or ''
+        last_raw_json = _call_llm(llm, full_prompt, config_override=structured_config)
+        parsed = _parse_scenario_json_with_salvage(last_raw_json, attempt + 1, max_attempts)
+        if parsed is None:
+            last_errors = [f"schema validation: JSON parse and salvage both failed"]
+            last_scenario = last_raw_json or ''
             continue
 
         last_scenario = _render_scenario_text(parsed)
@@ -148,7 +159,8 @@ member exactly once."""
         )
         try:
             _dump_scenario_debug(last_scenario, last_opts, last_errors,
-                                  round_config, company_data, player_role)
+                                  round_config, company_data, player_role,
+                                  raw_json=last_raw_json)
         except Exception:
             logger.exception("Failed to dump scenario debug artifact (non-fatal)")
 
@@ -168,6 +180,102 @@ member exactly once."""
         for opt in synthesized:
             last_scenario += _format_option_as_scenario_block(opt)
     return last_scenario
+
+
+def _parse_scenario_json_with_salvage(raw_json: str, attempt: int, max_attempts: int) -> Optional[ScenarioResponse]:
+    """Parse a structured-output JSON response. Tries strict Pydantic parse
+    first; if that fails (typically a MAX_TOKENS truncation), reuses the
+    proven _salvage_truncated_json from core.admin_agents to recover the
+    last-complete JSON state, then re-validates against the partial schema.
+
+    Returns None when both strict parse and salvage fail — caller logs and
+    falls through to retry or the placeholder synthesizer.
+
+    The salvage path can yield a ScenarioResponse with fewer than 4 options
+    when the truncation cut off mid-options; the caller's calibration
+    validator + _ensure_four_options safety net handle that case.
+    """
+    if not raw_json:
+        logger.warning("generate_scenario attempt %d/%d: empty response", attempt, max_attempts)
+        return None
+    try:
+        return ScenarioResponse.model_validate_json(raw_json)
+    except (ValidationError, ValueError) as strict_err:
+        logger.warning(
+            "generate_scenario attempt %d/%d: strict parse failed (%s); attempting salvage of %d chars",
+            attempt, max_attempts, str(strict_err)[:140], len(raw_json),
+        )
+
+    # Salvage path — strip code fences if any, trim to last complete JSON state,
+    # auto-close open containers, then relax the 4-option schema constraint so
+    # a partial scenario (e.g. 3 options recovered, 1 truncated) still validates.
+    try:
+        salvaged_text = _salvage_truncated_json(raw_json)
+        data = json.loads(salvaged_text)
+    except Exception as salvage_err:
+        logger.warning(
+            "generate_scenario attempt %d/%d: salvage also failed (%s)",
+            attempt, max_attempts, str(salvage_err)[:140],
+        )
+        return None
+
+    # Salvage may have produced a partial response missing required fields
+    # (key_question, stakeholders, etc.) or fewer than 4 options. Fill in
+    # safe defaults so the partial-but-usable content makes it through to
+    # the placeholder synthesizer.
+    data.setdefault('title', 'Recovered Scenario')
+    data.setdefault('situation', '')
+    data.setdefault('key_question', '')
+    data.setdefault('stakeholders', [])
+    data.setdefault('time_sensitivity', 'High')
+    options = data.get('options') or []
+    # Drop options missing required fields rather than fail validation on them
+    valid_options = []
+    for opt in options:
+        if not isinstance(opt, dict):
+            continue
+        if not all(k in opt for k in ('letter', 'calibration', 'action', 'stances')):
+            continue
+        opt.setdefault('counters', [])
+        valid_options.append(opt)
+    data['options'] = valid_options
+
+    if not valid_options:
+        logger.warning(
+            "generate_scenario attempt %d/%d: salvage recovered 0 valid options",
+            attempt, max_attempts,
+        )
+        return None
+
+    # Temporarily relax the 4-option constraint to admit partial scenarios.
+    # The downstream synthesizer adds placeholders for the missing letters.
+    try:
+        partial_dict = dict(data)
+        # Pad to 4 options with throwaway entries that pass schema but get
+        # replaced by _ensure_four_options later. Each must have the minimum
+        # required fields.
+        while len(partial_dict['options']) < 4:
+            existing_letters = {o.get('letter') for o in partial_dict['options']}
+            next_letter = next(L for L in ['A', 'B', 'C', 'D'] if L not in existing_letters)
+            partial_dict['options'].append({
+                'letter': next_letter,
+                'calibration': 'mild_dissent',
+                'action': '[Truncated — pending synthesis]',
+                'stances': [],
+                'counters': [],
+            })
+        recovered = ScenarioResponse.model_validate(partial_dict)
+        logger.info(
+            "generate_scenario attempt %d/%d: salvage succeeded — recovered %d real option(s)",
+            attempt, max_attempts, len(valid_options),
+        )
+        return recovered
+    except (ValidationError, ValueError) as e:
+        logger.warning(
+            "generate_scenario attempt %d/%d: salvage re-validation failed: %s",
+            attempt, max_attempts, str(e)[:140],
+        )
+        return None
 
 
 def _render_scenario_text(resp: ScenarioResponse) -> str:
@@ -230,7 +338,8 @@ def _scenario_response_to_options(resp: ScenarioResponse) -> List[Dict]:
 
 def _dump_scenario_debug(scenario: str, parsed_options: List[Dict],
                           errors: List[str], round_config: Dict,
-                          company_data: Dict, player_role: Dict) -> None:
+                          company_data: Dict, player_role: Dict,
+                          raw_json: str = '') -> None:
     """Persist the raw LLM scenario + parse result + validation errors when
     generate_scenario falls back to best-effort. Files are written to
     `_scenario_debug/` at the project root so they survive across sessions and
@@ -272,6 +381,8 @@ def _dump_scenario_debug(scenario: str, parsed_options: List[Dict],
         ],
         'raw_scenario_chars': len(scenario),
         'raw_scenario': scenario,
+        'raw_json_chars': len(raw_json),
+        'raw_json': raw_json,
     }
     try:
         with open(path, 'w', encoding='utf-8') as f:

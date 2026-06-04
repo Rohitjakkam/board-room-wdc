@@ -2250,5 +2250,137 @@ class TestScenarioStructuredOutput:
         assert app.parse_scenario_options is simulation_engine.parse_scenario_options
 
 
+# ===========================================================================
+# 11. TRUNCATION HARDENING — v1.4.12 thinking-budget cap + salvage
+# ===========================================================================
+class TestScenarioTruncationHardening:
+    """Verify v1.4.12 defenses against MAX_TOKENS truncation:
+    - thinking_budget capped on the scenario config
+    - max_output_tokens raised generously above prior 6144
+    - _parse_scenario_json_with_salvage recovers partial scenarios from
+      truncated JSON instead of returning None / synthesizing all 4 options.
+    """
+
+    def test_structured_config_caps_thinking_budget(self):
+        """generate_scenario must cap thinking_budget so it can't eat the
+        output budget under tail-risk thinking-token consumption."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import generate_scenario
+        import json
+
+        valid = {
+            'title': 'T', 'situation': 'S', 'key_question': 'Q',
+            'stakeholders': ['X'], 'time_sensitivity': 'High',
+            'options': [
+                {'letter': L, 'calibration': c, 'action': 'a',
+                 'stances': [{'member_name': 'M', 'stance': 'APPROVE'}],
+                 'counters': []}
+                for L, c in zip('ABCD', ['unanimous', 'mild_dissent', 'controversial', 'highly_controversial'])
+            ],
+        }
+        mock_llm = MagicMock()
+        mock_response = MagicMock(); mock_response.text = json.dumps(valid)
+        mock_llm.generate_content.return_value = mock_response
+
+        company = {'company_name': 'TC', 'company_overview': '', 'current_problems': [], 'metrics': {},
+                   'board_members': [{'name': 'P', 'role': 'P'}, {'name': 'M', 'role': 'M'}]}
+        module = {'module_name': 'M', 'overview': '', 'learning_objectives': []}
+        round_cfg = {'round_number': 1, 'difficulty': 'easy', 'focus_area': 'x', 'round_type': 'both'}
+        player = {'name': 'P', 'role': 'P', 'expertise': 'x'}
+
+        generate_scenario(mock_llm, company, module, round_cfg, player)
+
+        cfg = mock_llm.generate_content.call_args.kwargs['config_override']
+        assert cfg.thinking_config is not None, "thinking_config must be set"
+        assert cfg.thinking_config.thinking_budget == 1024, \
+            f"thinking_budget should be capped at 1024, got {cfg.thinking_config.thinking_budget}"
+
+    def test_structured_config_has_generous_output_budget(self):
+        """max_output_tokens must accommodate JSON verbosity (≥12k since JSON
+        runs ~25-40% larger than equivalent text format)."""
+        from unittest.mock import MagicMock
+        from core.simulation_engine import generate_scenario
+        import json
+
+        valid = {
+            'title': 'T', 'situation': 'S', 'key_question': 'Q',
+            'stakeholders': ['X'], 'time_sensitivity': 'High',
+            'options': [
+                {'letter': L, 'calibration': c, 'action': 'a',
+                 'stances': [{'member_name': 'M', 'stance': 'APPROVE'}],
+                 'counters': []}
+                for L, c in zip('ABCD', ['unanimous', 'mild_dissent', 'controversial', 'highly_controversial'])
+            ],
+        }
+        mock_llm = MagicMock()
+        mock_response = MagicMock(); mock_response.text = json.dumps(valid)
+        mock_llm.generate_content.return_value = mock_response
+
+        company = {'company_name': 'TC', 'company_overview': '', 'current_problems': [], 'metrics': {},
+                   'board_members': [{'name': 'P', 'role': 'P'}, {'name': 'M', 'role': 'M'}]}
+        module = {'module_name': 'M', 'overview': '', 'learning_objectives': []}
+        round_cfg = {'round_number': 1, 'difficulty': 'easy', 'focus_area': 'x', 'round_type': 'both'}
+        player = {'name': 'P', 'role': 'P', 'expertise': 'x'}
+
+        generate_scenario(mock_llm, company, module, round_cfg, player)
+
+        cfg = mock_llm.generate_content.call_args.kwargs['config_override']
+        assert cfg.max_output_tokens >= 12288, \
+            f"max_output_tokens should be ≥12288 to accommodate JSON, got {cfg.max_output_tokens}"
+
+    def test_salvage_recovers_partial_options_from_truncated_json(self):
+        """When JSON is cut off mid-option, salvage should recover the
+        complete options and pad with placeholders to satisfy the schema."""
+        from core.simulation_engine import _parse_scenario_json_with_salvage
+
+        # Two complete options, third truncated mid-string
+        truncated = '''{
+          "title": "Sample",
+          "situation": "Crisis.",
+          "key_question": "What?",
+          "stakeholders": ["X"],
+          "time_sensitivity": "High",
+          "options": [
+            {
+              "letter": "A",
+              "calibration": "unanimous",
+              "action": "Do A.",
+              "stances": [{"member_name": "M1", "stance": "APPROVE"}],
+              "counters": []
+            },
+            {
+              "letter": "B",
+              "calibration": "mild_dissent",
+              "action": "Do B.",
+              "stances": [{"member_name": "M1", "stance": "OPPOSE"}],
+              "counters": [{"member_name": "M1", "objection": "no'''  # cut mid-string
+
+        result = _parse_scenario_json_with_salvage(truncated, 1, 3)
+        assert result is not None, "Salvage should recover at least the complete options"
+        assert len(result.options) == 4, "Should pad to exactly 4 options"
+        # First option fully recovered
+        assert result.options[0].letter == 'A'
+        assert result.options[0].action == 'Do A.'
+        # At least one option marked as pending synthesis
+        placeholders = [o for o in result.options if o.action == '[Truncated — pending synthesis]']
+        assert len(placeholders) >= 1, "Truncated options should be flagged as pending synthesis"
+
+    def test_salvage_returns_none_when_no_options_recoverable(self):
+        """If salvage can't recover even one valid option, parser must
+        return None so the caller retries or falls through to the placeholder
+        synthesizer — not return a misleading 'success' with all placeholders."""
+        from core.simulation_engine import _parse_scenario_json_with_salvage
+
+        # Truncated before any complete option
+        too_truncated = '{"title": "x", "situation"'
+        assert _parse_scenario_json_with_salvage(too_truncated, 1, 3) is None
+
+    def test_salvage_handles_empty_response(self):
+        """Empty response must return None without raising."""
+        from core.simulation_engine import _parse_scenario_json_with_salvage
+        assert _parse_scenario_json_with_salvage('', 1, 3) is None
+        assert _parse_scenario_json_with_salvage(None, 1, 3) is None
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])
